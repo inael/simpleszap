@@ -10,8 +10,8 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors({
   origin: [
-    'https://appsimpleszap.com',
-    'https://www.appsimpleszap.com',
+    'https://app.simpleszap.com',
+    'https://www.app.simpleszap.com',
     'http://localhost:3000'
   ],
   credentials: true
