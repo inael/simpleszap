@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                String   @id @default(uuid())
+  clerkId           String   @unique
+  email             String   @unique
+  name              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  
+  instances         Instance[]
+  apiKeys           ApiKey[]
+}
+
+model SubscriptionPlan {
+  id                String   @id // 'free', 'basic', 'pro', 'enterprise'
+  name              String
+  description       String?
+  priceMonthly      Decimal  @db.Decimal(10, 2) @default(0)
+  priceAnnual       Decimal  @db.Decimal(10, 2) @default(0)
+  
+  // Limits
+  messagesPerDay    Int      @default(100)
+  instancesLimit    Int      @default(1)
+  
+  // Features
+  hasWebhooks       Boolean  @default(false)
+  hasTemplates      Boolean  @default(false)
+  hasSmsIncluded    Boolean  @default(false)
+  
+  // Payment
+  asaasId           String? // ID do produto no Asaas
+  
+  isActive          Boolean  @default(true)
+  displayOrder      Int      @default(0)
+  
+  users             User[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("subscription_plans")
+}
+
+model Instance {
+  id                String   @id @default(uuid())
+  name              String
+  status            String   @default("disconnected") // disconnected, connecting, connected
+  serverUrl         String?  // URL da Evolution API para esta instancia (se multi-server)
+  token             String?  // Token da Evolution API
+  
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ApiKey {
+  id                String   @id @default(uuid())
+  key               String   @unique
+  name              String?
+  
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime?
+}
