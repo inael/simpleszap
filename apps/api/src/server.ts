@@ -12,6 +12,8 @@ app.use(cors({
   origin: [
     'https://app.simpleszap.com',
     'https://www.app.simpleszap.com',
+    'https://simpleszap.com',
+    'https://www.simpleszap.com',
     'http://localhost:3000'
   ],
   credentials: true
