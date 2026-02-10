@@ -8,7 +8,14 @@ dotenv.config({ path: '../../.env' }); // Load from root
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://appsimpleszap.com',
+    'https://www.appsimpleszap.com',
+    'http://localhost:3000'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use('/api', routes);
