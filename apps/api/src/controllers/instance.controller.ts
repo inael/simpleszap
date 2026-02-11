@@ -16,10 +16,23 @@ export class InstanceController {
       where: userId ? { userId } : {},
     });
 
-    // Optionally sync status with Evolution?
-    // const evoInstances = await EvolutionService.fetchInstances();
-    
-    res.json(instances);
+    // Optionally sync status with Evolution
+    try {
+        const evoInstances = await EvolutionService.fetchInstances();
+        // Simple sync: Update status in memory for response (or update DB)
+        // For now, let's map the status if found
+        const syncedInstances = instances.map(inst => {
+            const evo = Array.isArray(evoInstances) ? evoInstances.find((e: any) => e.instance.instanceName === inst.id || e.instance.instanceName === inst.name) : null;
+            return {
+                ...inst,
+                status: evo ? evo.instance.status : 'disconnected' // Fallback if not found
+            };
+        });
+        return res.json(syncedInstances);
+    } catch (e) {
+        console.warn("Failed to sync with Evolution API, returning DB state");
+        return res.json(instances);
+    }
   }
 
   static async create(req: Request, res: Response) {

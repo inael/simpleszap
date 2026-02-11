@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.EVOLUTION_API_URL;
+const BASE_URL = process.env.EVOLUTION_API_URL || 'https://whatsapp.toolpad.cloud';
 const API_KEY = process.env.EVOLUTION_API_KEY; // Global API Key if needed, or instance token
 
 export class EvolutionService {
