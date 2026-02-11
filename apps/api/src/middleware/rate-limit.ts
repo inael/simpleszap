@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
-import { redis } from '../lib/redis';
+// import { redis } from '../lib/redis';
 
 export const rateLimit = async (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers['x-api-key'] as string;
@@ -35,16 +35,62 @@ export const rateLimit = async (req: Request, res: Response, next: NextFunction)
     const limit = plan.messagesPerDay;
     if (limit === -1) return next(); // Unlimited
 
-    // 2. Check Redis
-    const today = new Date().toISOString().split('T')[0];
-    const key = `usage:${user.id}:${today}`;
-
-    const currentUsage = await redis.incr(key);
+    // 2. Check Usage (DB based)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
     
-    // Set expiry if new key (24h)
-    if (currentUsage === 1) {
-      await redis.expire(key, 86400);
+    // Find or create usage record for today
+    // Note: Concurrency might be an issue here for high volume, but for "SimpleZap" it's likely acceptable.
+    // For stricter locking, we'd need raw SQL or interactive transactions, but let's keep it simple first.
+    let usage = await prisma.dailyUsage.findUnique({
+      where: {
+        userId_date: {
+          userId: user.id,
+          date: today
+        }
+      }
+    });
+
+    if (!usage) {
+      // If it doesn't exist, create it (might fail if race condition, so we can try/catch or upsert)
+       try {
+        usage = await prisma.dailyUsage.create({
+          data: {
+            userId: user.id,
+            date: today,
+            count: 1 // Count the current request tentatively? Or just 0 and increment later?
+            // Usually we check limit first. Let's start at 0 if we assume increment happens after success,
+            // OR we implement "token bucket" style where we increment NOW.
+            // Let's increment NOW to be safe against spam.
+          }
+        });
+       } catch (e) {
+         // Race condition: created by another request in parallel
+         usage = await prisma.dailyUsage.findUnique({
+            where: { userId_date: { userId: user.id, date: today } }
+         });
+         
+         // If still null (weird), default to dummy
+         if (!usage) {
+            // Should not happen unless DB error
+            return next(); 
+         }
+         
+         // Since we failed to create (already existed), we need to increment the existing one
+         usage = await prisma.dailyUsage.update({
+           where: { id: usage.id },
+           data: { count: { increment: 1 } }
+         });
+       }
+    } else {
+      // Usage exists, increment it
+      usage = await prisma.dailyUsage.update({
+        where: { id: usage.id },
+        data: { count: { increment: 1 } }
+      });
     }
+
+    const currentUsage = usage.count;
 
     if (currentUsage > limit) {
       return res.status(429).json({ 

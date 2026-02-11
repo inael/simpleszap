@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { EvolutionService } from '../services/evolution.service';
 import { prisma } from '../lib/prisma';
+import { messageQueue } from '../lib/queue';
 
 export class InstanceController {
   static async list(req: Request, res: Response) {
