@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes';
-// import { startWorker } from './lib/queue';
 
 dotenv.config({ path: '../../.env' }); // Load from root
 
@@ -10,7 +9,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Start background worker
-// startWorker();
 
 app.use(cors({
   origin: [
