@@ -4,18 +4,17 @@ import crypto from 'crypto';
 
 export class ApiKeyController {
   static async list(req: Request, res: Response) {
-      // TODO: auth
-      const { userId } = req.body; // mock
-      if(!userId) return res.status(400).json({error: "UserId required"});
+      const orgId = req.headers['x-org-id'] as string;
+      if(!orgId) return res.status(400).json({error: "orgId required"});
 
-      const keys = await prisma.apiKey.findMany({ where: { userId }});
+      const keys = await prisma.apiKey.findMany({ where: { orgId }});
       res.json(keys);
   }
 
   static async create(req: Request, res: Response) {
     const { userId, name } = req.body;
-    
-    if (!userId) return res.status(400).json({error: "UserId required"});
+    const orgId = req.headers['x-org-id'] as string;
+    if (!orgId) return res.status(400).json({error: "orgId required"});
 
     const key = 'sk_' + crypto.randomBytes(24).toString('hex');
     
@@ -24,7 +23,8 @@ export class ApiKeyController {
         data: {
           key,
           name: name || 'Default Key',
-          userId
+          userId,
+          orgId
         }
       });
       res.json(apiKey);

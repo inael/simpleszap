@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Smartphone,
   MessageSquare,
+  Users,
   Settings,
   HelpCircle,
   Key,
@@ -34,6 +35,18 @@ const routes = [
     icon: MessageSquare,
     href: "/dashboard/messages",
     color: "text-pink-700",
+  },
+  {
+    label: "Contatos",
+    icon: Users,
+    href: "/dashboard/contacts",
+    color: "text-blue-600",
+  },
+  {
+    label: "Templates",
+    icon: HelpCircle,
+    href: "/dashboard/templates",
+    color: "text-indigo-600",
   },
   {
     label: "Chaves de API",

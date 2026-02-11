@@ -10,20 +10,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { useAuth } from "@clerk/nextjs";
+import { useOrganization } from "@clerk/nextjs";
 import useSWR from "swr";
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function MessagesPage() {
-  const { userId } = useAuth();
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
   const [selectedInstance, setSelectedInstance] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   const { data: instances } = useSWR(
-    userId ? ["/instances", userId] : null,
-    ([url, uid]) => api.get(url, { headers: { "x-user-id": uid } }).then(res => res.data)
+    orgId ? ["/instances", orgId] : null,
+    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+  );
+  const { data: history, mutate: mutateHistory } = useSWR(
+    orgId ? ["/messages", orgId] : null,
+    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
   );
 
   const handleSend = async () => {
@@ -37,9 +43,10 @@ export default function MessagesPage() {
       await api.post(`/message/sendText/${selectedInstance}`, {
         number: phone,
         text: message
-      }, { headers: { "x-user-id": userId } });
+      }, { headers: { "x-org-id": orgId as string } });
       toast.success("Mensagem enviada!");
       setMessage("");
+      mutateHistory();
     } catch (e) {
       toast.error("Erro ao enviar mensagem.");
     } finally {
@@ -114,9 +121,28 @@ export default function MessagesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-10 text-muted-foreground">
-                Nenhuma mensagem enviada ainda.
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Para</TableHead>
+                    <TableHead>Instância</TableHead>
+                    <TableHead>Conteúdo</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {history?.map((m: any) => (
+                    <TableRow key={m.id}>
+                      <TableCell>{new Date(m.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{m.to}</TableCell>
+                      <TableCell>{m.instanceId}</TableCell>
+                      <TableCell className="max-w-[300px] truncate">{m.body}</TableCell>
+                      <TableCell>{m.status}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>

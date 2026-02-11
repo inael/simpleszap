@@ -18,26 +18,27 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth } from "@clerk/nextjs";
+import { useOrganization } from "@clerk/nextjs";
 import { toast } from "sonner";
 
 export default function InstancesPage() {
-  const { userId } = useAuth();
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
   const { data: instances, error, mutate } = useSWR(
-    userId ? ["/instances", userId] : null,
-    ([url, uid]) => api.get(url, { headers: { "x-user-id": uid } }).then(res => res.data)
+    orgId ? ["/instances", orgId] : null,
+    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
   );
 
   const handleCreate = async () => {
     if (!newInstanceName) return;
     setIsCreating(true);
     try {
-      await api.post("/instance/create", { name: newInstanceName, userId }, { headers: { "x-user-id": userId } });
+      await api.post("/instance/create", { name: newInstanceName, orgId }, { headers: { "x-org-id": orgId as string } });
       toast.success("Instância criada com sucesso!");
       setIsCreateOpen(false);
       setNewInstanceName("");
@@ -52,7 +53,7 @@ export default function InstancesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta instância?")) return;
     try {
-      await api.delete(`/instance/${id}`, { headers: { "x-user-id": userId } });
+      await api.delete(`/instance/${id}`, { headers: { "x-org-id": orgId as string } });
       toast.success("Instância removida.");
       mutate();
     } catch (e) {
@@ -62,7 +63,7 @@ export default function InstancesPage() {
 
   const handleConnect = async (instanceName: string) => {
       try {
-          const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-user-id": userId } });
+          const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-org-id": orgId as string } });
           // Evolution API v2 returns base64 in `qrcode.base64` or similar?
           // Checking service: return response.data directly.
           // Usually response.data.qrcode.base64 or just response.data.base64

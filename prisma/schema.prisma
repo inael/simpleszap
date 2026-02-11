@@ -60,6 +60,7 @@ model Instance {
   status            String   @default("disconnected") // disconnected, connecting, connected
   serverUrl         String?  // URL da Evolution API para esta instancia (se multi-server)
   token             String?  // Token da Evolution API
+  orgId             String?
   
   userId            String
   user              User     @relation(fields: [userId], references: [id])
@@ -72,7 +73,7 @@ model ApiKey {
   id                String   @id @default(uuid())
   key               String   @unique
   name              String?
-  
+  orgId             String?
   userId            String
   user              User     @relation(fields: [userId], references: [id])
   
@@ -82,6 +83,7 @@ model ApiKey {
 
 model DailyUsage {
   id        String   @id @default(uuid())
+  orgId     String?
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   date      DateTime @db.Date // Store only the date part
@@ -92,4 +94,37 @@ model DailyUsage {
 
   @@unique([userId, date])
   @@map("daily_usages")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  orgId       String
+  instanceId  String
+  to          String
+  body        String
+  type        String   @default("text") // text, image, audio, document
+  status      String   @default("queued") // queued, sent, delivered, failed
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  orgId     String
+  name      String
+  body      String
+  variables String?  // JSON array of variable names
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  orgId     String
+  name      String?
+  phone     String   @unique
+  tags      String?  // JSON array of strings
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

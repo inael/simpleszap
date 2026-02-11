@@ -1,19 +1,14 @@
 import { Request, Response } from 'express';
 import { EvolutionService } from '../services/evolution.service';
 import { prisma } from '../lib/prisma';
+import { EnforcementService } from '../services/enforcement.service';
 
 export class InstanceController {
   static async list(req: Request, res: Response) {
-    // TODO: Get userId from auth context
-    const userId = req.headers['x-user-id'] as string;
-    
-    if (!userId) {
-       // For testing purposes if no auth yet, return all or error
-       // return res.status(401).json({ error: 'Unauthorized' });
-    }
+    const orgId = req.headers['x-org-id'] as string;
 
     const instances = await prisma.instance.findMany({
-      where: userId ? { userId } : {},
+      where: orgId ? { orgId } : {},
     });
 
     // Optionally sync status with Evolution
@@ -36,18 +31,20 @@ export class InstanceController {
   }
 
   static async create(req: Request, res: Response) {
-    const { name, userId } = req.body; // Expect userId for now
+    const { name, orgId } = req.body;
 
-    if (!name || !userId) {
-      return res.status(400).json({ error: 'Name and userId are required' });
+    if (!name || !orgId) {
+      return res.status(400).json({ error: 'Name and orgId are required' });
     }
 
     try {
+      const allowed = await EnforcementService.canCreateInstance(orgId);
+      if (!allowed) return res.status(403).json({ error: 'Instance limit reached for your plan' });
       // 1. Create in DB first (pending)
       const instance = await prisma.instance.create({
         data: {
           name,
-          userId,
+          orgId,
           status: 'created'
         }
       });
@@ -100,11 +97,37 @@ export class InstanceController {
   static async sendText(req: Request, res: Response) {
     const { instanceId } = req.params;
     const { number, text } = req.body;
+    const orgId = req.headers['x-org-id'] as string;
 
     try {
+      const allowed = await EnforcementService.canSendMessage(orgId);
+      if (!allowed) return res.status(429).json({ error: 'Daily message limit reached' });
       const result = await EvolutionService.sendText(instanceId, number, text);
+      // Log message in DB
+      await prisma.message.create({
+        data: {
+          orgId,
+          instanceId,
+          to: number,
+          body: text,
+          type: 'text',
+          status: 'sent'
+        }
+      });
+      await EnforcementService.incrementMessageCount(orgId);
       res.json(result);
     } catch (error: any) {
+      await prisma.message.create({
+        data: {
+          orgId,
+          instanceId,
+          to: number,
+          body: text,
+          type: 'text',
+          status: 'failed',
+          error: error.message
+        }
+      });
       res.status(500).json({ error: error.message });
     }
   }
