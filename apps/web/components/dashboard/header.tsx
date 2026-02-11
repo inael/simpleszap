@@ -1,6 +1,6 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -30,7 +30,8 @@ export const Header = () => {
           <Sidebar />
         </SheetContent>
       </Sheet>
-      <div className="flex w-full justify-end">
+      <div className="flex w-full justify-end gap-x-4 items-center">
+        <OrganizationSwitcher hidePersonal />
         <UserButton afterSignOutUrl="/" />
       </div>
     </div>

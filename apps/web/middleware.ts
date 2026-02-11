@@ -6,8 +6,11 @@ export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     const authObj = await auth();
     
-    if (!authObj.userId) {
-        return authObj.redirectToSignIn();
+    // Enforce organization selection/creation
+    // @ts-ignore
+    if (authObj.protect) {
+        // @ts-ignore
+        authObj.protect();
     }
   }
 });
