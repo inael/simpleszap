@@ -20,7 +20,13 @@ app.use(cors({
   ],
   credentials: true
 }));
-app.use(express.json());
+
+// Capture raw body for webhook verification
+app.use(express.json({
+  verify: (req: any, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
 
 app.use('/api', routes);
 

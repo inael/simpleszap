@@ -3,12 +3,14 @@ import { InstanceController } from '../controllers/instance.controller';
 import { PricingController } from '../controllers/pricing.controller';
 import { AdminPlanController } from '../controllers/admin-plan.controller';
 import { ApiKeyController } from '../controllers/api-key.controller';
+import { WebhookController } from '../controllers/webhook.controller';
 import { rateLimit } from '../middleware/rate-limit';
 
 const router = Router();
 
 // Public Routes
 router.get('/pricing', PricingController.getPlans);
+router.post('/webhooks/clerk', WebhookController.handleClerk);
 
 // Instance Routes
 router.get('/instances', InstanceController.list);
