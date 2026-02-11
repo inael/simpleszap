@@ -9,7 +9,7 @@ export class PricingController {
         orderBy: { displayOrder: 'asc' }
       });
 
-      const formattedPlans = plans.map(plan => ({
+      const formattedPlans = plans.map((plan: any) => ({
         id: plan.id,
         name: plan.name,
         description: plan.description,
