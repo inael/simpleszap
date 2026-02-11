@@ -21,6 +21,7 @@ model User {
   
   instances         Instance[]
   apiKeys           ApiKey[]
+  dailyUsages       DailyUsage[]
 }
 
 model SubscriptionPlan {
@@ -77,4 +78,18 @@ model ApiKey {
   
   createdAt         DateTime @default(now())
   expiresAt         DateTime?
+}
+
+model DailyUsage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime @db.Date // Store only the date part
+  count     Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@map("daily_usages")
 }
