@@ -8,7 +8,11 @@ import { SubscriptionController } from '../controllers/subscription.controller';
 import { MessagesController } from '../controllers/messages.controller';
 import { ContactsController } from '../controllers/contacts.controller';
 import { TemplatesController } from '../controllers/templates.controller';
+import { WebhookConfigController } from '../controllers/webhook-config.controller';
+import { CampaignsController } from '../controllers/campaigns.controller';
 import { rateLimit } from '../middleware/rate-limit';
+import { orgAuth } from '../middleware/org-auth';
+import { requireScope } from '../middleware/scope-auth';
 
 const router = Router();
 
@@ -20,31 +24,43 @@ router.post('/webhooks/clerk', WebhookController.handleClerk);
 router.post('/subscription/checkout', SubscriptionController.createCheckout);
 
 // Instance Routes
-router.get('/instances', InstanceController.list);
-router.post('/instance/create', InstanceController.create);
+router.get('/instances', orgAuth, InstanceController.list);
+router.post('/instance/create', orgAuth, requireScope('instances:create'), InstanceController.create);
 router.get('/instance/qr/:id', InstanceController.getQr);
-router.delete('/instance/:id', InstanceController.delete);
+router.delete('/instance/:id', orgAuth, InstanceController.delete);
 
 // API Keys
-router.get('/api-keys', ApiKeyController.list);
-router.post('/api-keys', ApiKeyController.create);
+router.get('/api-keys', orgAuth, ApiKeyController.list);
+router.post('/api-keys', orgAuth, ApiKeyController.create);
 router.delete('/api-keys/:id', ApiKeyController.revoke);
 
 // Message Routes (Protected by Rate Limit)
-router.post('/message/sendText/:instanceId', rateLimit, InstanceController.sendText);
-router.get('/messages', MessagesController.list);
+router.post('/message/sendText/:instanceId', orgAuth, requireScope('messages:send'), rateLimit, InstanceController.sendText);
+router.get('/messages', orgAuth, MessagesController.list);
 
 // Contacts
-router.get('/contacts', ContactsController.list);
-router.post('/contacts', ContactsController.create);
-router.put('/contacts/:id', ContactsController.update);
-router.delete('/contacts/:id', ContactsController.remove);
+router.get('/contacts', orgAuth, ContactsController.list);
+router.post('/contacts', orgAuth, ContactsController.create);
+router.put('/contacts/:id', orgAuth, ContactsController.update);
+router.delete('/contacts/:id', orgAuth, ContactsController.remove);
 
 // Templates
-router.get('/templates', TemplatesController.list);
-router.post('/templates', TemplatesController.create);
-router.put('/templates/:id', TemplatesController.update);
-router.delete('/templates/:id', TemplatesController.remove);
+router.get('/templates', orgAuth, TemplatesController.list);
+router.post('/templates', orgAuth, TemplatesController.create);
+router.put('/templates/:id', orgAuth, TemplatesController.update);
+router.delete('/templates/:id', orgAuth, TemplatesController.remove);
+
+// Webhooks
+router.get('/webhooks/config', orgAuth, WebhookConfigController.list);
+router.post('/webhooks/config', orgAuth, WebhookConfigController.create);
+router.put('/webhooks/config/:id', orgAuth, WebhookConfigController.update);
+router.delete('/webhooks/config/:id', orgAuth, WebhookConfigController.remove);
+router.get('/webhooks/logs', orgAuth, WebhookConfigController.logs);
+
+// Campaigns
+router.get('/campaigns', orgAuth, CampaignsController.list);
+router.post('/campaigns', orgAuth, CampaignsController.create);
+router.post('/campaigns/:id/run', orgAuth, CampaignsController.run);
 
 // Admin Routes (TODO: Add Auth Middleware)
 router.get('/admin/plans', AdminPlanController.list);

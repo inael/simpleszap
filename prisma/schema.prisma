@@ -74,6 +74,7 @@ model ApiKey {
   key               String   @unique
   name              String?
   orgId             String?
+  scopes            String?
   userId            String
   user              User     @relation(fields: [userId], references: [id])
   
@@ -96,6 +97,49 @@ model DailyUsage {
   @@map("daily_usages")
 }
 
+model WebhookConfig {
+  id        String   @id @default(uuid())
+  orgId     String
+  url       String
+  events    String   // JSON array of event names
+  secret    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WebhookLog {
+  id         String   @id @default(uuid())
+  orgId      String
+  webhookId  String
+  event      String
+  payload    String
+  success    Boolean
+  statusCode Int?
+  error      String?
+  createdAt  DateTime @default(now())
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  orgId       String
+  name        String
+  instanceId  String
+  templateId  String?
+  segmentTags String?  // JSON array of tags
+  scheduledAt DateTime?
+  status      String   @default("draft") // draft, scheduled, running, done
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  orgId     String
+  actorId   String?
+  action    String
+  data      String?
+  createdAt DateTime @default(now())
+}
 model Message {
   id          String   @id @default(uuid())
   orgId       String

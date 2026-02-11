@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3';
-const API_KEY = process.env.ASAAS_API_KEY;
+const BASE_URL = process.env.ASAAS_API_URL || process.env.ASAS_APT_URL || 'https://sandbox.asaas.com/api/v3';
+const API_KEY = process.env.ASAAS_API_KEY || process.env.ASAS_APT_KEY;
 
 export class AsaasService {
   private static get headers() {

@@ -9,6 +9,7 @@ import {
   Smartphone,
   MessageSquare,
   Users,
+  Siren,
   Settings,
   HelpCircle,
   Key,
@@ -47,6 +48,18 @@ const routes = [
     icon: HelpCircle,
     href: "/dashboard/templates",
     color: "text-indigo-600",
+  },
+  {
+    label: "Webhooks",
+    icon: Siren,
+    href: "/dashboard/webhooks",
+    color: "text-red-600",
+  },
+  {
+    label: "Campanhas",
+    icon: HelpCircle,
+    href: "/dashboard/campaigns",
+    color: "text-fuchsia-600",
   },
   {
     label: "Chaves de API",

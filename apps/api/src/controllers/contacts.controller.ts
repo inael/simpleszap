@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { AuditService } from '../services/audit.service';
 
 export class ContactsController {
   static async list(req: Request, res: Response) {
@@ -14,6 +15,7 @@ export class ContactsController {
     const { name, phone, tags } = req.body;
     if (!orgId || !phone) return res.status(400).json({ error: 'orgId and phone required' });
     const contact = await prisma.contact.create({ data: { orgId, name, phone, tags } });
+    await AuditService.log(orgId, 'contact.create', undefined, { id: contact.id, phone });
     res.json(contact);
   }
 

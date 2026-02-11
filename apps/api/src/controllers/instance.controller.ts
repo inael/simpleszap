@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { EvolutionService } from '../services/evolution.service';
 import { prisma } from '../lib/prisma';
 import { EnforcementService } from '../services/enforcement.service';
+import { WebhookDeliveryService } from '../services/webhook-delivery.service';
+import { AuditService } from '../services/audit.service';
 
 export class InstanceController {
   static async list(req: Request, res: Response) {
@@ -48,6 +50,7 @@ export class InstanceController {
           status: 'created'
         }
       });
+      await AuditService.log(orgId, 'instance.create', undefined, { id: instance.id, name });
 
       // 2. Create in Evolution API
       // Use DB ID or Name as instance name in Evolution to ensure uniqueness? 
@@ -115,6 +118,7 @@ export class InstanceController {
         }
       });
       await EnforcementService.incrementMessageCount(orgId);
+      await WebhookDeliveryService.trigger(orgId, 'message.sent', { instanceId, number, text });
       res.json(result);
     } catch (error: any) {
       await prisma.message.create({
@@ -128,6 +132,7 @@ export class InstanceController {
           error: error.message
         }
       });
+      await WebhookDeliveryService.trigger(orgId, 'message.failed', { instanceId, number, text, error: error.message });
       res.status(500).json({ error: error.message });
     }
   }

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { AuditService } from '../services/audit.service';
 
 export class TemplatesController {
   static async list(req: Request, res: Response) {
@@ -14,6 +15,7 @@ export class TemplatesController {
     const { name, body, variables } = req.body;
     if (!orgId || !name || !body) return res.status(400).json({ error: 'orgId, name and body required' });
     const template = await prisma.template.create({ data: { orgId, name, body, variables } });
+    await AuditService.log(orgId, 'template.create', undefined, { id: template.id, name });
     res.json(template);
   }
 
