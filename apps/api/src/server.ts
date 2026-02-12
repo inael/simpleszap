@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: [
     'https://app.simpleszap.com',
+    'https://simpleszap.vercel.app',
     'https://www.app.simpleszap.com',
     'https://simpleszap.com',
     'https://www.simpleszap.com',
