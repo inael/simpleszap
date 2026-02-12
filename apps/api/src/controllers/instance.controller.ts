@@ -35,9 +35,15 @@ export class InstanceController {
 
   static async create(req: Request, res: Response) {
     const { name, orgId } = req.body;
+    const userId = req.headers['x-user-id'] as string;
 
     if (!name || !orgId) {
       return res.status(400).json({ error: 'Name and orgId are required' });
+    }
+    
+    // Fallback or check
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID required in headers' });
     }
 
     try {
@@ -48,6 +54,7 @@ export class InstanceController {
         data: {
           name,
           orgId,
+          userId,
           status: 'created'
         }
       });
