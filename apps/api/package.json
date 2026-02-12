@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
+    "postinstall": "npx prisma generate --schema=../../prisma/schema.prisma",
     "build": "npx prisma generate --schema=../../prisma/schema.prisma && npx prisma db push --schema=../../prisma/schema.prisma && tsc",
     "db:push": "npx prisma db push --schema=../../prisma/schema.prisma",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
   },
-  "postinstall": "npx prisma generate --schema=../../prisma/schema.prisma",
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "axios": "^1.6.7",
