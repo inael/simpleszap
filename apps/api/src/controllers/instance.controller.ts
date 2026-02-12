@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { EvolutionService } from '../services/evolution.service';
 import { prisma } from '../lib/prisma';
+import { Instance as PrismaInstance } from '@prisma/client';
 import { EnforcementService } from '../services/enforcement.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
@@ -18,7 +19,7 @@ export class InstanceController {
         const evoInstances = await EvolutionService.fetchInstances();
         // Simple sync: Update status in memory for response (or update DB)
         // For now, let's map the status if found
-        const syncedInstances = instances.map(inst => {
+        const syncedInstances = instances.map((inst: PrismaInstance) => {
             const evo = Array.isArray(evoInstances) ? evoInstances.find((e: any) => e.instance.instanceName === inst.id || e.instance.instanceName === inst.name) : null;
             return {
                 ...inst,

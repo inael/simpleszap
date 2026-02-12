@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 
-export async function requireScope(scope: string) {
+export function requireScope(scope: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const apiKey = (req.headers['x-api-key'] || req.headers['authorization']) as string | undefined;
     if (!apiKey) return next();
