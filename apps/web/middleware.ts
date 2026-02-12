@@ -1,17 +1,27 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isCreateOrgRoute = createRouteMatcher(["/create-organization(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    const authObj = await auth();
-    
-    // Enforce organization selection/creation
-    // @ts-ignore
-    if (authObj.protect) {
-        // @ts-ignore
-        authObj.protect();
-    }
+  const { userId, orgId, redirectToSignIn } = await auth();
+
+  // If the user is not signed in and tries to access a protected route, redirect to sign-in
+  if (!userId && (isProtectedRoute(req) || isCreateOrgRoute(req))) {
+    return redirectToSignIn();
+  }
+
+  // If the user is signed in but has no organization, and is trying to access dashboard
+  if (userId && !orgId && isProtectedRoute(req)) {
+    const orgSelection = new URL("/create-organization", req.url);
+    return NextResponse.redirect(orgSelection);
+  }
+
+  // If the user is signed in, has an organization, and tries to access create-organization, redirect to dashboard
+  if (userId && orgId && isCreateOrgRoute(req)) {
+     const dashboard = new URL("/dashboard", req.url);
+     return NextResponse.redirect(dashboard);
   }
 });
 
