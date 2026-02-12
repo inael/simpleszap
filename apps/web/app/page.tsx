@@ -95,7 +95,7 @@ export default function Home() {
                 <div className="flex -space-x-2">
                   {[1,2,3,4].map((i) => (
                     <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden">
-                      <Image src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${i}`} alt="User" width={32} height={32} />
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`} alt="User" width={32} height={32} />
                     </div>
                   ))}
                 </div>
