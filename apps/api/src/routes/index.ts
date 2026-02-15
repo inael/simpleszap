@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { InstanceController } from '../controllers/instance.controller';
 import { PricingController } from '../controllers/pricing.controller';
 import { AdminPlanController } from '../controllers/admin-plan.controller';
+import { AdminUserController } from '../controllers/admin-user.controller';
+import { AdminMetricsController } from '../controllers/admin-metrics.controller';
+import { AdminAuditController } from '../controllers/admin-audit.controller';
+import { AdminSettingsController } from '../controllers/admin-settings.controller';
 import { ApiKeyController } from '../controllers/api-key.controller';
 import { WebhookController } from '../controllers/webhook.controller';
 import { SubscriptionController } from '../controllers/subscription.controller';
@@ -13,6 +17,7 @@ import { CampaignsController } from '../controllers/campaigns.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuth } from '../middleware/org-auth';
 import { requireScope } from '../middleware/scope-auth';
+import { requireAdmin } from '../middleware/admin-auth';
 
 const router = Router();
 
@@ -62,9 +67,14 @@ router.get('/campaigns', orgAuth, CampaignsController.list);
 router.post('/campaigns', orgAuth, CampaignsController.create);
 router.post('/campaigns/:id/run', orgAuth, CampaignsController.run);
 
-// Admin Routes (TODO: Add Auth Middleware)
-router.get('/admin/plans', AdminPlanController.list);
-router.post('/admin/plans', AdminPlanController.create);
-router.put('/admin/plans/:id', AdminPlanController.update);
+// Admin Routes (Protected by requireAdmin)
+router.get('/admin/plans', requireAdmin, AdminPlanController.list);
+router.post('/admin/plans', requireAdmin, AdminPlanController.create);
+router.put('/admin/plans/:id', requireAdmin, AdminPlanController.update);
+router.get('/admin/users', requireAdmin, AdminUserController.list);
+router.get('/admin/metrics', requireAdmin, AdminMetricsController.get);
+router.get('/admin/audit-logs', requireAdmin, AdminAuditController.list);
+router.get('/admin/settings', requireAdmin, AdminSettingsController.get);
+router.put('/admin/settings', requireAdmin, AdminSettingsController.update);
 
 export default router;

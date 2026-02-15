@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { clerkMiddleware } from '@clerk/express';
 import routes from './routes';
 
 dotenv.config({ path: '../../.env' }); // Load from root
@@ -28,6 +29,9 @@ app.use(express.json({
     req.rawBody = buf.toString();
   }
 }));
+
+// Clerk middleware (permissive — populates auth when Clerk JWT is present)
+app.use(clerkMiddleware());
 
 app.use('/api', routes);
 

@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 const isCreateOrgRoute = createRouteMatcher(["/create-organization(.*)"]);
+const isAdminRoute = createRouteMatcher(["/dashboard/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, orgId, redirectToSignIn } = await auth();
+  const { userId, orgId, redirectToSignIn, sessionClaims } = await auth();
 
   // If the user is not signed in and tries to access a protected route, redirect to sign-in
   if (!userId && (isProtectedRoute(req) || isCreateOrgRoute(req))) {
@@ -22,6 +23,15 @@ export default clerkMiddleware(async (auth, req) => {
   if (userId && orgId && isCreateOrgRoute(req)) {
      const dashboard = new URL("/dashboard", req.url);
      return NextResponse.redirect(dashboard);
+  }
+
+  // Admin route protection: only users with role "admin" can access /dashboard/admin
+  if (isAdminRoute(req)) {
+    const role = (sessionClaims?.metadata as any)?.role;
+    if (role !== 'admin') {
+      const dashboard = new URL("/dashboard", req.url);
+      return NextResponse.redirect(dashboard);
+    }
   }
 });
 

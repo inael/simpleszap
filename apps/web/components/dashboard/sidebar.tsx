@@ -14,9 +14,14 @@ import {
   HelpCircle,
   Key,
   CreditCard,
-  LogOut
+  LogOut,
+  Shield,
+  FileBarChart,
+  ScrollText,
+  Wrench
 } from "lucide-react";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
+import { Separator } from "@/components/ui/separator";
 
 const routes = [
   {
@@ -80,9 +85,44 @@ const routes = [
   },
 ];
 
+const adminRoutes = [
+  {
+    label: "Painel Admin",
+    icon: Shield,
+    href: "/dashboard/admin",
+    color: "text-red-500",
+  },
+  {
+    label: "Planos",
+    icon: FileBarChart,
+    href: "/dashboard/admin/plans",
+    color: "text-red-400",
+  },
+  {
+    label: "Usuários",
+    icon: Users,
+    href: "/dashboard/admin/users",
+    color: "text-red-400",
+  },
+  {
+    label: "Logs de Auditoria",
+    icon: ScrollText,
+    href: "/dashboard/admin/audit-logs",
+    color: "text-red-400",
+  },
+  {
+    label: "Config. Sistema",
+    icon: Wrench,
+    href: "/dashboard/admin/settings",
+    color: "text-red-400",
+  },
+];
+
 export const Sidebar = () => {
   const pathname = usePathname();
   const { signOut } = useClerk();
+  const { user } = useUser();
+  const isAdmin = (user?.publicMetadata as any)?.role === "admin";
 
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
@@ -113,6 +153,31 @@ export const Sidebar = () => {
             </Link>
           ))}
         </div>
+        {isAdmin && (
+          <>
+            <Separator className="my-4 bg-zinc-700" />
+            <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
+              Administração
+            </p>
+            <div className="space-y-1">
+              {adminRoutes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={cn(
+                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
+                    pathname === route.href ? "text-white bg-white/10" : "text-zinc-400"
+                  )}
+                >
+                  <div className="flex items-center flex-1">
+                    <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
+                    {route.label}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <div className="px-3 py-2">
         <Button 
