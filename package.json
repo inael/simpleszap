@@ -1,18 +1,30 @@
 {
-  "name": "simpleszap",
+  "name": "@root/simpleszap",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx playwright test",
+    "test:landing": "npx playwright test landing",
+    "test:auth": "npx playwright test auth",
+    "test:admin": "npx playwright test admin"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "prisma": "^5.10.2"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inael/simpleszap.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inael/simpleszap/issues"
+  },
+  "homepage": "https://github.com/inael/simpleszap#readme",
+  "description": ""
 }
