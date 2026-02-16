@@ -8,7 +8,7 @@ test.describe('Landing Page', () => {
 
   test('deve exibir o hero section', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('text=SimplesZap')).toBeVisible();
+    await expect(page.getByRole('banner').getByText('SimplesZap')).toBeVisible();
   });
 
   test('deve exibir botão de login', async ({ page }) => {
