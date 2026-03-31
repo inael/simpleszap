@@ -10,17 +10,33 @@ const PORT = process.env.PORT || 3001;
 
 // Start background worker
 
-app.use(cors({
-  origin: [
-    'https://app.simpleszap.com',
-    'https://simpleszap.vercel.app',
-    'https://www.app.simpleszap.com',
-    'https://simpleszap.com',
-    'https://www.simpleszap.com',
-    'http://localhost:3000'
-  ],
-  credentials: true
-}));
+const allowedOriginPatterns: RegExp[] = [
+  /^https:\/\/([a-z0-9-]+\.)*simpleszap\.com$/i,
+  /^https:\/\/([a-z0-9-]+\.)*vercel\.app$/i,
+  /^http:\/\/localhost:\d+$/i,
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      const isAllowed = allowedOriginPatterns.some((pattern) => pattern.test(origin));
+      return callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'asaas-access-token',
+      'x-vercel-protection-bypass',
+      'x-vercel-set-bypass-cookie',
+    ],
+    optionsSuccessStatus: 204,
+  }),
+);
 
 // Capture raw body for webhook verification
 app.use(express.json({
