@@ -13,6 +13,7 @@ import { MessagesController } from '../controllers/messages.controller';
 import { ContactsController } from '../controllers/contacts.controller';
 import { TemplatesController } from '../controllers/templates.controller';
 import { WebhookConfigController } from '../controllers/webhook-config.controller';
+import { AsaasWebhookController } from '../controllers/asaas-webhook.controller';
 import { CampaignsController } from '../controllers/campaigns.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuth } from '../middleware/org-auth';
@@ -24,6 +25,7 @@ const router = Router();
 // Public Routes
 router.get('/pricing', PricingController.getPlans);
 router.post('/webhooks/clerk', WebhookController.handleClerk);
+router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
 // Subscription
 router.post('/subscription/checkout', SubscriptionController.createCheckout);
