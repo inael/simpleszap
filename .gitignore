@@ -48,4 +48,6 @@ prisma/migrations/*
 .vercel
 .claude
 test-results
+.auth
+.auth/
 nul
