@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import fs from 'node:fs';
 
 // Helper para login via Clerk
 async function loginAsAdmin(page: Page) {
@@ -24,12 +25,16 @@ async function loginAsAdmin(page: Page) {
 }
 
 test.describe('Admin Dashboard', () => {
-  const storageStatePath = process.env.ADMIN_STORAGE_STATE;
+  const envStorageStatePath = process.env.ADMIN_STORAGE_STATE;
+  const defaultStorageStatePath = '.auth/admin.json';
+  const storageStatePath =
+    (envStorageStatePath && fs.existsSync(envStorageStatePath) && envStorageStatePath) ||
+    (fs.existsSync(defaultStorageStatePath) && defaultStorageStatePath) ||
+    undefined;
+
   test.skip(!storageStatePath && !process.env.ADMIN_PASSWORD, 'ADMIN_STORAGE_STATE or ADMIN_PASSWORD env var required');
 
-  if (storageStatePath) {
-    test.use({ storageState: storageStatePath });
-  }
+  if (storageStatePath) test.use({ storageState: storageStatePath });
 
   test.beforeEach(async ({ page }) => {
     if (!storageStatePath) {

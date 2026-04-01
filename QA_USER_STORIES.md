@@ -27,13 +27,15 @@ Para rodar os testes “logados” (Admin/Member) sem expor senha em variáveis:
 1) Gerar storageState Admin:
 
 ```powershell
-npx playwright codegen https://www.simpleszap.com --save-storage=test-results/.auth/admin.json
+New-Item -ItemType Directory -Force .auth | Out-Null
+npx playwright codegen https://www.simpleszap.com --save-storage=.auth/admin.json
 ```
 
 2) Gerar storageState Member:
 
 ```powershell
-npx playwright codegen https://www.simpleszap.com --save-storage=test-results/.auth/member.json
+New-Item -ItemType Directory -Force .auth | Out-Null
+npx playwright codegen https://www.simpleszap.com --save-storage=.auth/member.json
 ```
 
 3) Rodar regressão:
@@ -41,8 +43,8 @@ npx playwright codegen https://www.simpleszap.com --save-storage=test-results/.a
 ```powershell
 $env:BASE_URL="https://www.simpleszap.com"
 $env:API_BASE_URL="https://simpleszap-back.vercel.app"
-$env:ADMIN_STORAGE_STATE="test-results/.auth/admin.json"
-$env:MEMBER_STORAGE_STATE="test-results/.auth/member.json"
+$env:ADMIN_STORAGE_STATE=".auth/admin.json"
+$env:MEMBER_STORAGE_STATE=".auth/member.json"
 npm test
 ```
 

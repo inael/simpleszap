@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import fs from 'node:fs';
 
 async function loginAsMember(page: Page) {
   await page.goto('/');
@@ -17,12 +18,16 @@ async function loginAsMember(page: Page) {
 }
 
 test.describe('Permissões Member', () => {
-  const storageStatePath = process.env.MEMBER_STORAGE_STATE;
+  const envStorageStatePath = process.env.MEMBER_STORAGE_STATE;
+  const defaultStorageStatePath = '.auth/member.json';
+  const storageStatePath =
+    (envStorageStatePath && fs.existsSync(envStorageStatePath) && envStorageStatePath) ||
+    (fs.existsSync(defaultStorageStatePath) && defaultStorageStatePath) ||
+    undefined;
+
   test.skip(!storageStatePath && !process.env.MEMBER_PASSWORD, 'MEMBER_STORAGE_STATE or MEMBER_PASSWORD env var required');
 
-  if (storageStatePath) {
-    test.use({ storageState: storageStatePath });
-  }
+  if (storageStatePath) test.use({ storageState: storageStatePath });
 
   test.beforeEach(async ({ page }) => {
     if (!storageStatePath) {
