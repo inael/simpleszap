@@ -8,9 +8,11 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: 'Autenticação necessária' });
   }
 
-  const role = (auth.sessionClaims as any)?.metadata?.role;
+  const legacyRole = (auth.sessionClaims as any)?.metadata?.role;
+  const effectiveRole = (auth as any).orgRole || legacyRole;
+  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'org:admin';
 
-  if (role !== 'admin') {
+  if (!isAdmin) {
     return res.status(403).json({ error: 'Acesso restrito a administradores' });
   }
 
