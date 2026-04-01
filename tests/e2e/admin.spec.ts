@@ -24,10 +24,17 @@ async function loginAsAdmin(page: Page) {
 }
 
 test.describe('Admin Dashboard', () => {
-  test.skip(!process.env.ADMIN_PASSWORD, 'ADMIN_PASSWORD env var required');
+  const storageStatePath = process.env.ADMIN_STORAGE_STATE;
+  test.skip(!storageStatePath && !process.env.ADMIN_PASSWORD, 'ADMIN_STORAGE_STATE or ADMIN_PASSWORD env var required');
+
+  if (storageStatePath) {
+    test.use({ storageState: storageStatePath });
+  }
 
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
+    if (!storageStatePath) {
+      await loginAsAdmin(page);
+    }
   });
 
   test('deve acessar o painel admin', async ({ page }) => {
