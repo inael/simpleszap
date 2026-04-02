@@ -27,12 +27,24 @@ async function loginAsAdmin(page: Page) {
 test.describe('Admin Dashboard', () => {
   const envStorageStatePath = process.env.ADMIN_STORAGE_STATE;
   const defaultStorageStatePath = '.auth/admin.json';
-  const storageStatePath =
+  const rawStorageStatePath =
     (envStorageStatePath && fs.existsSync(envStorageStatePath) && envStorageStatePath) ||
     (fs.existsSync(defaultStorageStatePath) && defaultStorageStatePath) ||
     undefined;
 
-  test.skip(!storageStatePath && !process.env.ADMIN_PASSWORD, 'ADMIN_STORAGE_STATE or ADMIN_PASSWORD env var required');
+  const storageStatePath = (() => {
+    if (!rawStorageStatePath) return undefined;
+    try {
+      const json = JSON.parse(fs.readFileSync(rawStorageStatePath, 'utf8'));
+      const cookies = Array.isArray(json?.cookies) ? json.cookies : [];
+      const hasSessionCookie = cookies.some((c: any) => c?.name === '__session');
+      return hasSessionCookie ? rawStorageStatePath : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  test.skip(!storageStatePath && !process.env.ADMIN_PASSWORD, 'ADMIN_STORAGE_STATE (com __session) ou ADMIN_PASSWORD é obrigatório');
 
   if (storageStatePath) test.use({ storageState: storageStatePath });
 
