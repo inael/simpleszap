@@ -10,11 +10,26 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
-  projects: [
-    {
-      name: 'chromium',
-      use: { browserName: 'chromium' },
-    },
-  ],
+  projects: (() => {
+    const projects = [
+      {
+        name: 'chromium',
+        use: { browserName: 'chromium' },
+      },
+    ];
+
+    if (process.env.PLAYWRIGHT_CHROME === '1') {
+      projects.push({
+        name: 'chrome',
+        use: {
+          browserName: 'chromium',
+          channel: 'chrome',
+          launchOptions: { slowMo: 200 },
+        },
+      });
+    }
+
+    return projects;
+  })(),
   reporter: [['list'], ['html', { open: 'never' }]],
 });
