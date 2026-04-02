@@ -13,6 +13,7 @@ export default function SubscriptionPage() {
   const { userId } = useAuth();
   const { data: pricingData } = useSWR('/pricing', fetcher);
   const [loading, setLoading] = useState<string | null>(null);
+  const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
 
   const plans = pricingData?.plans || [];
 
@@ -21,11 +22,11 @@ export default function SubscriptionPage() {
     try {
         const res = await api.post('/subscription/checkout', {
             planId,
-            cycle: 'MONTHLY'
+            cycle
         }, { headers: { "x-user-id": userId } });
 
         if (res.data.paymentLink) {
-            window.location.href = res.data.paymentLink;
+            window.open(res.data.paymentLink, '_blank', 'noopener,noreferrer');
         } else {
             toast.success("Solicitação processada! Verifique seu email.");
         }
@@ -45,6 +46,11 @@ export default function SubscriptionPage() {
         </p>
       </div>
 
+      <div className="flex items-center gap-2">
+        <Button variant={cycle === 'MONTHLY' ? 'default' : 'outline'} onClick={() => setCycle('MONTHLY')}>Mensal</Button>
+        <Button variant={cycle === 'YEARLY' ? 'default' : 'outline'} onClick={() => setCycle('YEARLY')}>Anual</Button>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan: any) => (
             <Card key={plan.id} className={`flex flex-col ${plan.name.includes('Pro') ? 'border-primary shadow-md relative' : ''}`}>
@@ -57,8 +63,8 @@ export default function SubscriptionPage() {
                 </CardHeader>
                 <CardContent className="flex-1">
                     <div className="text-3xl font-bold mb-4">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.pricing.monthly)}
-                        <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual)}
+                        <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
                     </div>
                     <ul className="space-y-2 text-sm">
                         <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.instancesLimit} Instância(s)</li>
@@ -70,11 +76,11 @@ export default function SubscriptionPage() {
                 <CardFooter>
                     <Button 
                         className="w-full" 
-                        variant={plan.pricing.monthly === 0 ? "outline" : "default"}
-                        disabled={plan.pricing.monthly === 0 || loading === plan.id}
+                        variant={(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 ? "outline" : "default"}
+                        disabled={(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 || loading === plan.id}
                         onClick={() => handleSubscribe(plan.id)}
                     >
-                        {loading === plan.id ? "Processando..." : (plan.pricing.monthly === 0 ? "Plano Gratuito" : "Assinar")}
+                        {loading === plan.id ? "Processando..." : ((cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 ? "Plano Gratuito" : "Assinar")}
                     </Button>
                 </CardFooter>
             </Card>
