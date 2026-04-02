@@ -200,7 +200,7 @@ CREATE TABLE subscription_plans (
   has_reports BOOLEAN DEFAULT false,
   
   -- Integração com gateway de pagamento
-  payment_provider_id TEXT, -- ID do produto no Asaas/Stripe
+  payment_provider_id TEXT, -- ID do produto no Asaas
   payment_link_monthly TEXT, -- URL do payment link mensal
   payment_link_annual TEXT, -- URL do payment link anual
   

@@ -37,7 +37,38 @@ export class PricingController {
         updatedAt: new Date().toISOString()
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      const fallbackPlans = [
+        {
+          id: 'starter',
+          name: 'Starter',
+          description: 'Para começar',
+          pricing: { monthly: 0, annual: 0, currency: 'BRL', annualDiscount: 0 },
+          limits: { messagesPerDay: 100, instancesLimit: 1 },
+          features: { hasWebhooks: false, hasTemplates: false, hasSmsIncluded: false },
+        },
+        {
+          id: 'pro',
+          name: 'Pro',
+          description: 'Para empresas em crescimento',
+          pricing: { monthly: 89, annual: 89 * 12, currency: 'BRL', annualDiscount: 0 },
+          limits: { messagesPerDay: 1000, instancesLimit: 3 },
+          features: { hasWebhooks: true, hasTemplates: true, hasSmsIncluded: false },
+        },
+        {
+          id: 'enterprise',
+          name: 'Enterprise',
+          description: 'Para alto volume',
+          pricing: { monthly: 0, annual: 0, currency: 'BRL', annualDiscount: 0 },
+          limits: { messagesPerDay: -1, instancesLimit: 10 },
+          features: { hasWebhooks: true, hasTemplates: true, hasSmsIncluded: false },
+        },
+      ];
+
+      res.status(200).json({
+        plans: fallbackPlans,
+        updatedAt: new Date().toISOString(),
+        degraded: true,
+      });
     }
   }
 }
