@@ -6,7 +6,8 @@
     "test": "npx playwright test",
     "test:landing": "npx playwright test landing",
     "test:auth": "npx playwright test auth",
-    "test:admin": "npx playwright test admin"
+    "test:admin": "npx playwright test admin",
+    "cookie:sync": "node tools/cookie-sync.cjs"
   },
   "keywords": [],
   "author": "",

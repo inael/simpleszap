@@ -6,7 +6,7 @@ export default defineConfig({
   retries: 1,
   timeout: 60000,
   use: {
-    baseURL: process.env.BASE_URL || 'https://simpleszap.vercel.app',
+    baseURL: process.env.BASE_URL || 'https://www.simpleszap.com',
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
