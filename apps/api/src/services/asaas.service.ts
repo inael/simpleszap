@@ -54,11 +54,17 @@ export class AsaasService {
     }
   }
 
-  static async createSubscription(customerId: string, value: number, cycle: 'MONTHLY' | 'YEARLY', description: string) {
+  static async createSubscription(
+    customerId: string,
+    value: number,
+    cycle: 'MONTHLY' | 'YEARLY',
+    description: string,
+    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' = 'PIX'
+  ) {
      try {
       const response = await axios.post(`${BASE_URL}/subscriptions`, {
         customer: customerId,
-        billingType: 'PIX', // Default to PIX or make selectable
+        billingType,
         value,
         nextDueDate: new Date().toISOString().split('T')[0],
         cycle,
@@ -69,6 +75,20 @@ export class AsaasService {
     } catch (error: any) {
       console.error('Error creating Asaas subscription:', error.response?.data || error.message);
       throw new Error('Failed to create subscription');
+    }
+  }
+
+  static async listSubscriptionPayments(subscriptionId: string) {
+    try {
+      const response = await axios.get(`${BASE_URL}/subscriptions/${subscriptionId}/payments`, {
+        headers: this.headers,
+      });
+
+      const payments = response?.data?.data;
+      return Array.isArray(payments) ? payments : [];
+    } catch (error: any) {
+      console.error('Error listing Asaas subscription payments:', error.response?.data || error.message);
+      throw new Error('Failed to list subscription payments');
     }
   }
 }
