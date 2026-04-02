@@ -50,4 +50,6 @@ prisma/migrations/*
 test-results
 .auth
 .auth/
+data/cookies
+data/cookies/
 nul
