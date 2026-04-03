@@ -33,7 +33,7 @@ export class AsaasWebhookController {
           if (match) {
             const [, userId, planId] = match;
             await prisma.user.update({
-              where: { id: userId },
+              where: { clerkId: userId },
               data: { subscriptionPlanId: planId }
             }).catch(() => {});
           }

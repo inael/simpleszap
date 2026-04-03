@@ -5,14 +5,14 @@ import { prisma } from '../lib/prisma';
 export class SubscriptionController {
   static async createCheckout(req: Request, res: Response) {
     const { planId, cycle, method } = req.body;
-    const userId = req.headers['x-user-id'] as string;
+    const clerkId = req.headers['x-user-id'] as string;
 
-    if (!userId) {
+    if (!clerkId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const user = await prisma.user.findUnique({ where: { clerkId } });
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -30,7 +30,7 @@ export class SubscriptionController {
       const value = cycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
       
       const effectiveCycle = (cycle || 'MONTHLY') as 'MONTHLY' | 'YEARLY';
-      const encoded = `sz|uid:${user.id}|plan:${plan.id}|cycle:${effectiveCycle}`;
+      const encoded = `sz|uid:${clerkId}|plan:${plan.id}|cycle:${effectiveCycle}`;
 
       const subscription = await AsaasService.createSubscription(
         customer.id,
