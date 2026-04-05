@@ -10,20 +10,23 @@ import { toast } from "sonner";
 import { useState } from "react";
 
 export default function SubscriptionPage() {
-  const { userId } = useAuth();
+  const { getToken } = useAuth();
   const { data: pricingData } = useSWR('/pricing', fetcher);
   const [loading, setLoading] = useState<string | null>(null);
   const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+  const [cpfCnpj, setCpfCnpj] = useState('');
 
   const plans = pricingData?.plans || [];
 
   const handleSubscribe = async (planId: string) => {
     setLoading(planId);
     try {
+        const token = await getToken();
         const res = await api.post('/subscription/checkout', {
             planId,
-            cycle
-        }, { headers: { "x-user-id": userId } });
+            cycle,
+            cpfCnpj: cpfCnpj || undefined,
+        }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
 
         if (res.data.paymentLink) {
             window.open(res.data.paymentLink, '_blank', 'noopener,noreferrer');
@@ -31,7 +34,13 @@ export default function SubscriptionPage() {
             toast.success("Solicitação processada! Verifique seu email.");
         }
     } catch (e) {
-        toast.error("Erro ao iniciar assinatura.");
+        const err = e as any;
+        const code = err?.response?.data?.error;
+        if (code === 'CPF_CNPJ_REQUIRED') {
+            toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
+        } else {
+            toast.error("Erro ao iniciar assinatura.");
+        }
     } finally {
         setLoading(null);
     }
@@ -49,6 +58,20 @@ export default function SubscriptionPage() {
       <div className="flex items-center gap-2">
         <Button variant={cycle === 'MONTHLY' ? 'default' : 'outline'} onClick={() => setCycle('MONTHLY')}>Mensal</Button>
         <Button variant={cycle === 'YEARLY' ? 'default' : 'outline'} onClick={() => setCycle('YEARLY')}>Anual</Button>
+      </div>
+
+      <div className="max-w-sm space-y-2">
+        <div className="text-sm font-medium">CPF/CNPJ</div>
+        <input
+          value={cpfCnpj}
+          onChange={(e) => setCpfCnpj(e.target.value)}
+          placeholder="Somente números"
+          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          inputMode="numeric"
+        />
+        <div className="text-xs text-muted-foreground">
+          Necessário para emissão da cobrança no Asaas.
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

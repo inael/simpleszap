@@ -32,8 +32,26 @@ export class AsaasService {
 
       return response.data;
     } catch (error: any) {
+      const description =
+        error?.response?.data?.errors?.[0]?.description ||
+        error?.response?.data?.errors?.[0]?.message ||
+        error?.message;
       console.error('Error creating Asaas customer:', error.response?.data || error.message);
-      throw new Error('Failed to create payment customer');
+      throw new Error(description || 'Failed to create payment customer');
+    }
+  }
+
+  static async updateCustomer(customerId: string, data: { name?: string; email?: string; cpfCnpj?: string; mobilePhone?: string }) {
+    try {
+      const response = await axios.put(`${BASE_URL}/customers/${customerId}`, data, { headers: this.headers });
+      return response.data;
+    } catch (error: any) {
+      const description =
+        error?.response?.data?.errors?.[0]?.description ||
+        error?.response?.data?.errors?.[0]?.message ||
+        error?.message;
+      console.error('Error updating Asaas customer:', error.response?.data || error.message);
+      throw new Error(description || 'Failed to update payment customer');
     }
   }
 
@@ -49,8 +67,12 @@ export class AsaasService {
 
       return response.data;
     } catch (error: any) {
+      const description =
+        error?.response?.data?.errors?.[0]?.description ||
+        error?.response?.data?.errors?.[0]?.message ||
+        error?.message;
       console.error('Error creating Asaas payment:', error.response?.data || error.message);
-      throw new Error('Failed to create payment');
+      throw new Error(description || 'Failed to create payment');
     }
   }
 
@@ -73,8 +95,12 @@ export class AsaasService {
 
       return response.data;
     } catch (error: any) {
+      const description =
+        error?.response?.data?.errors?.[0]?.description ||
+        error?.response?.data?.errors?.[0]?.message ||
+        error?.message;
       console.error('Error creating Asaas subscription:', error.response?.data || error.message);
-      throw new Error('Failed to create subscription');
+      throw new Error(description || 'Failed to create subscription');
     }
   }
 
