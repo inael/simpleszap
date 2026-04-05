@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import { AsaasService } from '../services/asaas.service';
 import { prisma } from '../lib/prisma';
+import { getAuth } from '@clerk/express';
 
 export class SubscriptionController {
   static async createCheckout(req: Request, res: Response) {
-    const { planId, cycle, method } = req.body;
-    const clerkId = req.headers['x-user-id'] as string;
+    const { planId, cycle, method, cpfCnpj } = req.body;
+    const auth = getAuth(req);
+    const clerkId = auth?.userId;
 
-    if (!clerkId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    if (!clerkId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
       const user = await prisma.user.findUnique({ where: { clerkId } });
@@ -24,8 +24,14 @@ export class SubscriptionController {
 
       const customer = await AsaasService.createCustomer({
         name: user.name || user.email,
-        email: user.email
+        email: user.email,
+        cpfCnpj: cpfCnpj && typeof cpfCnpj === 'string' ? cpfCnpj.trim().replace(/[^\d]/g, '') : undefined,
       });
+
+      const customerId = customer?.id as string | undefined;
+      if (!customerId) {
+        return res.status(500).json({ error: 'Failed to create customer' });
+      }
 
       const value = cycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
       
@@ -33,7 +39,7 @@ export class SubscriptionController {
       const encoded = `sz|uid:${clerkId}|plan:${plan.id}|cycle:${effectiveCycle}`;
 
       const subscription = await AsaasService.createSubscription(
-        customer.id,
+        customerId,
         value,
         effectiveCycle,
         `SimplesZap ${plan.name} [${encoded}]`,
@@ -56,7 +62,12 @@ export class SubscriptionController {
         paymentLink: firstPayment?.invoiceUrl || firstPayment?.bankSlipUrl,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      const message = String(error?.message || '');
+      const cpfRequired = /cpf|cnpj/i.test(message);
+      if (cpfRequired) {
+        return res.status(400).json({ error: 'CPF_CNPJ_REQUIRED' });
+      }
+      res.status(500).json({ error: message || 'Internal error' });
     }
   }
 }
