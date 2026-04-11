@@ -18,10 +18,11 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import { toast } from "sonner";
 
 export default function InstancesPage() {
+  const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -31,14 +32,23 @@ export default function InstancesPage() {
 
   const { data: instances, error, mutate } = useSWR(
     orgId ? ["/instances", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
 
   const handleCreate = async () => {
     if (!newInstanceName) return;
+    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
     setIsCreating(true);
     try {
-      await api.post("/instance/create", { name: newInstanceName, orgId }, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.post(
+        "/instance/create",
+        { name: newInstanceName },
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
       toast.success("Instância criada com sucesso!");
       setIsCreateOpen(false);
       setNewInstanceName("");
@@ -53,7 +63,8 @@ export default function InstancesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta instância?")) return;
     try {
-      await api.delete(`/instance/${id}`, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.delete(`/instance/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       toast.success("Instância removida.");
       mutate();
     } catch (e) {
@@ -63,7 +74,8 @@ export default function InstancesPage() {
 
   const handleConnect = async (instanceName: string) => {
       try {
-          const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-org-id": orgId as string } });
+          const token = await getToken();
+          const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
           // Evolution API v2 returns base64 in `qrcode.base64` or similar?
           // Checking service: return response.data directly.
           // Usually response.data.qrcode.base64 or just response.data.base64
@@ -93,7 +105,7 @@ export default function InstancesPage() {
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={!orgId}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Instância
             </Button>

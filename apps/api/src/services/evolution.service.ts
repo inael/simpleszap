@@ -2,6 +2,10 @@ import axios from 'axios';
 
 const BASE_URL = process.env.EVOLUTION_API_URL || process.env.EVOLUTION_APT_URL || 'https://whatsapp.toolpad.cloud';
 const API_KEY = process.env.EVOLUTION_API_KEY || process.env.EVOLUTION_APT_KEY;
+const client = axios.create({
+  baseURL: BASE_URL,
+  timeout: 7000,
+});
 
 export class EvolutionService {
   private static get headers() {
@@ -13,7 +17,7 @@ export class EvolutionService {
 
   static async createInstance(instanceName: string) {
     try {
-      const response = await axios.post(`${BASE_URL}/instance/create`, {
+      const response = await client.post(`/instance/create`, {
         instanceName,
         token: "", // Optional, can be auto-generated
         qrcode: true, // Return QR immediately if possible? Usually not for create
@@ -27,7 +31,7 @@ export class EvolutionService {
 
   static async connectInstance(instanceName: string) {
     try {
-      const response = await axios.get(`${BASE_URL}/instance/connect/${instanceName}`, {
+      const response = await client.get(`/instance/connect/${instanceName}`, {
         headers: this.headers,
       });
       return response.data; // Should contain base64 or code
@@ -39,7 +43,7 @@ export class EvolutionService {
   
   static async fetchInstances() {
       try {
-          const response = await axios.get(`${BASE_URL}/instance/fetchInstances`, {
+          const response = await client.get(`/instance/fetchInstances`, {
               headers: this.headers
           });
           return response.data;
@@ -51,7 +55,7 @@ export class EvolutionService {
 
   static async deleteInstance(instanceName: string) {
     try {
-      const response = await axios.delete(`${BASE_URL}/instance/delete/${instanceName}`, {
+      const response = await client.delete(`/instance/delete/${instanceName}`, {
         headers: this.headers,
       });
       return response.data;
@@ -63,7 +67,7 @@ export class EvolutionService {
 
   static async sendText(instanceName: string, number: string, text: string) {
     try {
-      const response = await axios.post(`${BASE_URL}/message/sendText/${instanceName}`, {
+      const response = await client.post(`/message/sendText/${instanceName}`, {
         number,
         options: {
           delay: 1200,

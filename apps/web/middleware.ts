@@ -6,7 +6,7 @@ const isCreateOrgRoute = createRouteMatcher(["/create-organization(.*)"]);
 const isAdminRoute = createRouteMatcher(["/dashboard/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, orgId, orgRole, redirectToSignIn, sessionClaims } = await auth();
+  const { userId, orgId, redirectToSignIn, sessionClaims } = await auth();
 
   // If the user is not signed in and tries to access a protected route, redirect to sign-in
   if (!userId && (isProtectedRoute(req) || isCreateOrgRoute(req))) {
@@ -28,8 +28,7 @@ export default clerkMiddleware(async (auth, req) => {
   // Admin route protection: only users with role "admin" can access /dashboard/admin
   if (isAdminRoute(req)) {
     const legacyRole = (sessionClaims?.metadata as any)?.role;
-    const effectiveRole = orgRole || legacyRole;
-    const isAdmin = effectiveRole === "admin" || effectiveRole === "org:admin";
+    const isAdmin = legacyRole === "admin";
 
     if (!isAdmin) {
       const dashboard = new URL("/dashboard", req.url);

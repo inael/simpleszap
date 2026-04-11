@@ -5,13 +5,16 @@ import { Instance as PrismaInstance } from '@prisma/client';
 import { EnforcementService } from '../services/enforcement.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
+import { getAuth } from '@clerk/express';
 
 export class InstanceController {
   static async list(req: Request, res: Response) {
-    const orgId = req.headers['x-org-id'] as string;
+    const auth = getAuth(req);
+    const orgId = auth?.orgId || (req.headers['x-org-id'] as string);
+    if (!orgId) return res.status(400).json({ error: 'orgId required' });
 
     const instances = await prisma.instance.findMany({
-      where: orgId ? { orgId } : {},
+      where: { orgId },
     });
 
     // Optionally sync status with Evolution
@@ -34,19 +37,21 @@ export class InstanceController {
   }
 
   static async create(req: Request, res: Response) {
-    const { name, orgId } = req.body;
-    const userId = req.headers['x-user-id'] as string;
+    const auth = getAuth(req);
+    const clerkId = auth?.userId;
+    const orgId = auth?.orgId || (req.body?.orgId as string | undefined) || (req.headers['x-org-id'] as string | undefined);
+    const name = req.body?.name as string | undefined;
 
     if (!name || !orgId) {
       return res.status(400).json({ error: 'Name and orgId are required' });
     }
     
-    // Fallback or check
-    if (!userId) {
-        return res.status(400).json({ error: 'User ID required in headers' });
-    }
+    if (!clerkId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
+      const user = await prisma.user.findUnique({ where: { clerkId } });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
       const allowed = await EnforcementService.canCreateInstance(orgId);
       if (!allowed) return res.status(403).json({ error: 'Instance limit reached for your plan' });
       // 1. Create in DB first (pending)
@@ -54,7 +59,7 @@ export class InstanceController {
         data: {
           name,
           orgId,
-          userId,
+          userId: user.id,
           status: 'created'
         }
       });

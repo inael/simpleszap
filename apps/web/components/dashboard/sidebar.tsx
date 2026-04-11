@@ -20,7 +20,7 @@ import {
   ScrollText,
   Wrench
 } from "lucide-react";
-import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { Separator } from "@/components/ui/separator";
 
 const routes = [
@@ -121,11 +121,9 @@ const adminRoutes = [
 export const Sidebar = () => {
   const pathname = usePathname();
   const { signOut } = useClerk();
-  const { orgRole } = useAuth();
   const { user } = useUser();
   const legacyRole = (user?.publicMetadata as any)?.role;
-  const effectiveRole = orgRole || legacyRole;
-  const isAdmin = effectiveRole === "admin" || effectiveRole === "org:admin";
+  const isAdmin = legacyRole === "admin";
 
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
