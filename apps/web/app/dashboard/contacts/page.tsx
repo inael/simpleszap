@@ -7,26 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ContactsPage() {
+  const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
 
   const { data: contacts, mutate } = useSWR(
     orgId ? ["/contacts", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
   const addContact = async () => {
+    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
     if (!phone) return toast.error("Informe o telefone");
     try {
-      await api.post("/contacts", { name, phone }, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.post("/contacts", { name, phone }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       setName(""); setPhone("");
       mutate();
       toast.success("Contato criado");
@@ -37,7 +43,8 @@ export default function ContactsPage() {
 
   const remove = async (id: string) => {
     try {
-      await api.delete(`/contacts/${id}`, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.delete(`/contacts/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       mutate();
       toast.success("Contato removido");
     } catch {
@@ -67,7 +74,7 @@ export default function ContactsPage() {
             <Label>Telefone</Label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5511999999999" />
           </div>
-          <Button onClick={addContact}>Adicionar</Button>
+          <Button onClick={addContact} disabled={!orgId}>Adicionar</Button>
         </CardContent>
       </Card>
 

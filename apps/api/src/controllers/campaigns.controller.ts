@@ -2,6 +2,13 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { EvolutionService } from '../services/evolution.service';
 
+function renderTemplate(body: string, data: Record<string, string>) {
+  return body.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key: string) => {
+    const v = data[key];
+    return typeof v === 'string' ? v : '';
+  });
+}
+
 export class CampaignsController {
   static async list(req: Request, res: Response) {
     const orgId = req.headers['x-org-id'] as string;
@@ -25,7 +32,11 @@ export class CampaignsController {
     const contacts = tags.length ? await prisma.contact.findMany({ where: { orgId, tags: { contains: tags[0] } } }) : await prisma.contact.findMany({ where: { orgId } });
     const template = campaign.templateId ? await prisma.template.findUnique({ where: { id: campaign.templateId } }) : null;
     for (const c of contacts) {
-      const body = template ? template.body : 'Olá';
+      const raw = template ? template.body : 'Olá';
+      const body = renderTemplate(raw, {
+        name: c.name || '',
+        phone: c.phone,
+      });
       await EvolutionService.sendText(campaign.instanceId, c.phone, body);
       await prisma.message.create({ data: { orgId, instanceId: campaign.instanceId, to: c.phone, body, type: 'text', status: 'sent' } });
     }

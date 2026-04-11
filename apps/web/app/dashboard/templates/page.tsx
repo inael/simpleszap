@@ -7,27 +7,56 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useOrganization } from "@clerk/nextjs";
-import { useState } from "react";
+import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+const TEMPLATE_VARIABLES = [
+  { label: "Nome do contato", value: "{{name}}" },
+  { label: "Telefone do contato", value: "{{phone}}" },
+] as const;
+
 export default function TemplatesPage() {
+  const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { data: templates, mutate } = useSWR(
     orgId ? ["/templates", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
 
   const [name, setName] = useState("");
   const [body, setBody] = useState("");
 
+  const insertVariable = (variable: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setBody((prev) => prev + variable);
+      return;
+    }
+    const start = el.selectionStart ?? body.length;
+    const end = el.selectionEnd ?? body.length;
+    const next = body.slice(0, start) + variable + body.slice(end);
+    setBody(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + variable.length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
   const addTemplate = async () => {
+    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
     if (!name || !body) return toast.error("Informe nome e conteúdo");
     try {
-      await api.post("/templates", { name, body }, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.post("/templates", { name, body }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       setName(""); setBody("");
       mutate();
       toast.success("Template criado");
@@ -38,7 +67,8 @@ export default function TemplatesPage() {
 
   const remove = async (id: string) => {
     try {
-      await api.delete(`/templates/${id}`, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.delete(`/templates/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       mutate();
       toast.success("Template removido");
     } catch {
@@ -66,9 +96,16 @@ export default function TemplatesPage() {
           </div>
           <div className="space-y-1">
             <Label>Conteúdo</Label>
-            <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Olá {{nome}}, seja bem-vindo!" />
+            <Textarea ref={textareaRef} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Olá {{name}}, seja bem-vindo!" />
           </div>
-          <Button onClick={addTemplate}>Adicionar</Button>
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATE_VARIABLES.map((v) => (
+              <Button key={v.value} type="button" variant="outline" size="sm" onClick={() => insertVariable(v.value)}>
+                {v.label}
+              </Button>
+            ))}
+          </div>
+          <Button onClick={addTemplate} disabled={!orgId}>Adicionar</Button>
         </CardContent>
       </Card>
 

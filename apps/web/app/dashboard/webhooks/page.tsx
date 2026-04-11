@@ -7,30 +7,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useState } from "react";
 import { toast } from "sonner";
 
+const WEBHOOK_EVENTS = [
+  { label: "Mensagem enviada", value: "message.sent" },
+  { label: "Falha ao enviar mensagem", value: "message.failed" },
+] as const;
+
 export default function WebhooksPage() {
+  const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
   const { data: configs, mutate } = useSWR(
     orgId ? ["/webhooks/config", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
   const { data: logs } = useSWR(
     orgId ? ["/webhooks/logs", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
 
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
-  const [events, setEvents] = useState("message.sent,message.failed");
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(WEBHOOK_EVENTS.map(e => e.value));
 
   const add = async () => {
+    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
     if (!url || !secret) return toast.error("Informe URL e secret");
     try {
-      await api.post("/webhooks/config", { url, secret, events: events.split(",") }, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.post(
+        "/webhooks/config",
+        { url, secret, events: selectedEvents },
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
       setUrl(""); setSecret("");
       mutate();
       toast.success("Webhook configurado");
@@ -63,9 +81,23 @@ export default function WebhooksPage() {
           </div>
           <div className="space-y-1 md:col-span-2">
             <Label>Eventos</Label>
-            <Input value={events} onChange={(e) => setEvents(e.target.value)} placeholder="message.sent,message.failed" />
+            <div className="flex flex-wrap gap-2 rounded-md border bg-background p-3">
+              {WEBHOOK_EVENTS.map((e) => {
+                const checked = selectedEvents.includes(e.value);
+                return (
+                  <label key={e.value} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setSelectedEvents((prev) => checked ? prev.filter((v) => v !== e.value) : [...prev, e.value])}
+                    />
+                    {e.label}
+                  </label>
+                );
+              })}
+            </div>
           </div>
-          <Button onClick={add}>Adicionar</Button>
+          <Button onClick={add} disabled={!orgId}>Adicionar</Button>
         </CardContent>
       </Card>
 
