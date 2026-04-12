@@ -47,13 +47,13 @@ export class SubscriptionController {
       );
 
       let firstPayment: any | undefined;
-      for (let attempt = 0; attempt < 10; attempt++) {
+      for (let attempt = 0; attempt < 6; attempt++) {
         const payments = await AsaasService.listSubscriptionPayments(subscription.id);
         if (payments.length > 0) {
           firstPayment = payments[0];
           break;
         }
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
 
       res.json({ 

@@ -19,29 +19,42 @@ export default function SubscriptionPage() {
   const plans = pricingData?.plans || [];
 
   const handleSubscribe = async (planId: string) => {
+    if (!cpfCnpj.trim()) {
+      toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
+      return;
+    }
     setLoading(planId);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
         const token = await getToken();
         const res = await api.post('/subscription/checkout', {
             planId,
             cycle,
             cpfCnpj: cpfCnpj || undefined,
-        }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+        }, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          signal: controller.signal,
+        });
 
         if (res.data.paymentLink) {
             window.open(res.data.paymentLink, '_blank', 'noopener,noreferrer');
         } else {
             toast.success("Solicitação processada! Verifique seu email.");
         }
-    } catch (e) {
-        const err = e as any;
-        const code = err?.response?.data?.error;
-        if (code === 'CPF_CNPJ_REQUIRED') {
-            toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
+    } catch (e: any) {
+        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') {
+            toast.error("A requisição excedeu o tempo limite. Tente novamente.");
         } else {
-            toast.error("Erro ao iniciar assinatura.");
+            const code = e?.response?.data?.error;
+            if (code === 'CPF_CNPJ_REQUIRED') {
+                toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
+            } else {
+                toast.error(e?.response?.data?.error || "Erro ao iniciar assinatura.");
+            }
         }
     } finally {
+        clearTimeout(timeout);
         setLoading(null);
     }
   };

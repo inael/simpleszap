@@ -23,20 +23,35 @@ function jitterDelayMs() {
 
 export class CampaignsController {
   static async list(req: Request, res: Response) {
-    const orgId = req.headers['x-org-id'] as string;
-    const items = await prisma.campaign.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } });
-    res.json(items);
+    try {
+      const orgId = req.headers['x-org-id'] as string;
+      if (!orgId) return res.status(400).json({ error: 'orgId required' });
+      const items = await prisma.campaign.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } });
+      res.json(items);
+    } catch (error: any) {
+      console.error('campaigns.list error:', error);
+      res.status(500).json({ error: error.message || 'Failed to list campaigns' });
+    }
   }
 
   static async create(req: Request, res: Response) {
-    const orgId = req.headers['x-org-id'] as string;
-    const { name, instanceId, templateId, segmentTags, scheduledAt } = req.body;
-    const item = await prisma.campaign.create({ data: { orgId, name, instanceId, templateId, segmentTags: segmentTags ? JSON.stringify(segmentTags) : null, scheduledAt, status: 'draft' } });
-    res.json(item);
+    try {
+      const orgId = req.headers['x-org-id'] as string;
+      if (!orgId) return res.status(400).json({ error: 'orgId required' });
+      const { name, instanceId, templateId, segmentTags, scheduledAt } = req.body;
+      if (!name || !instanceId) return res.status(400).json({ error: 'name and instanceId are required' });
+      const item = await prisma.campaign.create({ data: { orgId, name, instanceId, templateId, segmentTags: segmentTags ? JSON.stringify(segmentTags) : null, scheduledAt, status: 'draft' } });
+      res.json(item);
+    } catch (error: any) {
+      console.error('campaigns.create error:', error);
+      res.status(500).json({ error: error.message || 'Failed to create campaign' });
+    }
   }
 
   static async run(req: Request, res: Response) {
+    try {
     const orgId = req.headers['x-org-id'] as string;
+    if (!orgId) return res.status(400).json({ error: 'orgId required' });
     const { id } = req.params;
     const campaign = await prisma.campaign.findUnique({ where: { id } });
     if (!campaign) return res.status(404).json({ error: 'Not found' });
@@ -84,5 +99,9 @@ export class CampaignsController {
     const finalStatus = blockedByLimit > 0 ? 'rate_limited' : 'done';
     await prisma.campaign.update({ where: { id }, data: { status: finalStatus } });
     res.json({ success: true, total: contacts.length, sent, failed, blockedByLimit, status: finalStatus });
+    } catch (error: any) {
+      console.error('campaigns.run error:', error);
+      res.status(500).json({ error: error.message || 'Failed to run campaign' });
+    }
   }
 }

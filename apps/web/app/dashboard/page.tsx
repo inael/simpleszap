@@ -1,7 +1,24 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Smartphone, MessageSquare, AlertCircle } from "lucide-react";
+import useSWR from "swr";
+import { api } from "@/lib/api";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 
 export default function DashboardPage() {
+  const { getToken } = useAuth();
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
+
+  const { data: metrics, error, isLoading } = useSWR(
+    orgId ? ["/dashboard/metrics", orgId] : null,
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -10,6 +27,13 @@ export default function DashboardPage() {
           Visão geral da sua conta e atividade recente.
         </p>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar métricas. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -20,10 +44,9 @@ export default function DashboardPage() {
             <Smartphone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              +0% em relação ao mês passado
-            </p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : metrics?.totalInstances ?? 0}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -34,10 +57,9 @@ export default function DashboardPage() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              +0% em relação ao mês passado
-            </p>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : metrics?.messagesSent ?? 0}
+            </div>
           </CardContent>
         </Card>
         <Card>

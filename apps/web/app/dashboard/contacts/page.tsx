@@ -10,13 +10,14 @@ import { api } from "@/lib/api";
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 export default function ContactsPage() {
   const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
 
-  const { data: contacts, mutate } = useSWR(
+  const { data: contacts, error: contactsError, mutate } = useSWR(
     orgId ? ["/contacts", orgId] : null,
     async ([url, oid]) => {
       const token = await getToken();
@@ -60,6 +61,13 @@ export default function ContactsPage() {
           <p className="text-muted-foreground">Gerencie sua base de contatos.</p>
         </div>
       </div>
+
+      {contactsError && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar contatos. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -123,7 +123,7 @@ export const Sidebar = () => {
   const { signOut } = useClerk();
   const { user } = useUser();
   const legacyRole = (user?.publicMetadata as any)?.role;
-  const isAdmin = legacyRole === "admin";
+  const isAdmin = legacyRole === "admin" || pathname.startsWith("/dashboard/admin");
 
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
@@ -138,13 +138,17 @@ export const Sidebar = () => {
           <h1 className="text-2xl font-bold">SimplesZap</h1>
         </Link>
         <div className="space-y-1">
-          {routes.map((route) => (
+          {routes.map((route) => {
+            const isActive = route.href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(route.href);
+            return (
             <Link
               key={route.href}
               href={route.href}
               className={cn(
                 "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                pathname === route.href ? "text-white bg-white/10" : "text-zinc-400"
+                isActive ? "text-white bg-white/10" : "text-zinc-400"
               )}
             >
               <div className="flex items-center flex-1">
@@ -152,7 +156,8 @@ export const Sidebar = () => {
                 {route.label}
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
         {isAdmin && (
           <>
@@ -161,13 +166,17 @@ export const Sidebar = () => {
               Administração
             </p>
             <div className="space-y-1">
-              {adminRoutes.map((route) => (
+              {adminRoutes.map((route) => {
+                const isActive = route.href === "/dashboard/admin"
+                  ? pathname === "/dashboard/admin"
+                  : pathname.startsWith(route.href);
+                return (
                 <Link
                   key={route.href}
                   href={route.href}
                   className={cn(
                     "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                    pathname === route.href ? "text-white bg-white/10" : "text-zinc-400"
+                    isActive ? "text-white bg-white/10" : "text-zinc-400"
                   )}
                 >
                   <div className="flex items-center flex-1">
@@ -175,7 +184,8 @@ export const Sidebar = () => {
                     {route.label}
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

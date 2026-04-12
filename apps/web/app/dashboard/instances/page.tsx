@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -128,6 +128,13 @@ export default function InstancesPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar instâncias. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

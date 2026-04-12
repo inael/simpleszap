@@ -9,30 +9,33 @@ import { getAuth } from '@clerk/express';
 
 export class InstanceController {
   static async list(req: Request, res: Response) {
-    const auth = getAuth(req);
-    const orgId = auth?.orgId || (req.headers['x-org-id'] as string);
-    if (!orgId) return res.status(400).json({ error: 'orgId required' });
-
-    const instances = await prisma.instance.findMany({
-      where: { orgId },
-    });
-
-    // Optionally sync status with Evolution
     try {
-        const evoInstances = await EvolutionService.fetchInstances();
-        // Simple sync: Update status in memory for response (or update DB)
-        // For now, let's map the status if found
-        const syncedInstances = instances.map((inst: PrismaInstance) => {
-            const evo = Array.isArray(evoInstances) ? evoInstances.find((e: any) => e.instance.instanceName === inst.id || e.instance.instanceName === inst.name) : null;
-            return {
-                ...inst,
-                status: evo ? evo.instance.status : 'disconnected' // Fallback if not found
-            };
-        });
-        return res.json(syncedInstances);
-    } catch (e) {
-        console.warn("Failed to sync with Evolution API, returning DB state");
-        return res.json(instances);
+      const auth = getAuth(req);
+      const orgId = auth?.orgId || (req.headers['x-org-id'] as string);
+      if (!orgId) return res.status(400).json({ error: 'orgId required' });
+
+      const instances = await prisma.instance.findMany({
+        where: { orgId },
+      });
+
+      // Optionally sync status with Evolution
+      try {
+          const evoInstances = await EvolutionService.fetchInstances();
+          const syncedInstances = instances.map((inst: PrismaInstance) => {
+              const evo = Array.isArray(evoInstances) ? evoInstances.find((e: any) => e.instance.instanceName === inst.id || e.instance.instanceName === inst.name) : null;
+              return {
+                  ...inst,
+                  status: evo ? evo.instance.status : 'disconnected'
+              };
+          });
+          return res.json(syncedInstances);
+      } catch (e) {
+          console.warn("Failed to sync with Evolution API, returning DB state");
+          return res.json(instances);
+      }
+    } catch (error: any) {
+      console.error('instance.list error:', error);
+      res.status(500).json({ error: error.message || 'Failed to list instances' });
     }
   }
 

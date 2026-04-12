@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertCircle } from "lucide-react";
 
 export default function MessagesPage() {
+  const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
   const [selectedInstance, setSelectedInstance] = useState("");
@@ -23,13 +25,19 @@ export default function MessagesPage() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const { data: instances } = useSWR(
-    orgId ? ["/instances", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+  const { data: instances, error: instancesError } = useSWR(
+    orgId ? ["/instances", orgId, "messages"] : null,
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
-  const { data: history, mutate: mutateHistory } = useSWR(
+  const { data: history, error: historyError, mutate: mutateHistory } = useSWR(
     orgId ? ["/messages", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
 
   const handleSend = async () => {
@@ -40,10 +48,11 @@ export default function MessagesPage() {
 
     setSending(true);
     try {
+      const token = await getToken();
       await api.post(`/message/sendText/${selectedInstance}`, {
         number: phone,
         text: message
-      }, { headers: { "x-org-id": orgId as string } });
+      }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       toast.success("Mensagem enviada!");
       setMessage("");
       mutateHistory();
@@ -54,6 +63,8 @@ export default function MessagesPage() {
     }
   };
 
+  const loadError = instancesError || historyError;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -62,6 +73,13 @@ export default function MessagesPage() {
           Envie mensagens e veja o histórico.
         </p>
       </div>
+
+      {loadError && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar dados. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Tabs defaultValue="send" className="space-y-4">
         <TabsList>

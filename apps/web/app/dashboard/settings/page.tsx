@@ -5,8 +5,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useUser } from "@clerk/nextjs";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
+  const { user, isLoaded } = useUser();
+  const [marketingEmails, setMarketingEmails] = useState(false);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
+  const [savingNotif, setSavingNotif] = useState(false);
+
+  const handleSaveNotifications = async () => {
+    setSavingNotif(true);
+    try {
+      await user?.update({
+        unsafeMetadata: {
+          ...((user.unsafeMetadata as any) || {}),
+          notifications: { marketingEmails, securityAlerts },
+        },
+      });
+      toast.success("Preferências de notificação salvas.");
+    } catch {
+      toast.error("Erro ao salvar preferências.");
+    } finally {
+      setSavingNotif(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -27,11 +52,19 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Nome</Label>
-              <Input id="name" defaultValue="Usuário Exemplo" disabled />
+              <Input
+                id="name"
+                value={isLoaded ? (user?.fullName || user?.firstName || "") : "Carregando..."}
+                disabled
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" defaultValue="usuario@exemplo.com" disabled />
+              <Input
+                id="email"
+                value={isLoaded ? (user?.primaryEmailAddress?.emailAddress || "") : "Carregando..."}
+                disabled
+              />
             </div>
             <Button variant="outline" className="w-fit" onClick={() => window.location.href = "/user-profile"}>
               Gerenciar Perfil no Clerk
@@ -52,8 +85,13 @@ export default function SettingsPage() {
                 <span>Emails de Marketing</span>
                 <span className="font-normal text-xs text-muted-foreground">Receba novidades e ofertas.</span>
               </Label>
-              {/* Switch component not installed yet, using checkbox as placeholder or nothing */}
-              <input type="checkbox" id="email-notif" className="h-4 w-4" />
+              <input
+                type="checkbox"
+                id="email-notif"
+                className="h-4 w-4"
+                checked={marketingEmails}
+                onChange={(e) => setMarketingEmails(e.target.checked)}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between space-x-2">
@@ -61,8 +99,18 @@ export default function SettingsPage() {
                 <span>Alertas de Segurança</span>
                 <span className="font-normal text-xs text-muted-foreground">Receba alertas sobre atividades suspeitas.</span>
               </Label>
-              <input type="checkbox" id="security-notif" className="h-4 w-4" checked readOnly />
+              <input
+                type="checkbox"
+                id="security-notif"
+                className="h-4 w-4"
+                checked={securityAlerts}
+                onChange={(e) => setSecurityAlerts(e.target.checked)}
+              />
             </div>
+            <Separator />
+            <Button onClick={handleSaveNotifications} disabled={savingNotif}>
+              {savingNotif ? "Salvando..." : "Salvar Preferências"}
+            </Button>
           </CardContent>
         </Card>
       </div>

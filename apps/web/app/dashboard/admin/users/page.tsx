@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import useSWR from "swr";
 import { useAdminApi } from "@/lib/use-admin-api";
 
@@ -15,7 +15,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useSWR(
+  const { data, error, isLoading } = useSWR(
     `/admin/users?page=${page}&limit=20&search=${search}`,
     adminFetcher
   );
@@ -40,6 +40,13 @@ export default function AdminUsersPage() {
           />
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar usuários. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-0">

@@ -2,13 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Smartphone, MessageSquare, CreditCard } from "lucide-react";
+import { Users, Smartphone, MessageSquare, CreditCard, AlertCircle } from "lucide-react";
 import useSWR from "swr";
 import { useAdminApi } from "@/lib/use-admin-api";
 
 export default function AdminDashboardPage() {
   const { adminFetcher } = useAdminApi();
-  const { data, isLoading } = useSWR("/admin/metrics", adminFetcher);
+  const { data, error, isLoading } = useSWR("/admin/metrics", adminFetcher);
 
   return (
     <div className="space-y-6">
@@ -18,6 +18,13 @@ export default function AdminDashboardPage() {
           Visão geral do sistema.
         </p>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar métricas do admin. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

@@ -7,36 +7,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 export default function CampaignsPage() {
+  const { getToken } = useAuth();
   const { organization } = useOrganization();
   const orgId = organization?.id;
-  const { data: campaigns, mutate } = useSWR(
+  const { data: campaigns, error: campaignsError, mutate } = useSWR(
     orgId ? ["/campaigns", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
-  const { data: instances } = useSWR(
-    orgId ? ["/instances", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+  const { data: instances, error: instancesError } = useSWR(
+    orgId ? ["/instances", orgId, "campaigns"] : null,
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
-  const { data: templates } = useSWR(
-    orgId ? ["/templates", orgId] : null,
-    ([url, oid]) => api.get(url, { headers: { "x-org-id": oid } }).then(res => res.data)
+  const { data: templates, error: templatesError } = useSWR(
+    orgId ? ["/templates", orgId, "campaigns"] : null,
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
   );
 
   const [name, setName] = useState("");
   const [instanceId, setInstanceId] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [segmentTags, setSegmentTags] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const create = async () => {
-    if (!name || !instanceId) return toast.error("Informe nome e instância");
+    setValidationError("");
+    if (!name) { setValidationError("Informe o nome da campanha"); return; }
+    if (!instanceId) { setValidationError("Selecione uma instância para criar a campanha"); return; }
     try {
-      await api.post("/campaigns", { name, instanceId, templateId: templateId || undefined, segmentTags: segmentTags ? segmentTags.split(",") : undefined }, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.post("/campaigns", { name, instanceId, templateId: templateId || undefined, segmentTags: segmentTags ? segmentTags.split(",") : undefined }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       setName(""); setInstanceId(""); setTemplateId(""); setSegmentTags("");
       mutate();
       toast.success("Campanha criada");
@@ -47,13 +62,16 @@ export default function CampaignsPage() {
 
   const run = async (id: string) => {
     try {
-      await api.post(`/campaigns/${id}/run`, {}, { headers: { "x-org-id": orgId as string } });
+      const token = await getToken();
+      await api.post(`/campaigns/${id}/run`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       mutate();
       toast.success("Campanha executada");
     } catch {
       toast.error("Erro na execução");
     }
   };
+
+  const loadError = campaignsError || instancesError || templatesError;
 
   return (
     <div className="space-y-6">
@@ -63,6 +81,13 @@ export default function CampaignsPage() {
           <p className="text-muted-foreground">Crie e execute envios em massa.</p>
         </div>
       </div>
+
+      {loadError && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar dados. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -99,7 +124,10 @@ export default function CampaignsPage() {
             <Label>Tags do Segmento</Label>
             <Input value={segmentTags} onChange={(e) => setSegmentTags(e.target.value)} placeholder="vip,leads" />
           </div>
-          <Button onClick={create}>Criar</Button>
+          <div className="md:col-span-4 flex flex-col gap-2">
+            {validationError && <p className="text-sm text-red-600">{validationError}</p>}
+            <Button onClick={create}>Criar</Button>
+          </div>
         </CardContent>
       </Card>
 

@@ -3,7 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { clerkMiddleware } from '@clerk/express';
 
-dotenv.config({ path: '../../.env' }); // Load from root
+dotenv.config({ path: '../../.env.local' }); // Load .env.local first (overrides)
+dotenv.config({ path: '../../.env' });     // Then .env as fallback
+dotenv.config();                            // Also check apps/api/.env
 
 const app = express();
 const PORT = process.env.PORT || 3001;

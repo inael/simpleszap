@@ -15,6 +15,7 @@ import { TemplatesController } from '../controllers/templates.controller';
 import { WebhookConfigController } from '../controllers/webhook-config.controller';
 import { AsaasWebhookController } from '../controllers/asaas-webhook.controller';
 import { CampaignsController } from '../controllers/campaigns.controller';
+import { DashboardController } from '../controllers/dashboard.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuth } from '../middleware/org-auth';
 import { requireScope } from '../middleware/scope-auth';
@@ -27,8 +28,11 @@ router.get('/pricing', PricingController.getPlans);
 router.post('/webhooks/clerk', WebhookController.handleClerk);
 router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
+// Dashboard
+router.get('/dashboard/metrics', orgAuth, DashboardController.metrics);
+
 // Subscription
-router.post('/subscription/checkout', SubscriptionController.createCheckout);
+router.post('/subscription/checkout', orgAuth, SubscriptionController.createCheckout);
 
 // Instance Routes
 router.get('/instances', orgAuth, InstanceController.list);

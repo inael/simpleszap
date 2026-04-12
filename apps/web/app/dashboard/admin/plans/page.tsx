@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import useSWR from "swr";
 import { useAdminApi } from "@/lib/use-admin-api";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ interface Plan {
 
 export default function AdminPlansPage() {
   const { adminFetcher, adminPost, adminPut } = useAdminApi();
-  const { data: plans, isLoading, mutate } = useSWR<Plan[]>("/admin/plans", adminFetcher);
+  const { data: plans, error: plansError, isLoading, mutate } = useSWR<Plan[]>("/admin/plans", adminFetcher);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
 
@@ -103,7 +103,7 @@ export default function AdminPlansPage() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Plano</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? "Editar Plano" : "Novo Plano"}</DialogTitle>
             </DialogHeader>
@@ -167,6 +167,13 @@ export default function AdminPlansPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {plansError && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar planos. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-0">

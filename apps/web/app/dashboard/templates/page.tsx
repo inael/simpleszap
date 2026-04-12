@@ -11,6 +11,7 @@ import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 const TEMPLATE_VARIABLES = [
   { label: "Nome do contato", value: "{{name}}" },
@@ -23,7 +24,7 @@ export default function TemplatesPage() {
   const orgId = organization?.id;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const { data: templates, mutate } = useSWR(
+  const { data: templates, error: templatesError, mutate } = useSWR(
     orgId ? ["/templates", orgId] : null,
     async ([url, oid]) => {
       const token = await getToken();
@@ -84,6 +85,13 @@ export default function TemplatesPage() {
           <p className="text-muted-foreground">Crie e gerencie templates de mensagens.</p>
         </div>
       </div>
+
+      {templatesError && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p>Erro ao carregar templates. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
