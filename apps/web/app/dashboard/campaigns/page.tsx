@@ -7,16 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 
 export default function CampaignsPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
   const { data: campaigns, error: campaignsError, mutate } = useSWR(
     orgId ? ["/campaigns", orgId] : null,
     async ([url, oid]) => {

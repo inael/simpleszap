@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
@@ -18,9 +18,8 @@ const WEBHOOK_EVENTS = [
 ] as const;
 
 export default function WebhooksPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
   const { data: configs, error: configsError, mutate } = useSWR(
     orgId ? ["/webhooks/config", orgId] : null,
     async ([url, oid]) => {
@@ -41,7 +40,7 @@ export default function WebhooksPage() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>(WEBHOOK_EVENTS.map(e => e.value));
 
   const add = async () => {
-    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
+    if (!orgId) return toast.error("Erro de autenticação.");
     if (!url || !secret) return toast.error("Informe URL e secret");
     try {
       const token = await getToken();

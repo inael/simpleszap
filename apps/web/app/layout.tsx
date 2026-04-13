@@ -1,4 +1,4 @@
-import { ClerkProvider } from "@clerk/nextjs";
+import { AuthProvider } from "@/lib/auth-context";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -25,12 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="pt-BR">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="pt-BR">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <AuthProvider>
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

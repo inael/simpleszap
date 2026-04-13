@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { clerkMiddleware } from '@clerk/express';
 
 dotenv.config({ path: '../../.env.local' }); // Load .env.local first (overrides)
 dotenv.config({ path: '../../.env' });     // Then .env as fallback
@@ -51,10 +50,7 @@ app.use(express.json({
   }
 }));
 
-// Clerk middleware (permissive — populates auth when Clerk JWT is present)
-if (process.env.CLERK_SECRET_KEY) {
-  app.use(clerkMiddleware());
-}
+// Logto JWT verification happens in the org-auth middleware, not globally
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0' });

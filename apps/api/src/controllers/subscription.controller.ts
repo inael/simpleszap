@@ -1,18 +1,16 @@
 import { Request, Response } from 'express';
 import { AsaasService } from '../services/asaas.service';
 import { prisma } from '../lib/prisma';
-import { getAuth } from '@clerk/express';
 
 export class SubscriptionController {
   static async createCheckout(req: Request, res: Response) {
     const { planId, cycle, method, cpfCnpj } = req.body;
-    const auth = getAuth(req);
-    const clerkId = auth?.userId;
+    const userId = req.headers['x-user-id'] as string | undefined;
 
-    if (!clerkId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
-      const user = await prisma.user.findUnique({ where: { clerkId } });
+      const user = await prisma.user.findUnique({ where: { logtoId: userId } });
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -36,7 +34,7 @@ export class SubscriptionController {
       const value = cycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
       
       const effectiveCycle = (cycle || 'MONTHLY') as 'MONTHLY' | 'YEARLY';
-      const encoded = `sz|uid:${clerkId}|plan:${plan.id}|cycle:${effectiveCycle}`;
+      const encoded = `sz|uid:${userId}|plan:${plan.id}|cycle:${effectiveCycle}`;
 
       const subscription = await AsaasService.createSubscription(
         customerId,

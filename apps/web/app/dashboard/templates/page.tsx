@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -19,9 +19,8 @@ const TEMPLATE_VARIABLES = [
 ] as const;
 
 export default function TemplatesPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { data: templates, error: templatesError, mutate } = useSWR(
@@ -53,7 +52,7 @@ export default function TemplatesPage() {
   };
 
   const addTemplate = async () => {
-    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
+    if (!orgId) return toast.error("Erro de autenticação.");
     if (!name || !body) return toast.error("Informe nome e conteúdo");
     try {
       const token = await getToken();

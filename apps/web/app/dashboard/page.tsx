@@ -4,12 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Smartphone, MessageSquare, AlertCircle } from "lucide-react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 
 export default function DashboardPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
 
   const { data: metrics, error, isLoading } = useSWR(
     orgId ? ["/dashboard/metrics", orgId] : null,

@@ -1,4 +1,3 @@
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +6,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Check, Server, Zap, Shield, ArrowRight, Menu, Star, Globe, Smartphone, Code2, Users } from "lucide-react";
 import Image from "next/image";
+import { getLogtoContext } from "@logto/next/server-actions";
+import { logtoConfig } from "@/lib/logto";
 
-export default function Home() {
+export default async function Home() {
+  const context = await getLogtoContext(logtoConfig);
+  const isSignedIn = context.isAuthenticated;
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Navigation */}
@@ -29,24 +33,24 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="ghost" className="text-gray-600 hover:text-primary hover:bg-primary/5">Login</Button>
-              </SignInButton>
-              <SignInButton mode="modal">
-                <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-6">
-                  Começar Grátis
-                </Button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
+            {!isSignedIn ? (
+              <>
+                <Link href="/api/logto/sign-in">
+                  <Button variant="ghost" className="text-gray-600 hover:text-primary hover:bg-primary/5">Login</Button>
+                </Link>
+                <Link href="/api/logto/sign-up">
+                  <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-6">
+                    Começar Grátis
+                  </Button>
+                </Link>
+              </>
+            ) : (
               <Link href="/dashboard">
                 <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-6">
                   Dashboard
                 </Button>
               </Link>
-              <UserButton />
-            </SignedIn>
+            )}
           </div>
         </div>
       </header>
@@ -72,20 +76,19 @@ export default function Home() {
                 Automatize fluxos, notificações e atendimento. Uma API robusta para integrar CRMs, ERPs e sistemas próprios com suporte 100% nacional.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                <SignedOut>
-                  <SignInButton mode="modal">
+                {!isSignedIn ? (
+                  <Link href="/api/logto/sign-up">
                     <Button size="lg" className="rounded-full px-8 h-12 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
                       Teste Grátis por 7 Dias
                     </Button>
-                  </SignInButton>
-                </SignedOut>
-                <SignedIn>
+                  </Link>
+                ) : (
                   <Link href="/dashboard">
                     <Button size="lg" className="rounded-full px-8 h-12 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
                       Acessar Painel
                     </Button>
                   </Link>
-                </SignedIn>
+                )}
                 <Button variant="outline" size="lg" className="rounded-full px-8 h-12 text-base border-2 hover:bg-gray-50/50">
                   Ver Documentação
                 </Button>

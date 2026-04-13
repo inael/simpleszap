@@ -18,13 +18,12 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export default function InstancesPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -40,7 +39,7 @@ export default function InstancesPage() {
 
   const handleCreate = async () => {
     if (!newInstanceName) return;
-    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
+    if (!orgId) return toast.error("Erro de autenticação.");
     setIsCreating(true);
     try {
       const token = await getToken();
@@ -76,12 +75,7 @@ export default function InstancesPage() {
       try {
           const token = await getToken();
           const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-          // Evolution API v2 returns base64 in `qrcode.base64` or similar?
-          // Checking service: return response.data directly.
-          // Usually response.data.qrcode.base64 or just response.data.base64
-          // Let's assume it returns { qrcode: { base64: "..." }, pairingCode: "..." } or similar
-          // If the service just returns what axios gets.
-          
+
           if (res.data?.base64) {
              setQrCode(res.data.base64);
           } else if (res.data?.qrcode?.base64) {
@@ -155,7 +149,7 @@ export default function InstancesPage() {
                 <TableRow key={inst.id}>
                   <TableCell className="font-medium">{inst.name}</TableCell>
                   <TableCell>
-                    <Badge variant={inst.status === 'open' || inst.status === 'connected' ? "default" : "outline"} 
+                    <Badge variant={inst.status === 'open' || inst.status === 'connected' ? "default" : "outline"}
                            className={inst.status === 'open' || inst.status === 'connected' ? "bg-green-500 hover:bg-green-600" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
                       {inst.status === 'open' || inst.status === 'connected' ? 'Conectado' : inst.status}
                     </Badge>
@@ -182,7 +176,7 @@ export default function InstancesPage() {
           </Table>
         </CardContent>
       </Card>
-      
+
       {qrCode && (
           <Dialog open={!!qrCode} onOpenChange={(o) => !o && setQrCode(null)}>
               <DialogContent>

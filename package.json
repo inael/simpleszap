@@ -2,18 +2,11 @@
   "name": "@root/simpleszap",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "npx playwright test",
-    "test:landing": "npx playwright test landing",
-    "test:auth": "npx playwright test auth",
-    "test:admin": "npx playwright test admin",
-    "cookie:sync": "node tools/cookie-sync.cjs"
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
     "prisma": "^5.10.2"
   },
   "dependencies": {

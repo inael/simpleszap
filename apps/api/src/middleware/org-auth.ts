@@ -1,25 +1,49 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
-import { getAuth } from '@clerk/express';
+import { verifyLogtoToken } from '../lib/logto';
 
 export async function orgAuth(req: Request, res: Response, next: NextFunction) {
-  try {
-    const auth = getAuth(req);
-    if (auth?.userId) {
-      req.headers['x-user-id'] = auth.userId;
+  // Try Logto JWT from Authorization header
+  const authorization = req.headers['authorization'] as string | undefined;
+  const bearer = authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined;
+
+  if (bearer && !/^(sk_|sz_)/.test(bearer)) {
+    try {
+      const auth = await verifyLogtoToken(bearer);
+      if (auth?.sub) {
+        req.headers['x-user-id'] = auth.sub;
+        // No organizations in Logto for now — use user sub as org ID
+        req.headers['x-org-id'] = auth.sub;
+
+        // Lazy user creation: ensure user exists in DB
+        try {
+          const existing = await prisma.user.findUnique({ where: { logtoId: auth.sub } });
+          if (!existing) {
+            await prisma.user.create({
+              data: {
+                logtoId: auth.sub,
+                email: auth.email || `${auth.sub}@logto.user`,
+                name: auth.email?.split('@')[0] || auth.sub,
+              },
+            });
+            console.log(`Lazy-created user for Logto sub ${auth.sub}`);
+          }
+        } catch (err: any) {
+          // Unique constraint race — another request may have created it
+          if (!err?.message?.includes('Unique constraint')) {
+            console.error('orgAuth: lazy user creation failed:', err);
+          }
+        }
+      }
+    } catch {
+      // Token verification failed — fall through to API key auth
     }
-    if (auth?.orgId) {
-      req.headers['x-org-id'] = auth.orgId;
-    }
-  } catch {
-    // Clerk middleware not available — fall through to header/api-key auth
   }
 
   let orgId = req.headers['x-org-id'] as string;
   const xApiKey = req.headers['x-api-key'] as string | undefined;
-  const authorization = req.headers['authorization'] as string | undefined;
-  const bearer = authorization?.startsWith('Bearer ') ? authorization.slice(7) : authorization;
-  const apiKey = xApiKey || (bearer && /^(sk_|sz_)/.test(bearer) ? bearer : undefined);
+  const rawBearer = authorization?.startsWith('Bearer ') ? authorization.slice(7) : authorization;
+  const apiKey = xApiKey || (rawBearer && /^(sk_|sz_)/.test(rawBearer) ? rawBearer : undefined);
 
   if (!orgId && apiKey) {
     try {

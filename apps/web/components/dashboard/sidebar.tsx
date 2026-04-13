@@ -20,7 +20,7 @@ import {
   ScrollText,
   Wrench
 } from "lucide-react";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
 
 const routes = [
@@ -120,10 +120,12 @@ const adminRoutes = [
 
 export const Sidebar = () => {
   const pathname = usePathname();
-  const { signOut } = useClerk();
-  const { user } = useUser();
-  const legacyRole = (user?.publicMetadata as any)?.role;
-  const isAdmin = legacyRole === "admin" || pathname.startsWith("/dashboard/admin");
+  const { isAdmin } = useAuth();
+  const showAdmin = isAdmin || pathname.startsWith("/dashboard/admin");
+
+  const handleSignOut = () => {
+    window.location.href = "/api/logto/sign-out";
+  };
 
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
@@ -159,7 +161,7 @@ export const Sidebar = () => {
             );
           })}
         </div>
-        {isAdmin && (
+        {showAdmin && (
           <>
             <Separator className="my-4 bg-zinc-700" />
             <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
@@ -191,9 +193,9 @@ export const Sidebar = () => {
         )}
       </div>
       <div className="px-3 py-2">
-        <Button 
-          onClick={() => signOut()}
-          variant="ghost" 
+        <Button
+          onClick={handleSignOut}
+          variant="ghost"
           className="w-full justify-start text-zinc-400 hover:text-white hover:bg-white/10"
         >
           <LogOut className="h-5 w-5 mr-3" />

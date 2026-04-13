@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check } from "lucide-react";
 import useSWR from "swr";
 import { api, fetcher } from "@/lib/api";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -110,8 +110,8 @@ export default function SubscriptionPage() {
                     </ul>
                 </CardContent>
                 <CardFooter>
-                    <Button 
-                        className="w-full" 
+                    <Button
+                        className="w-full"
                         variant={(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 ? "outline" : "default"}
                         disabled={(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 || loading === plan.id}
                         onClick={() => handleSubscribe(plan.id)}

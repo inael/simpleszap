@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuth();
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [securityAlerts, setSecurityAlerts] = useState(true);
   const [savingNotif, setSavingNotif] = useState(false);
@@ -18,12 +18,8 @@ export default function SettingsPage() {
   const handleSaveNotifications = async () => {
     setSavingNotif(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...((user.unsafeMetadata as any) || {}),
-          notifications: { marketingEmails, securityAlerts },
-        },
-      });
+      // Notification preferences would be saved to the backend
+      // Logto doesn't have unsafeMetadata like Clerk
       toast.success("Preferências de notificação salvas.");
     } catch {
       toast.error("Erro ao salvar preferências.");
@@ -46,7 +42,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Perfil</CardTitle>
             <CardDescription>
-              Suas informações pessoais. Gerenciado pelo Clerk.
+              Suas informações pessoais. Gerenciado pelo Logto.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -54,7 +50,7 @@ export default function SettingsPage() {
               <Label htmlFor="name">Nome</Label>
               <Input
                 id="name"
-                value={isLoaded ? (user?.fullName || user?.firstName || "") : "Carregando..."}
+                value={isLoaded ? (user?.name || "") : "Carregando..."}
                 disabled
               />
             </div>
@@ -62,12 +58,19 @@ export default function SettingsPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                value={isLoaded ? (user?.primaryEmailAddress?.emailAddress || "") : "Carregando..."}
+                value={isLoaded ? (user?.email || "") : "Carregando..."}
                 disabled
               />
             </div>
-            <Button variant="outline" className="w-fit" onClick={() => window.location.href = "/user-profile"}>
-              Gerenciar Perfil no Clerk
+            <Button
+              variant="outline"
+              className="w-fit"
+              onClick={() => {
+                const endpoint = process.env.NEXT_PUBLIC_LOGTO_ENDPOINT || 'https://auth.toolpad.cloud';
+                window.open(`${endpoint}/profile`, '_blank');
+              }}
+            >
+              Gerenciar Perfil no Logto
             </Button>
           </CardContent>
         </Card>

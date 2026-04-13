@@ -1,97 +1,73 @@
 import { Request, Response } from 'express';
-import { Webhook } from 'svix';
 import { prisma } from '../lib/prisma';
 
 export class WebhookController {
-  static async handleClerk(req: Request, res: Response) {
-    // Check if the request is missing the headers
-    const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+  /**
+   * Handle Logto webhook events (user.created, user.updated, user.deleted, etc.)
+   * Logto webhooks send JSON with { event, createdAt, data: { ... } }
+   */
+  static async handleLogto(req: Request, res: Response) {
+    const WEBHOOK_SECRET = process.env.LOGTO_WEBHOOK_SECRET;
 
-    if (!WEBHOOK_SECRET) {
-      return res.status(500).json({ error: 'Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local' });
+    // Optional: verify signing secret via custom header
+    if (WEBHOOK_SECRET) {
+      const signature = req.headers['logto-signature-sha-256'] as string | undefined;
+      if (!signature) {
+        return res.status(400).json({ error: 'Missing webhook signature' });
+      }
+      const crypto = await import('crypto');
+      const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+      const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
+      if (signature !== expected) {
+        return res.status(401).json({ error: 'Invalid webhook signature' });
+      }
     }
 
-    // Get the headers
-    const svix_id = req.headers["svix-id"] as string;
-    const svix_timestamp = req.headers["svix-timestamp"] as string;
-    const svix_signature = req.headers["svix-signature"] as string;
+    const { event, data } = req.body;
+    console.log(`Logto webhook received: ${event}`);
 
-    // If there are no headers, error out
-    if (!svix_id || !svix_timestamp || !svix_signature) {
-      return res.status(400).json({ error: 'Error occured -- no svix headers' });
-    }
-
-    // Get the body
-    const body = (req as any).rawBody;
-
-    // Create a new Svix instance with your secret.
-    const wh = new Webhook(WEBHOOK_SECRET);
-
-    let evt: any;
-
-    // Verify the payload with the headers
     try {
-      evt = wh.verify(body, {
-        "svix-id": svix_id,
-        "svix-timestamp": svix_timestamp,
-        "svix-signature": svix_signature,
-      });
-    } catch (err) {
-      console.error('Error verifying webhook:', err);
-      return res.status(400).json({ Error: 'Error occured' });
-    }
-
-    // Handle the event
-    const eventType = evt.type;
-
-    console.log(`Webhook with and ID of ${evt.data.id} and type of ${eventType}`);
-
-    if (eventType === 'user.created') {
-      const { id, email_addresses, first_name, last_name } = evt.data;
-      const email = email_addresses[0]?.email_address;
-      const name = `${first_name || ''} ${last_name || ''}`.trim();
-
-      try {
-        await prisma.user.create({
-          data: {
-            clerkId: id,
-            email: email,
-            name: name,
-            // Assign a default free plan if available, or handle plan assignment later
+      if (event === 'User.Created') {
+        const { id, primaryEmail, name, username } = data;
+        await prisma.user.upsert({
+          where: { logtoId: id },
+          create: {
+            logtoId: id,
+            email: primaryEmail || `${id}@logto.user`,
+            name: name || username || primaryEmail?.split('@')[0] || id,
+          },
+          update: {
+            email: primaryEmail || undefined,
+            name: name || username || undefined,
           },
         });
-        console.log(`User ${id} created in DB`);
-      } catch (error) {
-        console.error('Error creating user in DB:', error);
-        // Don't fail the webhook response, just log the error
+        console.log(`Logto user ${id} upserted in DB`);
+      } else if (event === 'User.Data.Updated') {
+        const { id, primaryEmail, name, username } = data;
+        try {
+          await prisma.user.update({
+            where: { logtoId: id },
+            data: {
+              email: primaryEmail || undefined,
+              name: name || username || undefined,
+            },
+          });
+          console.log(`Logto user ${id} updated in DB`);
+        } catch (err) {
+          console.error(`User ${id} not found for update, skipping`);
+        }
+      } else if (event === 'User.Deleted') {
+        const { id } = data;
+        try {
+          await prisma.user.delete({ where: { logtoId: id } });
+          console.log(`Logto user ${id} deleted from DB`);
+        } catch (err) {
+          console.error(`User ${id} not found for deletion, skipping`);
+        }
       }
-    } else if (eventType === 'user.updated') {
-      const { id, email_addresses, first_name, last_name } = evt.data;
-      const email = email_addresses[0]?.email_address;
-      const name = `${first_name || ''} ${last_name || ''}`.trim();
-
-      try {
-        await prisma.user.update({
-          where: { clerkId: id },
-          data: {
-            email: email,
-            name: name,
-          },
-        });
-        console.log(`User ${id} updated in DB`);
-      } catch (error) {
-        console.error('Error updating user in DB:', error);
-      }
-    } else if (eventType === 'user.deleted') {
-      const { id } = evt.data;
-      try {
-        await prisma.user.delete({
-          where: { clerkId: id },
-        });
-        console.log(`User ${id} deleted from DB`);
-      } catch (error) {
-        console.error('Error deleting user from DB:', error);
-      }
+    } catch (error) {
+      console.error('Error processing Logto webhook:', error);
+      // Don't fail the webhook response
     }
 
     return res.status(200).json({ success: true });

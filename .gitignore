@@ -53,3 +53,10 @@ test-results
 data/cookies
 data/cookies/
 nul
+
+# Temp files
+*.tmp
+PROMPT_*.md
+BUGS_FOUND.md
+TEST_PLAN.md
+plano.md

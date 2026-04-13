@@ -5,13 +5,10 @@ import { Instance as PrismaInstance } from '@prisma/client';
 import { EnforcementService } from '../services/enforcement.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
-import { getAuth } from '@clerk/express';
-
 export class InstanceController {
   static async list(req: Request, res: Response) {
     try {
-      const auth = getAuth(req);
-      const orgId = auth?.orgId || (req.headers['x-org-id'] as string);
+      const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
 
       const instances = await prisma.instance.findMany({
@@ -40,19 +37,18 @@ export class InstanceController {
   }
 
   static async create(req: Request, res: Response) {
-    const auth = getAuth(req);
-    const clerkId = auth?.userId;
-    const orgId = auth?.orgId || (req.body?.orgId as string | undefined) || (req.headers['x-org-id'] as string | undefined);
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const orgId = (req.body?.orgId as string | undefined) || (req.headers['x-org-id'] as string | undefined);
     const name = req.body?.name as string | undefined;
 
     if (!name || !orgId) {
       return res.status(400).json({ error: 'Name and orgId are required' });
     }
-    
-    if (!clerkId) return res.status(401).json({ error: 'Unauthorized' });
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
-      const user = await prisma.user.findUnique({ where: { clerkId } });
+      const user = await prisma.user.findUnique({ where: { logtoId: userId } });
       if (!user) return res.status(404).json({ error: 'User not found' });
 
       const allowed = await EnforcementService.canCreateInstance(orgId);

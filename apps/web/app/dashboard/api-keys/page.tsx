@@ -8,15 +8,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ApiKeysPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
 
   const { data: keys, mutate } = useSWR(
     orgId ? ["/api-keys", orgId] : null,
@@ -30,7 +29,7 @@ export default function ApiKeysPage() {
   const [name, setName] = useState("");
 
   const createKey = async () => {
-    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
+    if (!orgId) return toast.error("Erro de autenticação.");
     try {
       const token = await getToken();
       const res = await api.post(
@@ -123,7 +122,7 @@ export default function ApiKeysPage() {
               {keys?.map((k: any) => (
                 <TableRow key={k.id}>
                   <TableCell className="font-medium">{k.name || "Chave"}</TableCell>
-                  <TableCell className="font-mono text-xs">{String(k.key || "").slice(0, 10)}…</TableCell>
+                  <TableCell className="font-mono text-xs">{String(k.key || "").slice(0, 10)}...</TableCell>
                   <TableCell>{k.createdAt ? new Date(k.createdAt).toLocaleDateString() : "-"}</TableCell>
                   <TableCell className="text-right flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => copy(k.key)}>

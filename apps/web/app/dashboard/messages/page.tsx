@@ -10,16 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle } from "lucide-react";
 
 export default function MessagesPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
   const [selectedInstance, setSelectedInstance] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");

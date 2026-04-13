@@ -7,15 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { useAuth, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 
 export default function ContactsPage() {
-  const { getToken } = useAuth();
-  const { organization } = useOrganization();
-  const orgId = organization?.id;
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
 
   const { data: contacts, error: contactsError, mutate } = useSWR(
     orgId ? ["/contacts", orgId] : null,
@@ -29,7 +28,7 @@ export default function ContactsPage() {
   const [phone, setPhone] = useState("");
 
   const addContact = async () => {
-    if (!orgId) return toast.error("Crie/seleciona uma organização primeiro.");
+    if (!orgId) return toast.error("Erro de autenticação.");
     if (!phone) return toast.error("Informe o telefone");
     try {
       const token = await getToken();

@@ -25,7 +25,7 @@ const router = Router();
 
 // Public Routes
 router.get('/pricing', PricingController.getPlans);
-router.post('/webhooks/clerk', WebhookController.handleClerk);
+router.post('/webhooks/logto', WebhookController.handleLogto);
 router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
 // Dashboard
@@ -77,10 +77,19 @@ router.post('/campaigns/:id/run', orgAuth, CampaignsController.run);
 router.get('/admin/plans', requireAdmin, AdminPlanController.list);
 router.post('/admin/plans', requireAdmin, AdminPlanController.create);
 router.put('/admin/plans/:id', requireAdmin, AdminPlanController.update);
+router.post('/admin/plans/:id/sync-asaas', requireAdmin, AdminPlanController.syncToAsaas);
+router.delete('/admin/plans/:id/sync-asaas', requireAdmin, AdminPlanController.unsyncFromAsaas);
+router.get('/admin/asaas/plans', requireAdmin, AdminPlanController.listAsaasPlans);
 router.get('/admin/users', requireAdmin, AdminUserController.list);
 router.get('/admin/metrics', requireAdmin, AdminMetricsController.get);
 router.get('/admin/audit-logs', requireAdmin, AdminAuditController.list);
 router.get('/admin/settings', requireAdmin, AdminSettingsController.get);
 router.put('/admin/settings', requireAdmin, AdminSettingsController.update);
+router.get('/admin/settings/asaas', requireAdmin, AdminSettingsController.getAsaasConfig);
+router.put('/admin/settings/asaas', requireAdmin, AdminSettingsController.saveAsaasConfig);
+router.post('/admin/settings/asaas/test', requireAdmin, AdminSettingsController.testAsaasConnection);
+router.post('/admin/settings/asaas/webhook', requireAdmin, AdminSettingsController.registerAsaasWebhook);
+router.get('/admin/settings/asaas/webhook', requireAdmin, AdminSettingsController.getAsaasWebhookStatus);
+router.post('/admin/settings/asaas/webhook/token', requireAdmin, AdminSettingsController.generateWebhookToken);
 
 export default router;

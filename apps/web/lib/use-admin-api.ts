@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from './auth-context';
 import { api } from './api';
 
 export function useAdminApi() {

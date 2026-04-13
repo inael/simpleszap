@@ -1,14 +1,15 @@
 "use client";
 
-import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 
 export const Header = () => {
   const [isMounted, setIsMounted] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setIsMounted(true);
@@ -31,8 +32,14 @@ export const Header = () => {
         </SheetContent>
       </Sheet>
       <div className="flex w-full justify-end gap-x-4 items-center">
-        <OrganizationSwitcher hidePersonal />
-        <UserButton afterSignOutUrl="/" />
+        {user && (
+          <div className="flex items-center gap-2">
+            {user.picture && (
+              <img src={user.picture} alt="Avatar" className="w-8 h-8 rounded-full" />
+            )}
+            <span className="text-sm text-muted-foreground">{user.name || user.email}</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { SettingsService, SETTING_KEYS } from '../services/settings.service';
 
 export class AsaasWebhookController {
   static async handle(req: Request, res: Response) {
-    const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN || process.env.ASAAS_WEBHOOK_ACCESS_TOKEN;
+    const expectedToken = await SettingsService.get(SETTING_KEYS.ASAAS_WEBHOOK_TOKEN);
     if (expectedToken) {
       const receivedToken = req.header('asaas-access-token');
       if (!receivedToken || receivedToken !== expectedToken) {
@@ -33,7 +34,7 @@ export class AsaasWebhookController {
           if (match) {
             const [, userId, planId] = match;
             await prisma.user.update({
-              where: { clerkId: userId },
+              where: { logtoId: userId },
               data: { subscriptionPlanId: planId }
             }).catch(() => {});
           }
