@@ -59,7 +59,8 @@ app.get('/health', (req, res) => {
 let routes: any | undefined;
 try {
   routes = require('./routes').default;
-} catch {
+} catch (err) {
+  console.error('Failed to load routes:', err);
   routes = undefined;
 }
 
