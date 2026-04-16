@@ -17,6 +17,10 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "SimplesZap",
   description: "Sua API de WhatsApp Simplificada",
+  icons: {
+    icon: [{ url: "/icon-simpleszap.svg", type: "image/svg+xml" }],
+    apple: "/icon-simpleszap.svg",
+  },
 };
 
 export default function RootLayout({
