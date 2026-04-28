@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" fill="none">
+  <rect width="800" height="520" rx="32" fill="#F8FAFC"/>
+  <path d="M400 96L520 152V280C520 360 440 424 400 424C360 424 280 360 280 280V152L400 96Z" fill="#ECFDF5" stroke="#16A34A" stroke-width="3"/>
+  <path d="M400 140L472 176V268C472 328 412 376 400 376C388 376 328 328 328 268V176L400 140Z" fill="#16A34A" fill-opacity="0.15"/>
+  <rect x="360" y="220" width="80" height="64" rx="10" fill="white" stroke="#15803D" stroke-width="2"/>
+  <circle cx="400" cy="248" r="12" fill="#22C55E"/>
+  <path d="M394 248l4 4 10-12" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <text x="400" y="310" text-anchor="middle" fill="#14532D" font-family="system-ui,sans-serif" font-size="15" font-weight="600">Boas pr�ticas + observabilidade</text>
+  <text x="400" y="334" text-anchor="middle" fill="#64748B" font-family="system-ui,sans-serif" font-size="13">Menos surpresas em produ��o</text>
+  <circle cx="200" cy="400" r="8" fill="#BBF7D0"/>
+  <circle cx="600" cy="400" r="8" fill="#BBF7D0"/>
+  <circle cx="400" cy="460" r="6" fill="#86EFAC"/>
+</svg>

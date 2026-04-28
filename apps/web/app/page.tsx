@@ -1,16 +1,33 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { MessageSquare, Check, Server, Zap, Shield, ArrowRight, Menu, Star, Globe, Smartphone, Code2, Users } from "lucide-react";
+import {
+  MessageSquare,
+  Check,
+  Server,
+  Zap,
+  Shield,
+  Star,
+  Globe,
+  Smartphone,
+  Code2,
+  Users,
+  Target,
+  Briefcase,
+  ShieldCheck,
+  ListOrdered,
+} from "lucide-react";
 import Image from "next/image";
 import { getLogtoContext } from "@logto/next/server-actions";
-import { logtoConfig } from "@/lib/logto";
+import { getLogtoConfigFromHeaders } from "@/lib/logto";
+
+const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://github.com/inael/simpleszap";
+const supportWaDigits = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999").replace(/\D/g, "");
+const contactWhatsAppHref = `https://wa.me/${supportWaDigits}`;
 
 export default async function Home() {
-  const context = await getLogtoContext(logtoConfig);
+  const context = await getLogtoContext(await getLogtoConfigFromHeaders());
   const isSignedIn = context.isAuthenticated;
 
   return (
@@ -18,18 +35,19 @@ export default async function Home() {
       {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container flex h-20 items-center justify-between mx-auto px-4 md:px-6">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg">
               <MessageSquare className="w-6 h-6 text-primary" />
             </div>
             <span className="text-xl font-bold tracking-tight text-green-950">SimplesZap</span>
-          </div>
+          </Link>
 
           <nav className="hidden md:flex gap-8 text-sm font-medium text-gray-600">
             <Link href="#features" className="hover:text-primary transition-colors">Funcionalidades</Link>
             <Link href="#pricing" className="hover:text-primary transition-colors">Preços</Link>
+            <Link href="/comparativo" className="hover:text-primary transition-colors">Comparativo</Link>
+            <Link href="/blog" className="hover:text-primary transition-colors">Blog</Link>
             <Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Blog</Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -89,9 +107,11 @@ export default async function Home() {
                     </Button>
                   </Link>
                 )}
-                <Button variant="outline" size="lg" className="rounded-full px-8 h-12 text-base border-2 hover:bg-gray-50/50">
-                  Ver Documentação
-                </Button>
+                <Link href={docsUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="lg" className="rounded-full px-8 h-12 text-base border-2 hover:bg-gray-50/50">
+                    Ver Documentação
+                  </Button>
+                </Link>
               </div>
               
               <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
@@ -198,16 +218,14 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Logo Wall */}
+      {/* Social proof — texto honesto (sem marcas fictícias) */}
       <section className="py-12 border-y bg-gray-50/50">
-        <div className="container px-4 mx-auto text-center">
-          <p className="text-sm font-semibold text-gray-500 mb-8 uppercase tracking-wider">Confiança de empresas que crescem rápido</p>
-          <div className="flex flex-wrap justify-center items-center gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-             {/* Simple Text Logos for demo purposes */}
-             {['Acme Corp', 'Global Tech', 'Nebula', 'Fox Hub', 'Circle AI'].map((logo) => (
-                 <span key={logo} className="text-2xl font-bold text-gray-400">{logo}</span>
-             ))}
-          </div>
+        <div className="container px-4 mx-auto text-center max-w-3xl">
+          <p className="text-sm font-semibold text-gray-500 mb-4 uppercase tracking-wider">Feito para quem envia código para produção</p>
+          <p className="text-gray-600 leading-relaxed">
+            Times de produto, agências e desenvolvedores independentes usam APIs como a nossa para ligar CRMs,
+            ERPs e automações ao WhatsApp — com foco em estabilidade e integração via HTTP.
+          </p>
         </div>
       </section>
 
@@ -269,6 +287,195 @@ export default async function Home() {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Para quem é */}
+      <section id="para-quem" className="py-20 bg-white border-t border-gray-100">
+        <div className="container px-4 md:px-6 mx-auto max-w-5xl">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-green-950 mb-4">Para quem é o SimplesZap</h2>
+            <p className="text-lg text-gray-600">
+              Se você precisa de uma camada de API confiável para conectar sistemas ao WhatsApp — sem reinventar infraestrutura de sessão — estamos falando a mesma língua.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Target className="w-8 h-8 text-primary" />,
+                title: "Squads de produto",
+                desc: "Quem já tem backend e quer expor envio, recebimento e webhooks com contratos HTTP previsíveis.",
+              },
+              {
+                icon: <Briefcase className="w-8 h-8 text-primary" />,
+                title: "Agências e integradores",
+                desc: "Projetos com CRMs, ERPs ou orquestradores: menos tempo brigando com conexão e mais tempo no fluxo do cliente.",
+              },
+              {
+                icon: <Code2 className="w-8 h-8 text-primary" />,
+                title: "Devs que valorizam doc e suporte",
+                desc: "Documentação em português e um time que entende o contexto de produção no Brasil.",
+              },
+            ].map((item, i) => (
+              <Card key={i} className="border border-gray-100 shadow-sm bg-gray-50/30">
+                <CardHeader>
+                  <div className="mb-2">{item.icon}</div>
+                  <CardTitle className="text-lg text-green-950">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 leading-relaxed text-sm">{item.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Casos de uso + ilustração */}
+      <section className="py-20 bg-gray-50/80">
+        <div className="container px-4 md:px-6 mx-auto max-w-6xl">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-green-950 mb-6">Casos de uso comuns</h2>
+              <ul className="space-y-4 text-gray-700">
+                <li className="flex gap-3">
+                  <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <span>Confirmações e lembretes de agendamento, pedidos e pagamentos.</span>
+                </li>
+                <li className="flex gap-3">
+                  <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <span>Notificações operacionais para times internos (alertas, filas, incidentes).</span>
+                </li>
+                <li className="flex gap-3">
+                  <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <span>Integração com ferramentas de automação via HTTP (por exemplo n8n) mantendo rastreabilidade no seu backend.</span>
+                </li>
+              </ul>
+              <p className="mt-6 text-sm text-gray-500">
+                O desenho ideal combina <strong className="text-gray-700">cadência</strong>,{" "}
+                <strong className="text-gray-700">opt-in</strong> e monitoramento — temos artigos no{" "}
+                <Link href="/blog" className="text-primary font-medium hover:underline">blog</Link> sobre isso.
+              </p>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-lg">
+              <Image
+                src="/landing-integracao.svg"
+                alt="Diagrama: seu sistema conecta à API SimplesZap e ao WhatsApp"
+                width={800}
+                height={520}
+                className="w-full h-auto"
+                priority={false}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Segurança e boas práticas */}
+      <section className="py-20 bg-white">
+        <div className="container px-4 md:px-6 mx-auto max-w-6xl">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="order-2 lg:order-1 relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-lg">
+              <Image
+                src="/landing-seguranca.svg"
+                alt="Ilustração: segurança e boas práticas em produção"
+                width={800}
+                height={520}
+                className="w-full h-auto"
+              />
+            </div>
+            <div className="order-1 lg:order-2">
+              <div className="flex items-center gap-2 text-primary font-semibold mb-2">
+                <ShieldCheck className="w-6 h-6" />
+                Segurança e boas práticas
+              </div>
+              <h2 className="text-3xl font-bold text-green-950 mb-4">Menos surpresas em produção</h2>
+              <p className="text-gray-600 leading-relaxed mb-4">
+                Nenhuma API substitui políticas da plataforma: o que funciona é combinar limites de envio, consentimento
+                do usuário e observabilidade (filas, retries, logs). O SimplesZap ajuda na camada técnica; a postura do
+                seu time define o risco de bloqueio e compliance.
+              </p>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                Leia também o comparativo com critérios honestos sobre limitações em{" "}
+                <Link href="/comparativo" className="text-primary font-medium hover:underline">/comparativo</Link>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Como começar em 3 passos */}
+      <section className="py-20 bg-green-950 text-white">
+        <div className="container px-4 md:px-6 mx-auto max-w-4xl">
+          <div className="flex items-center gap-2 text-green-200 font-medium mb-3">
+            <ListOrdered className="w-5 h-5" />
+            Onboarding direto
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold mb-10">Como começar em 3 passos</h2>
+          <ol className="space-y-8">
+            {[
+              {
+                step: "1",
+                title: "Crie sua conta",
+                body: "Entre com e-mail ou fluxo de cadastro e escolha um plano alinhado ao número de instâncias.",
+              },
+              {
+                step: "2",
+                title: "Conecte o número",
+                body: "Siga o assistente no painel para vincular o WhatsApp que receberá e enviará mensagens.",
+              },
+              {
+                step: "3",
+                title: "Integre sua API",
+                body: "Use a documentação para autenticar chamadas REST e configurar webhooks no seu sistema.",
+              },
+            ].map((row) => (
+              <li key={row.step} className="flex gap-6">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold">
+                  {row.step}
+                </span>
+                <div>
+                  <h3 className="text-xl font-semibold mb-1">{row.title}</h3>
+                  <p className="text-green-100/85 leading-relaxed">{row.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-10 flex flex-wrap gap-4">
+            {!isSignedIn ? (
+              <Link href="/api/logto/sign-up">
+                <Button size="lg" className="rounded-full bg-white text-green-950 hover:bg-green-50">
+                  Criar conta
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/dashboard">
+                <Button size="lg" className="rounded-full bg-white text-green-950 hover:bg-green-50">
+                  Abrir painel
+                </Button>
+              </Link>
+            )}
+            <Link href={docsUrl} target="_blank" rel="noopener noreferrer">
+              <Button size="lg" variant="outline" className="rounded-full border-white/40 text-white hover:bg-white/10">
+                Abrir documentação
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA comparativo */}
+      <section className="py-14 bg-gray-50 border-y border-gray-100">
+        <div className="container px-4 md:px-6 mx-auto max-w-4xl text-center">
+          <h2 className="text-2xl font-bold text-green-950 mb-3">Veja como nos comparamos</h2>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+            Tabela com foco em critérios técnicos e comerciais (webhooks, modelo de cobrança, documentação). Informações de terceiros baseadas em sites públicos.
+          </p>
+          <Link href="/comparativo">
+            <Button size="lg" className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white">
+              Abrir comparativo
+            </Button>
+          </Link>
         </div>
       </section>
 
@@ -420,19 +627,28 @@ export default async function Home() {
             <div>
               <h3 className="font-semibold text-white mb-6">Produto</h3>
               <ul className="space-y-4">
-                <li><Link href="#" className="hover:text-primary transition-colors">Funcionalidades</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Preços</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Documentação</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Status</Link></li>
+                <li><Link href="#features" className="hover:text-primary transition-colors">Funcionalidades</Link></li>
+                <li><Link href="#pricing" className="hover:text-primary transition-colors">Preços</Link></li>
+                <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
+                <li><Link href="/comparativo" className="hover:text-primary transition-colors">Comparativo</Link></li>
+                <li>
+                  <Link href={docsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                    Documentação
+                  </Link>
+                </li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-semibold text-white mb-6">Legal</h3>
               <ul className="space-y-4">
-                <li><Link href="#" className="hover:text-primary transition-colors">Termos de Uso</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Privacidade</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Contato</Link></li>
+                <li><Link href="/terms" className="hover:text-primary transition-colors">Termos de Uso</Link></li>
+                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacidade</Link></li>
+                <li>
+                  <a href={contactWhatsAppHref} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                    Contato
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

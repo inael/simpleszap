@@ -183,3 +183,31 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+/// Preferências por organização (x-org-id = logto sub). Usado em envio em massa e segurança da API.
+model UserSettings {
+  orgId String @id
+
+  /// Intervalo aleatório entre envios (ms), padrão alinhado ao anti-spam básico
+  campaignJitterMinMs Int @default(900)
+  campaignJitterMaxMs Int @default(2200)
+
+  /// Variantes de texto (com {{name}}, {{phone}}). Se useMessageVariants=true, sorteia A/B/C preenchidas.
+  messageVariantA     String?
+  messageVariantB     String?
+  messageVariantC     String?
+  useMessageVariants Boolean @default(false)
+
+  /// Lista JSON de IPs permitidos (strings exatas). Vazio = sem restrição.
+  ipAllowlist String?
+
+  /// Quando true, chamadas com API key (sk_) exigem header Client-Token.
+  requireClientToken Boolean @default(false)
+  clientTokenHash    String?
+
+  bulkMessagingTermsAcceptedAt DateTime?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}

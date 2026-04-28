@@ -16,8 +16,9 @@ import { WebhookConfigController } from '../controllers/webhook-config.controlle
 import { AsaasWebhookController } from '../controllers/asaas-webhook.controller';
 import { CampaignsController } from '../controllers/campaigns.controller';
 import { DashboardController } from '../controllers/dashboard.controller';
+import { UserSettingsController } from '../controllers/user-settings.controller';
 import { rateLimit } from '../middleware/rate-limit';
-import { orgAuth } from '../middleware/org-auth';
+import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
 import { requireAdmin } from '../middleware/admin-auth';
 
@@ -29,49 +30,56 @@ router.post('/webhooks/logto', WebhookController.handleLogto);
 router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
 // Dashboard
-router.get('/dashboard/metrics', orgAuth, DashboardController.metrics);
+router.get('/dashboard/metrics', orgAuthWithSecurity, DashboardController.metrics);
 
 // Subscription
-router.post('/subscription/checkout', orgAuth, SubscriptionController.createCheckout);
+router.post('/subscription/checkout', orgAuthWithSecurity, SubscriptionController.createCheckout);
 
 // Instance Routes
-router.get('/instances', orgAuth, InstanceController.list);
-router.post('/instance/create', orgAuth, requireScope('instances:create'), InstanceController.create);
+router.get('/instances', orgAuthWithSecurity, InstanceController.list);
+router.post('/instance/create', orgAuthWithSecurity, requireScope('instances:create'), InstanceController.create);
 router.get('/instance/qr/:id', InstanceController.getQr);
-router.delete('/instance/:id', orgAuth, InstanceController.delete);
+router.delete('/instance/:id', orgAuthWithSecurity, InstanceController.delete);
 
 // API Keys
-router.get('/api-keys', orgAuth, ApiKeyController.list);
-router.post('/api-keys', orgAuth, ApiKeyController.create);
-router.delete('/api-keys/:id', ApiKeyController.revoke);
+router.get('/api-keys', orgAuthWithSecurity, ApiKeyController.list);
+router.post('/api-keys', orgAuthWithSecurity, ApiKeyController.create);
+router.delete('/api-keys/:id', orgAuthWithSecurity, ApiKeyController.revoke);
 
 // Message Routes (Protected by Rate Limit)
-router.post('/message/sendText/:instanceId', orgAuth, requireScope('messages:send'), rateLimit, InstanceController.sendText);
-router.get('/messages', orgAuth, MessagesController.list);
+router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), rateLimit, InstanceController.sendText);
+router.get('/messages', orgAuthWithSecurity, MessagesController.list);
 
 // Contacts
-router.get('/contacts', orgAuth, ContactsController.list);
-router.post('/contacts', orgAuth, ContactsController.create);
-router.put('/contacts/:id', orgAuth, ContactsController.update);
-router.delete('/contacts/:id', orgAuth, ContactsController.remove);
+router.get('/contacts', orgAuthWithSecurity, ContactsController.list);
+router.post('/contacts', orgAuthWithSecurity, ContactsController.create);
+router.put('/contacts/:id', orgAuthWithSecurity, ContactsController.update);
+router.delete('/contacts/:id', orgAuthWithSecurity, ContactsController.remove);
 
 // Templates
-router.get('/templates', orgAuth, TemplatesController.list);
-router.post('/templates', orgAuth, TemplatesController.create);
-router.put('/templates/:id', orgAuth, TemplatesController.update);
-router.delete('/templates/:id', orgAuth, TemplatesController.remove);
+router.get('/templates', orgAuthWithSecurity, TemplatesController.list);
+router.post('/templates', orgAuthWithSecurity, TemplatesController.create);
+router.put('/templates/:id', orgAuthWithSecurity, TemplatesController.update);
+router.delete('/templates/:id', orgAuthWithSecurity, TemplatesController.remove);
 
 // Webhooks
-router.get('/webhooks/config', orgAuth, WebhookConfigController.list);
-router.post('/webhooks/config', orgAuth, WebhookConfigController.create);
-router.put('/webhooks/config/:id', orgAuth, WebhookConfigController.update);
-router.delete('/webhooks/config/:id', orgAuth, WebhookConfigController.remove);
-router.get('/webhooks/logs', orgAuth, WebhookConfigController.logs);
+router.get('/webhooks/config', orgAuthWithSecurity, WebhookConfigController.list);
+router.post('/webhooks/config', orgAuthWithSecurity, WebhookConfigController.create);
+router.put('/webhooks/config/:id', orgAuthWithSecurity, WebhookConfigController.update);
+router.delete('/webhooks/config/:id', orgAuthWithSecurity, WebhookConfigController.remove);
+router.get('/webhooks/logs', orgAuthWithSecurity, WebhookConfigController.logs);
+
+// Preferências (envio em massa, segurança)
+router.get('/user/settings', orgAuthWithSecurity, UserSettingsController.get);
+router.put('/user/settings', orgAuthWithSecurity, UserSettingsController.put);
+router.post('/user/settings/accept-bulk-terms', orgAuthWithSecurity, UserSettingsController.acceptTerms);
+router.post('/user/settings/client-token/regenerate', orgAuthWithSecurity, UserSettingsController.regenerateClientToken);
+router.post('/user/settings/client-token/disable', orgAuthWithSecurity, UserSettingsController.disableClientToken);
 
 // Campaigns
-router.get('/campaigns', orgAuth, CampaignsController.list);
-router.post('/campaigns', orgAuth, CampaignsController.create);
-router.post('/campaigns/:id/run', orgAuth, CampaignsController.run);
+router.get('/campaigns', orgAuthWithSecurity, CampaignsController.list);
+router.post('/campaigns', orgAuthWithSecurity, CampaignsController.create);
+router.post('/campaigns/:id/run', orgAuthWithSecurity, CampaignsController.run);
 
 // Admin Routes (Protected by requireAdmin)
 router.get('/admin/plans', requireAdmin, AdminPlanController.list);

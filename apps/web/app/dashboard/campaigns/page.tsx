@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSWR from "swr";
 import { api } from "@/lib/api";
+import axios from "axios";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,7 +67,11 @@ export default function CampaignsPage() {
       await api.post(`/campaigns/${id}/run`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       mutate();
       toast.success("Campanha executada");
-    } catch {
+    } catch (e) {
+      if (axios.isAxiosError(e) && e.response?.status === 403 && e.response?.data?.error === "terms_required") {
+        toast.error("Aceite os termos em Envio em massa (config) antes de executar.");
+        return;
+      }
       toast.error("Erro na execução");
     }
   };
@@ -74,11 +80,14 @@ export default function CampaignsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Campanhas</h1>
           <p className="text-muted-foreground">Crie e execute envios em massa.</p>
         </div>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/campaigns/settings">Envio em massa (anti-ban) e termos</Link>
+        </Button>
       </div>
 
       {loadError && (

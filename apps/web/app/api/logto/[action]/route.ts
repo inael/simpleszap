@@ -1,13 +1,13 @@
 import LogtoClient from '@logto/next/server-actions';
-import { logtoConfig } from '@/lib/logto';
+import { createLogtoConfig } from '@/lib/logto';
 import { redirect } from 'next/navigation';
 import { NextRequest } from 'next/server';
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
 export async function GET(request: NextRequest, { params }: { params: Promise<{ action: string }> }) {
   const { action } = await params;
-  const client = new LogtoClient(logtoConfig);
+  const config = createLogtoConfig(request.nextUrl.origin);
+  const client = new LogtoClient(config);
+  const baseUrl = config.baseUrl;
 
   if (action === 'sign-in') {
     const { url, newCookie } = await client.handleSignIn({

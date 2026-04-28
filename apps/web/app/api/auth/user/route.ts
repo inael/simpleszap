@@ -1,9 +1,10 @@
 import { getLogtoContext } from '@logto/next/server-actions';
-import { logtoConfig } from '@/lib/logto';
-import { NextResponse } from 'next/server';
+import { createLogtoConfig } from '@/lib/logto';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
-  const context = await getLogtoContext(logtoConfig, { fetchUserInfo: true });
+export async function GET(request: NextRequest) {
+  const config = createLogtoConfig(request.nextUrl.origin);
+  const context = await getLogtoContext(config, { fetchUserInfo: true });
 
   if (!context.isAuthenticated) {
     return NextResponse.json({ authenticated: false }, { status: 401 });

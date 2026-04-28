@@ -9,6 +9,8 @@ dotenv.config();                            // Also check apps/api/.env
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
+
 // Start background worker
 
 const allowedOriginPatterns: RegExp[] = [
@@ -34,6 +36,8 @@ app.use(
       'x-org-id',
       'x-user-id',
       'x-api-key',
+      'client-token',
+      'Client-Token',
       'x-webhook-signature',
       'asaas-access-token',
       'x-vercel-protection-bypass',

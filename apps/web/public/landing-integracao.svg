@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" fill="none">
+  <rect width="800" height="520" rx="32" fill="#F0FDF4"/>
+  <circle cx="400" cy="260" r="140" fill="#22C55E" fill-opacity="0.12"/>
+  <rect x="120" y="200" width="140" height="88" rx="16" fill="white" stroke="#16A34A" stroke-width="2"/>
+  <text x="190" y="248" text-anchor="middle" fill="#14532D" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Seu sistema</text>
+  <rect x="530" y="200" width="140" height="88" rx="16" fill="white" stroke="#16A34A" stroke-width="2"/>
+  <text x="600" y="248" text-anchor="middle" fill="#14532D" font-family="system-ui,sans-serif" font-size="14" font-weight="600">WhatsApp</text>
+  <rect x="310" y="180" width="180" height="120" rx="20" fill="#16A34A"/>
+  <text x="400" y="235" text-anchor="middle" fill="white" font-family="system-ui,sans-serif" font-size="15" font-weight="700">API SimplesZap</text>
+  <text x="400" y="260" text-anchor="middle" fill="#DCFCE7" font-family="system-ui,sans-serif" font-size="12">REST � Webhooks</text>
+  <path d="M260 244H310M490 244H540" stroke="#16A34A" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="260" cy="244" r="6" fill="#22C55E"/>
+  <circle cx="540" cy="244" r="6" fill="#22C55E"/>
+  <path d="M400 300v60M340 380h120" stroke="#86EFAC" stroke-width="2"/>
+  <circle cx="400" cy="368" r="36" fill="white" stroke="#16A34A" stroke-width="2"/>
+  <path d="M388 368l8 8 16-16" stroke="#16A34A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

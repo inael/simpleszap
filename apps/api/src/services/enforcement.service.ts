@@ -1,26 +1,55 @@
 import { prisma } from '../lib/prisma';
 
+type PlanLimits = {
+  messagesPerDay: number;
+  instancesLimit: number;
+  isActive: boolean;
+};
+
 export class EnforcementService {
   // Simple defaults if no plan is linked
   static DEFAULT_INSTANCE_LIMIT = 1;
   static DEFAULT_MESSAGES_PER_DAY = 100;
 
-  static async getLimitsForOrg(orgId: string) {
-    // TODO: read organization plan; for now use defaults
+  /** orgId = Logto sub ou valor em ApiKey.orgId — resolve User + SubscriptionPlan */
+  private static limitsFromPlan(plan: PlanLimits | null) {
+    if (!plan || !plan.isActive) {
+      return {
+        instancesLimit: this.DEFAULT_INSTANCE_LIMIT,
+        messagesPerDay: this.DEFAULT_MESSAGES_PER_DAY,
+      };
+    }
     return {
-      instancesLimit: this.DEFAULT_INSTANCE_LIMIT,
-      messagesPerDay: this.DEFAULT_MESSAGES_PER_DAY,
+      instancesLimit: plan.instancesLimit,
+      messagesPerDay: plan.messagesPerDay,
     };
+  }
+
+  static async getLimitsForOrg(orgId: string) {
+    let user = await prisma.user.findUnique({
+      where: { logtoId: orgId },
+      include: { subscriptionPlan: true },
+    });
+    if (!user) {
+      const key = await prisma.apiKey.findFirst({
+        where: { orgId },
+        include: { user: { include: { subscriptionPlan: true } } },
+      });
+      user = key?.user ?? null;
+    }
+    return this.limitsFromPlan(user?.subscriptionPlan ?? null);
   }
 
   static async canCreateInstance(orgId: string) {
     const limits = await this.getLimitsForOrg(orgId);
+    if (limits.instancesLimit < 0) return true;
     const count = await prisma.instance.count({ where: { orgId } });
     return count < limits.instancesLimit;
   }
 
   static async canSendMessage(orgId: string) {
     const limits = await this.getLimitsForOrg(orgId);
+    if (limits.messagesPerDay < 0) return true;
     const today = new Date();
     const dateOnly = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
