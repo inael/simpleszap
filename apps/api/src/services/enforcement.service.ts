@@ -9,7 +9,7 @@ type PlanLimits = {
 export class EnforcementService {
   // Simple defaults if no plan is linked
   static DEFAULT_INSTANCE_LIMIT = 1;
-  static DEFAULT_MESSAGES_PER_DAY = 100;
+  static DEFAULT_MESSAGES_PER_DAY = 50;
 
   /** orgId = Logto sub ou valor em ApiKey.orgId — resolve User + SubscriptionPlan */
   private static limitsFromPlan(plan: PlanLimits | null) {
