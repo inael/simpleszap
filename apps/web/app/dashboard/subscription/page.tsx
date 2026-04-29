@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Sparkles, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Check, Sparkles, AlertTriangle, ShieldCheck, Receipt } from "lucide-react";
+import Link from "next/link";
 import useSWR from "swr";
 import { api, fetcher } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -16,7 +17,15 @@ type MeSubscription = {
   status: 'trial' | 'paid' | 'free' | 'free_after_trial';
   limits: { instancesLimit: number; messagesPerDay: number };
   hasPaid: boolean;
+  cpfCnpj: string | null;
 };
+
+function formatCpfCnpj(d: string | null) {
+  const digits = (d || '').replace(/\D/g, '');
+  if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return digits;
+}
 
 function fmtBR(d: Date) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -35,7 +44,6 @@ export default function SubscriptionPage() {
   );
   const [loading, setLoading] = useState<string | null>(null);
   const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
-  const [cpfCnpj, setCpfCnpj] = useState('');
   const [couponInput, setCouponInput] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
@@ -94,8 +102,8 @@ export default function SubscriptionPage() {
   };
 
   const handleSubscribe = async (planId: string) => {
-    if (!cpfCnpj.trim()) {
-      toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
+    if (!me?.cpfCnpj) {
+      toast.error("Cadastre seu CPF/CNPJ em Configurações antes de assinar.");
       return;
     }
     // Cupom só vale para o plano/ciclo em que foi aplicado
@@ -110,7 +118,6 @@ export default function SubscriptionPage() {
         const res = await api.post('/subscription/checkout', {
             planId,
             cycle,
-            cpfCnpj: cpfCnpj || undefined,
             couponCode: useCoupon,
         }, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -202,21 +209,33 @@ export default function SubscriptionPage() {
         <Button variant={cycle === 'YEARLY' ? 'default' : 'outline'} onClick={() => setCycle('YEARLY')}>Anual</Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 max-w-2xl">
-        <div className="space-y-2">
-          <div className="text-sm font-medium">CPF/CNPJ</div>
-          <input
-            value={cpfCnpj}
-            onChange={(e) => setCpfCnpj(e.target.value)}
-            placeholder="Somente números"
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            inputMode="numeric"
-          />
-          <div className="text-xs text-muted-foreground">
-            Necessário para emissão da cobrança no Asaas.
+      {!me?.cpfCnpj && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+          <div className="space-y-1">
+            <p className="font-medium">Cadastre seu CPF ou CNPJ antes de assinar.</p>
+            <p className="text-amber-800/80">
+              É exigência da Receita Federal e do Asaas para emitir a cobrança.{' '}
+              <Link href="/dashboard/settings" className="underline font-medium">Cadastrar agora</Link>.
+            </p>
           </div>
         </div>
+      )}
 
+      {me?.cpfCnpj && (
+        <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
+          <Receipt className="mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+          <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <span className="text-muted-foreground">A cobrança será emitida para </span>
+              <span className="font-mono font-medium">{formatCpfCnpj(me.cpfCnpj)}</span>
+            </div>
+            <Link href="/dashboard/settings" className="text-xs text-primary underline">alterar</Link>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-md">
         <div className="space-y-2">
           <div className="text-sm font-medium">Cupom de desconto (opcional)</div>
           {appliedCoupon ? (
@@ -309,10 +328,10 @@ export default function SubscriptionPage() {
                     <Button
                         className="w-full"
                         variant={basePrice === 0 ? "outline" : "default"}
-                        disabled={basePrice === 0 || loading === plan.id}
+                        disabled={basePrice === 0 || loading === plan.id || !me?.cpfCnpj}
                         onClick={() => handleSubscribe(plan.id)}
                     >
-                        {loading === plan.id ? "Processando..." : (basePrice === 0 ? "Plano Gratuito" : "Assinar")}
+                        {loading === plan.id ? "Processando..." : (basePrice === 0 ? "Plano Gratuito" : (!me?.cpfCnpj ? "Cadastre o CPF/CNPJ" : "Assinar"))}
                     </Button>
                 </CardFooter>
             </Card>

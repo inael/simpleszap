@@ -21,6 +21,7 @@ model User {
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
   trialEndsAt        DateTime?
   asaasCustomerId   String?
+  cpfCnpj           String?
 
   instances         Instance[]
   apiKeys           ApiKey[]

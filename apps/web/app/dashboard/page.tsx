@@ -1,8 +1,9 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, MessageSquare, AlertCircle } from "lucide-react";
+import { Smartphone, MessageSquare, AlertCircle, AlertTriangle } from "lucide-react";
 import useSWR from "swr";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -34,6 +35,14 @@ export default function DashboardPage() {
   const { getToken, user } = useAuth();
   const orgId = user?.sub;
 
+  const { data: me } = useSWR<{ cpfCnpj: string | null }>(
+    orgId ? ["/me", orgId] : null,
+    async ([url, oid]: [string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then((r) => r.data);
+    }
+  );
+
   const { data: metrics, error, isLoading } = useSWR<DashboardMetrics>(
     orgId ? ["/dashboard/metrics", orgId] : null,
     async ([url, oid]: [string, string]) => {
@@ -59,6 +68,19 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           <p>Erro ao carregar métricas. Verifique sua conexão e tente novamente.</p>
+        </div>
+      )}
+
+      {me && !me.cpfCnpj && (
+        <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+          <div className="text-sm">
+            <p className="font-medium">Complete seu cadastro</p>
+            <p className="text-amber-800/80">
+              Para assinar planos pagos, cadastre seu CPF/CNPJ em{" "}
+              <Link href="/dashboard/settings" className="underline font-medium">Configurações</Link>.
+            </p>
+          </div>
         </div>
       )}
 

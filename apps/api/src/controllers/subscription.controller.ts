@@ -5,7 +5,7 @@ import { CouponService } from '../services/coupon.service';
 
 export class SubscriptionController {
   static async createCheckout(req: Request, res: Response) {
-    const { planId, cycle, method, cpfCnpj, couponCode } = req.body;
+    const { planId, cycle, method, couponCode } = req.body;
     const userId = req.headers['x-user-id'] as string | undefined;
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -21,10 +21,15 @@ export class SubscriptionController {
         return res.status(404).json({ error: 'Plan not found' });
       }
 
+      // CPF/CNPJ vem do cadastro do user (não do body), garantindo consistência
+      if (!user.cpfCnpj) {
+        return res.status(400).json({ error: 'CPF_CNPJ_REQUIRED' });
+      }
+
       const customer = await AsaasService.createCustomer({
         name: user.name || user.email,
         email: user.email,
-        cpfCnpj: cpfCnpj && typeof cpfCnpj === 'string' ? cpfCnpj.trim().replace(/[^\d]/g, '') : undefined,
+        cpfCnpj: user.cpfCnpj,
       });
 
       const customerId = customer?.id as string | undefined;

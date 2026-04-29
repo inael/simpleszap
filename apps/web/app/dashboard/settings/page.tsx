@@ -6,14 +6,54 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/lib/auth-context";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import useSWR from "swr";
+import { api } from "@/lib/api";
+
+function formatCpfCnpj(d: string) {
+  const digits = (d || '').replace(/\D/g, '');
+  if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return digits;
+}
 
 export default function SettingsPage() {
-  const { user, isLoaded } = useAuth();
+  const { user, isLoaded, getToken } = useAuth();
+  const orgId = user?.sub;
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [securityAlerts, setSecurityAlerts] = useState(true);
   const [savingNotif, setSavingNotif] = useState(false);
+  const [cpfCnpj, setCpfCnpj] = useState('');
+  const [savingCpf, setSavingCpf] = useState(false);
+
+  const { data: me, mutate: mutateMe } = useSWR<{ cpfCnpj: string | null }>(
+    orgId ? ['/me', orgId] : null,
+    async ([url, oid]: [string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { 'x-org-id': oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(r => r.data);
+    }
+  );
+
+  useEffect(() => {
+    if (me?.cpfCnpj) setCpfCnpj(formatCpfCnpj(me.cpfCnpj));
+  }, [me?.cpfCnpj]);
+
+  const handleSaveCpf = async () => {
+    setSavingCpf(true);
+    try {
+      const token = await getToken();
+      await api.put('/me', { cpfCnpj: cpfCnpj.replace(/\D/g, '') || null }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      toast.success('CPF/CNPJ salvo.');
+      mutateMe();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Erro ao salvar CPF/CNPJ.');
+    } finally {
+      setSavingCpf(false);
+    }
+  };
 
   const handleSaveNotifications = async () => {
     setSavingNotif(true);
@@ -71,6 +111,36 @@ export default function SettingsPage() {
               }}
             >
               Gerenciar Perfil no Logto
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados de cobrança</CardTitle>
+            <CardDescription>
+              CPF ou CNPJ usado para emitir as cobranças no Asaas. Obrigatório para assinar planos pagos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 max-w-md">
+              <Label htmlFor="cpfCnpj">CPF ou CNPJ</Label>
+              <Input
+                id="cpfCnpj"
+                value={cpfCnpj}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
+                  setCpfCnpj(formatCpfCnpj(digits));
+                }}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                inputMode="numeric"
+              />
+              <p className="text-xs text-muted-foreground">
+                Exigência da Receita Federal (NFe + anti-fraude do Asaas). Os dígitos são validados antes de salvar.
+              </p>
+            </div>
+            <Button onClick={handleSaveCpf} disabled={savingCpf || !cpfCnpj || cpfCnpj === formatCpfCnpj(me?.cpfCnpj || '')}>
+              {savingCpf ? 'Salvando...' : 'Salvar'}
             </Button>
           </CardContent>
         </Card>

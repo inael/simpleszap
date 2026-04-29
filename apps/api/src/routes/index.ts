@@ -36,6 +36,8 @@ router.post('/webhooks/asaas', AsaasWebhookController.handle);
 router.get('/dashboard/metrics', orgAuthWithSecurity, DashboardController.metrics);
 
 // Conta atual
+router.get('/me', orgAuthWithSecurity, MeController.profile);
+router.put('/me', orgAuthWithSecurity, MeController.updateProfile);
 router.get('/me/subscription', orgAuthWithSecurity, MeController.subscription);
 
 // Subscription
