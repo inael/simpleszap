@@ -26,6 +26,7 @@ import {
   Package,
   Lock,
   Phone,
+  Ticket,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
@@ -133,6 +134,12 @@ const adminRoutes = [
     label: "Usuários",
     icon: Users,
     href: "/dashboard/admin/users",
+    color: "text-red-400",
+  },
+  {
+    label: "Cupons",
+    icon: Ticket,
+    href: "/dashboard/admin/coupons",
     color: "text-red-400",
   },
   {

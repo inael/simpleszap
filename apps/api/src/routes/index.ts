@@ -18,6 +18,8 @@ import { CampaignsController } from '../controllers/campaigns.controller';
 import { DashboardController } from '../controllers/dashboard.controller';
 import { UserSettingsController } from '../controllers/user-settings.controller';
 import { MeController } from '../controllers/me.controller';
+import { AdminCouponController } from '../controllers/admin-coupon.controller';
+import { CouponController } from '../controllers/coupon.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -38,6 +40,16 @@ router.get('/me/subscription', orgAuthWithSecurity, MeController.subscription);
 
 // Subscription
 router.post('/subscription/checkout', orgAuthWithSecurity, SubscriptionController.createCheckout);
+
+// Cupons (público para usuário autenticado validar)
+router.post('/coupons/validate', orgAuthWithSecurity, CouponController.validate);
+
+// Cupons (admin CRUD)
+router.get('/admin/coupons', requireAdmin, AdminCouponController.list);
+router.post('/admin/coupons', requireAdmin, AdminCouponController.create);
+router.put('/admin/coupons/:id', requireAdmin, AdminCouponController.update);
+router.delete('/admin/coupons/:id', requireAdmin, AdminCouponController.remove);
+router.get('/admin/coupons/:id/redemptions', requireAdmin, AdminCouponController.redemptions);
 
 // Instance Routes
 router.get('/instances', orgAuthWithSecurity, InstanceController.list);

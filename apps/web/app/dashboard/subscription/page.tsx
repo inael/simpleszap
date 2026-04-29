@@ -36,6 +36,18 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [cpfCnpj, setCpfCnpj] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    planId: string;
+    cycle: 'MONTHLY' | 'YEARLY';
+    originalValue: number;
+    discountValue: number;
+    finalValue: number;
+    percentOff: number | null;
+    amountOff: number | null;
+  } | null>(null);
 
   const plans = pricingData?.plans || [];
 
@@ -44,11 +56,52 @@ export default function SubscriptionPage() {
     ? Math.max(0, Math.ceil((trialEndsAtDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
+  const handleApplyCoupon = async (planId: string) => {
+    if (!couponInput.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const token = await getToken();
+      const res = await api.post('/coupons/validate', {
+        code: couponInput.trim().toUpperCase(),
+        planId,
+        cycle,
+      }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+      if (res.data?.valid) {
+        setAppliedCoupon({
+          code: res.data.code,
+          planId,
+          cycle,
+          originalValue: res.data.originalValue,
+          discountValue: res.data.discountValue,
+          finalValue: res.data.finalValue,
+          percentOff: res.data.percentOff,
+          amountOff: res.data.amountOff,
+        });
+        toast.success(`Cupom ${res.data.code} aplicado!`);
+      }
+    } catch (e: any) {
+      const reason = e?.response?.data?.reason || 'Cupom inválido';
+      toast.error(reason);
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+  };
+
   const handleSubscribe = async (planId: string) => {
     if (!cpfCnpj.trim()) {
       toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
       return;
     }
+    // Cupom só vale para o plano/ciclo em que foi aplicado
+    const useCoupon = appliedCoupon && appliedCoupon.planId === planId && appliedCoupon.cycle === cycle
+      ? appliedCoupon.code
+      : undefined;
     setLoading(planId);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
@@ -58,6 +111,7 @@ export default function SubscriptionPage() {
             planId,
             cycle,
             cpfCnpj: cpfCnpj || undefined,
+            couponCode: useCoupon,
         }, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           signal: controller.signal,
@@ -148,22 +202,66 @@ export default function SubscriptionPage() {
         <Button variant={cycle === 'YEARLY' ? 'default' : 'outline'} onClick={() => setCycle('YEARLY')}>Anual</Button>
       </div>
 
-      <div className="max-w-sm space-y-2">
-        <div className="text-sm font-medium">CPF/CNPJ</div>
-        <input
-          value={cpfCnpj}
-          onChange={(e) => setCpfCnpj(e.target.value)}
-          placeholder="Somente números"
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-          inputMode="numeric"
-        />
-        <div className="text-xs text-muted-foreground">
-          Necessário para emissão da cobrança no Asaas.
+      <div className="grid gap-4 md:grid-cols-2 max-w-2xl">
+        <div className="space-y-2">
+          <div className="text-sm font-medium">CPF/CNPJ</div>
+          <input
+            value={cpfCnpj}
+            onChange={(e) => setCpfCnpj(e.target.value)}
+            placeholder="Somente números"
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            inputMode="numeric"
+          />
+          <div className="text-xs text-muted-foreground">
+            Necessário para emissão da cobrança no Asaas.
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-medium">Cupom de desconto (opcional)</div>
+          {appliedCoupon ? (
+            <div className="flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              <span className="font-mono font-semibold">{appliedCoupon.code}</span>
+              <span className="text-emerald-700">
+                {appliedCoupon.percentOff != null
+                  ? `(-${appliedCoupon.percentOff}%)`
+                  : `(-R$ ${appliedCoupon.amountOff?.toFixed(2)})`}
+              </span>
+              <button
+                type="button"
+                onClick={removeCoupon}
+                className="ml-auto text-xs text-emerald-700 underline hover:text-emerald-900"
+              >
+                remover
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                placeholder="Ex: TESTE99"
+                className="flex-1 rounded-md border bg-background px-3 py-2 text-sm font-mono uppercase"
+                disabled={validatingCoupon}
+              />
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">
+            {appliedCoupon
+              ? `Desconto será aplicado ao plano ${appliedCoupon.planId.toUpperCase()} (${appliedCoupon.cycle === 'MONTHLY' ? 'mensal' : 'anual'}).`
+              : "Digite o código e clique em 'Aplicar cupom' no plano desejado."}
+          </div>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {plans.map((plan: any) => (
+        {plans.map((plan: any) => {
+          const basePrice = cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual;
+          const couponMatches = appliedCoupon?.planId === plan.id && appliedCoupon?.cycle === cycle;
+          const finalPrice = couponMatches ? appliedCoupon!.finalValue : basePrice;
+          const fmtBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+          const canApplyCoupon = couponInput.trim().length > 0 && !appliedCoupon;
+          return (
             <Card key={plan.id} className={`flex flex-col ${plan.name.includes('Pro') ? 'border-primary shadow-md relative' : ''}`}>
                 {plan.name.includes('Pro') && (
                     <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">Popular</div>
@@ -173,9 +271,22 @@ export default function SubscriptionPage() {
                     <CardDescription>{plan.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
-                    <div className="text-3xl font-bold mb-4">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual)}
-                        <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
+                    <div className="mb-4">
+                      {couponMatches ? (
+                        <>
+                          <div className="text-sm text-muted-foreground line-through">{fmtBRL(basePrice)}</div>
+                          <div className="text-3xl font-bold text-emerald-600">
+                            {fmtBRL(finalPrice)}
+                            <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
+                          </div>
+                          <div className="text-xs text-emerald-700 font-medium mt-1">Cupom {appliedCoupon!.code}</div>
+                        </>
+                      ) : (
+                        <div className="text-3xl font-bold">
+                          {fmtBRL(basePrice)}
+                          <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
+                        </div>
+                      )}
                     </div>
                     <ul className="space-y-2 text-sm">
                         <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.instancesLimit < 0 ? 'Instâncias ilimitadas' : `${plan.limits.instancesLimit} Instância(s)`}</li>
@@ -184,18 +295,29 @@ export default function SubscriptionPage() {
                         {plan.features.hasTemplates && <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> Templates</li>}
                     </ul>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col gap-2">
+                    {canApplyCoupon && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        disabled={validatingCoupon}
+                        onClick={() => handleApplyCoupon(plan.id)}
+                      >
+                        {validatingCoupon ? 'Validando...' : `Aplicar cupom ${couponInput} a este plano`}
+                      </Button>
+                    )}
                     <Button
                         className="w-full"
-                        variant={(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 ? "outline" : "default"}
-                        disabled={(cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 || loading === plan.id}
+                        variant={basePrice === 0 ? "outline" : "default"}
+                        disabled={basePrice === 0 || loading === plan.id}
                         onClick={() => handleSubscribe(plan.id)}
                     >
-                        {loading === plan.id ? "Processando..." : ((cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual) === 0 ? "Plano Gratuito" : "Assinar")}
+                        {loading === plan.id ? "Processando..." : (basePrice === 0 ? "Plano Gratuito" : "Assinar")}
                     </Button>
                 </CardFooter>
             </Card>
-        ))}
+          );
+        })}
         {!plans.length && <div className="col-span-3 text-center">Carregando planos...</div>}
       </div>
     </div>

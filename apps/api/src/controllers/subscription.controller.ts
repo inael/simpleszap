@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { AsaasService } from '../services/asaas.service';
 import { prisma } from '../lib/prisma';
+import { CouponService } from '../services/coupon.service';
 
 export class SubscriptionController {
   static async createCheckout(req: Request, res: Response) {
-    const { planId, cycle, method, cpfCnpj } = req.body;
+    const { planId, cycle, method, cpfCnpj, couponCode } = req.body;
     const userId = req.headers['x-user-id'] as string | undefined;
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -35,18 +36,54 @@ export class SubscriptionController {
         await prisma.user.update({ where: { id: user.id }, data: { asaasCustomerId: customerId } }).catch(() => {});
       }
 
-      const value = cycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
-      
       const effectiveCycle = (cycle || 'MONTHLY') as 'MONTHLY' | 'YEARLY';
-      const encoded = `sz|uid:${userId}|plan:${plan.id}|cycle:${effectiveCycle}`;
+      const originalValue = effectiveCycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
+
+      // Validar cupom (se enviado) e calcular valor final
+      let finalValue = originalValue;
+      let couponMeta: { id: string; code: string; discount: number } | null = null;
+      if (couponCode) {
+        const v = await CouponService.validate({
+          code: String(couponCode),
+          planId: plan.id,
+          cycle: effectiveCycle,
+          userId,
+          originalValue,
+        });
+        if (!v.valid) {
+          return res.status(400).json({ error: 'COUPON_INVALID', reason: v.reason });
+        }
+        finalValue = v.finalValue;
+        couponMeta = { id: v.couponId, code: v.code, discount: v.discountValue };
+      }
+
+      const encoded = `sz|uid:${userId}|plan:${plan.id}|cycle:${effectiveCycle}${couponMeta ? `|coupon:${couponMeta.code}` : ''}`;
+      const planLabel = couponMeta
+        ? `SimplesZap ${plan.name} (cupom ${couponMeta.code}) [${encoded}]`
+        : `SimplesZap ${plan.name} [${encoded}]`;
 
       const subscription = await AsaasService.createSubscription(
         customerId,
-        value,
+        finalValue,
         effectiveCycle,
-        `SimplesZap ${plan.name} [${encoded}]`,
+        planLabel,
         (method as 'PIX' | 'BOLETO' | 'CREDIT_CARD') || 'PIX'
       );
+
+      // Cupom: registrar resgate (best-effort, não bloqueia checkout)
+      if (couponMeta) {
+        await CouponService.redeem({
+          couponId: couponMeta.id,
+          userId,
+          userEmail: user.email,
+          planId: plan.id,
+          cycle: effectiveCycle,
+          originalValue,
+          discountValue: couponMeta.discount,
+          finalValue,
+          asaasSubscriptionId: subscription?.id ?? null,
+        }).catch((err) => console.error('coupon.redeem failed:', err));
+      }
 
       let firstPayment: any | undefined;
       for (let attempt = 0; attempt < 6; attempt++) {
