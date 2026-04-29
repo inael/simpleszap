@@ -15,16 +15,18 @@ export class InstanceController {
         where: { orgId },
       });
 
-      // Optionally sync status with Evolution
       try {
           const evoInstances = await EvolutionService.fetchInstances();
-          const syncedInstances = instances.map((inst: PrismaInstance) => {
-              const evo = Array.isArray(evoInstances) ? evoInstances.find((e: any) => e.instance.instanceName === inst.id || e.instance.instanceName === inst.name) : null;
-              return {
-                  ...inst,
-                  status: evo ? evo.instance.status : 'disconnected'
-              };
-          });
+          const list = Array.isArray(evoInstances) ? evoInstances : [];
+          const syncedInstances = await Promise.all(instances.map(async (inst: PrismaInstance) => {
+              const evo = list.find((e: any) => e.name === inst.id || e.name === inst.name);
+              const evoStatus = evo?.connectionStatus;
+              const status = evoStatus === 'open' ? 'connected' : evoStatus === 'connecting' ? 'connecting' : 'disconnected';
+              if (status !== inst.status) {
+                  await prisma.instance.update({ where: { id: inst.id }, data: { status } }).catch(() => null);
+              }
+              return { ...inst, status };
+          }));
           return res.json(syncedInstances);
       } catch (e) {
           console.warn("Failed to sync with Evolution API, returning DB state");

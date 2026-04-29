@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -28,13 +28,19 @@ export default function InstancesPage() {
   const [newInstanceName, setNewInstanceName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrInstanceId, setQrInstanceId] = useState<string | null>(null);
+  const [qrSecondsLeft, setQrSecondsLeft] = useState(60);
+  const [qrLoading, setQrLoading] = useState(false);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: instances, error, mutate } = useSWR(
     orgId ? ["/instances", orgId] : null,
     async ([url, oid]) => {
       const token = await getToken();
       return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
-    }
+    },
+    { refreshInterval: qrInstanceId ? 0 : 15000 }
   );
 
   const handleCreate = async () => {
@@ -71,21 +77,69 @@ export default function InstancesPage() {
     }
   };
 
-  const handleConnect = async (instanceName: string) => {
-      try {
-          const token = await getToken();
-          const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-
-          if (res.data?.base64) {
-             setQrCode(res.data.base64);
-          } else if (res.data?.qrcode?.base64) {
-             setQrCode(res.data.qrcode.base64);
-          } else {
-             toast.info("Tente conectar novamente ou verifique se já está conectado.");
-          }
-      } catch (e) {
-          toast.error("Erro ao gerar QR Code.");
+  const fetchQr = useCallback(async (instanceName: string) => {
+    setQrLoading(true);
+    try {
+      const token = await getToken();
+      const res = await api.get(`/instance/qr/${instanceName}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const base64 = res.data?.base64 || res.data?.qrcode?.base64 || null;
+      const state = res.data?.instance?.state;
+      if (state === 'open') {
+        setQrCode(null);
+        setQrInstanceId(null);
+        toast.success("Já conectado!");
+        mutate();
+        return true;
       }
+      if (base64) {
+        setQrCode(base64);
+        setQrInstanceId(instanceName);
+        setQrSecondsLeft(60);
+        return true;
+      }
+      toast.info("Sem QR disponível. Tente novamente.");
+      return false;
+    } catch {
+      toast.error("Erro ao gerar QR Code.");
+      return false;
+    } finally {
+      setQrLoading(false);
+    }
+  }, [getToken, orgId, mutate]);
+
+  const handleConnect = (instanceName: string) => {
+    void fetchQr(instanceName);
+  };
+
+  // Countdown + connection polling while QR modal is open
+  useEffect(() => {
+    if (!qrInstanceId) {
+      if (tickRef.current) clearInterval(tickRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
+      tickRef.current = null;
+      pollRef.current = null;
+      return;
+    }
+    tickRef.current = setInterval(() => {
+      setQrSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    pollRef.current = setInterval(async () => {
+      const list = await mutate();
+      const inst = Array.isArray(list) ? list.find((i: any) => i.id === qrInstanceId) : null;
+      if (inst?.status === 'connected') {
+        setQrCode(null);
+        setQrInstanceId(null);
+        toast.success("WhatsApp conectado!");
+      }
+    }, 3000);
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [qrInstanceId, mutate]);
+
+  const handleRegenerate = () => {
+    if (qrInstanceId) void fetchQr(qrInstanceId);
   };
 
   return (
@@ -178,13 +232,23 @@ export default function InstancesPage() {
       </Card>
 
       {qrCode && (
-          <Dialog open={!!qrCode} onOpenChange={(o) => !o && setQrCode(null)}>
+          <Dialog open={!!qrCode} onOpenChange={(o) => !o && (setQrCode(null), setQrInstanceId(null))}>
               <DialogContent>
                   <DialogHeader>
                       <DialogTitle>Escaneie o QR Code</DialogTitle>
+                      <DialogDescription>
+                        WhatsApp → Aparelhos conectados → Conectar um aparelho.
+                      </DialogDescription>
                   </DialogHeader>
-                  <div className="flex justify-center p-4">
+                  <div className="flex flex-col items-center gap-3 p-4">
                       <img src={qrCode} alt="QR Code" className="max-w-[250px]" />
+                      <p className={`text-sm ${qrSecondsLeft <= 10 ? "text-red-600" : "text-muted-foreground"}`}>
+                        {qrSecondsLeft > 0 ? `Expira em ${qrSecondsLeft}s` : "QR expirado"}
+                      </p>
+                      <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={qrLoading}>
+                        <RefreshCw className={`h-4 w-4 mr-2 ${qrLoading ? "animate-spin" : ""}`} />
+                        {qrLoading ? "Gerando..." : "Gerar novo QR"}
+                      </Button>
                   </div>
               </DialogContent>
           </Dialog>
