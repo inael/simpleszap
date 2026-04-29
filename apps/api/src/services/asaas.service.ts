@@ -122,6 +122,29 @@ export class AsaasService {
     }
   }
 
+  /** Cancela todas as subscriptions ACTIVE de um customer. Usado antes de criar uma nova
+   *  pra evitar cobrança duplicada em upgrades/downgrades/troca de plano. */
+  static async cancelActiveSubscriptionsFor(customerId: string) {
+    const { baseUrl, headers } = await this.getConfig();
+    try {
+      const r = await axios.get(`${baseUrl}/subscriptions`, { params: { customer: customerId, status: 'ACTIVE', limit: 50 }, headers });
+      const items: { id: string }[] = Array.isArray(r.data?.data) ? r.data.data : [];
+      const ids: string[] = [];
+      for (const sub of items) {
+        try {
+          await axios.delete(`${baseUrl}/subscriptions/${sub.id}`, { headers });
+          ids.push(sub.id);
+        } catch (e: any) {
+          console.warn(`Failed to cancel ${sub.id}:`, e.response?.data || e.message);
+        }
+      }
+      return ids;
+    } catch (e: any) {
+      console.error('cancelActiveSubscriptionsFor failed:', e.response?.data || e.message);
+      return [];
+    }
+  }
+
   static async listSubscriptionPayments(subscriptionId: string) {
     const { baseUrl, headers } = await this.getConfig();
     try {

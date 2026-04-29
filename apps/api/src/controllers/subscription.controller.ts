@@ -41,6 +41,13 @@ export class SubscriptionController {
         await prisma.user.update({ where: { id: user.id }, data: { asaasCustomerId: customerId } }).catch(() => {});
       }
 
+      // Cancela subscriptions anteriores ativas — evita cobranças duplicadas em
+      // troca de plano (upgrade/downgrade/re-assinatura).
+      const cancelled = await AsaasService.cancelActiveSubscriptionsFor(customerId);
+      if (cancelled.length > 0) {
+        console.log(`Cancelled ${cancelled.length} prior subscriptions for customer ${customerId}`);
+      }
+
       const effectiveCycle = (cycle || 'MONTHLY') as 'MONTHLY' | 'YEARLY';
       const originalValue = effectiveCycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
 
