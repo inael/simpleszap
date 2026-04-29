@@ -76,12 +76,13 @@ export class SubscriptionController {
         ? `SimplesZap ${plan.name} (cupom ${couponMeta.code}) [${encoded}]`
         : `SimplesZap ${plan.name} [${encoded}]`;
 
+      // billingType UNDEFINED = checkout aberto no Asaas (cliente escolhe PIX, boleto ou cartão)
       const subscription = await AsaasService.createSubscription(
         customerId,
         finalValue,
         effectiveCycle,
         planLabel,
-        (method as 'PIX' | 'BOLETO' | 'CREDIT_CARD') || 'PIX'
+        (method as 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'UNDEFINED') || 'UNDEFINED'
       );
 
       // Cupom: registrar resgate (best-effort, não bloqueia checkout)

@@ -212,7 +212,7 @@ export default function SubscriptionPage() {
         <Button variant={cycle === 'YEARLY' ? 'default' : 'outline'} onClick={() => setCycle('YEARLY')}>Anual</Button>
       </div>
 
-      {!me?.cpfCnpj && (
+      {me && !me.cpfCnpj && (
         <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
           <div className="space-y-1">
@@ -283,11 +283,26 @@ export default function SubscriptionPage() {
           const finalPrice = couponMatches ? appliedCoupon!.finalValue : basePrice;
           const fmtBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
           const canApplyCoupon = couponInput.trim().length > 0 && !appliedCoupon;
+
+          // Upgrade/downgrade/plano atual: comparação por priceMonthly como ranking estável
+          const userHasPaidPlan = me?.status === 'paid' && me.plan;
+          const isCurrentPlan = !!(userHasPaidPlan && me.plan!.id === plan.id);
+          let actionLabel: string;
+          if (basePrice === 0) actionLabel = "Plano Gratuito";
+          else if (isCurrentPlan) actionLabel = "Plano atual";
+          else if (userHasPaidPlan && plan.pricing.monthly > me.plan!.priceMonthly) actionLabel = "Fazer upgrade";
+          else if (userHasPaidPlan && plan.pricing.monthly < me.plan!.priceMonthly) actionLabel = "Fazer downgrade";
+          else actionLabel = "Assinar";
+
+          const isHighlighted = isCurrentPlan || (!userHasPaidPlan && plan.name.includes('Pro'));
+
           return (
-            <Card key={plan.id} className={`flex flex-col ${plan.name.includes('Pro') ? 'border-primary shadow-md relative' : ''}`}>
-                {plan.name.includes('Pro') && (
+            <Card key={plan.id} className={`flex flex-col ${isHighlighted ? 'border-primary shadow-md relative' : ''}`}>
+                {isCurrentPlan ? (
+                    <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">Plano atual</div>
+                ) : (!userHasPaidPlan && plan.name.includes('Pro')) ? (
                     <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">Popular</div>
-                )}
+                ) : null}
                 <CardHeader>
                     <CardTitle>{plan.name}</CardTitle>
                     <CardDescription>{plan.description}</CardDescription>
@@ -330,11 +345,11 @@ export default function SubscriptionPage() {
                     )}
                     <Button
                         className="w-full"
-                        variant={basePrice === 0 ? "outline" : "default"}
-                        disabled={basePrice === 0 || loading === plan.id || !me?.cpfCnpj}
+                        variant={isCurrentPlan ? "secondary" : (basePrice === 0 ? "outline" : "default")}
+                        disabled={isCurrentPlan || basePrice === 0 || loading === plan.id || !me?.cpfCnpj}
                         onClick={() => handleSubscribe(plan.id)}
                     >
-                        {loading === plan.id ? "Processando..." : (basePrice === 0 ? "Plano Gratuito" : (!me?.cpfCnpj ? "Cadastre o CPF/CNPJ" : "Assinar"))}
+                        {loading === plan.id ? "Processando..." : (!me?.cpfCnpj && !isCurrentPlan && basePrice > 0 ? "Cadastre o CPF/CNPJ" : actionLabel)}
                     </Button>
                 </CardFooter>
             </Card>

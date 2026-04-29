@@ -98,7 +98,7 @@ export class AsaasService {
     value: number,
     cycle: 'MONTHLY' | 'YEARLY',
     description: string,
-    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' = 'PIX'
+    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'UNDEFINED' = 'UNDEFINED'
   ) {
     const { baseUrl, headers } = await this.getConfig();
     try {
