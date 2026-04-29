@@ -152,16 +152,16 @@ export default function AdminPlansPage() {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Profissional" />
               </div>
               <div className="grid gap-2">
-                <Label>Descri\u00e7\u00e3o</Label>
+                <Label>Descrição</Label>
                 <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Pre\u00e7o Mensal (R$)</Label>
+                  <Label>Preço Mensal (R$)</Label>
                   <Input type="number" value={form.priceMonthly} onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })} />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Pre\u00e7o Anual (R$)</Label>
+                  <Label>Preço Anual (R$)</Label>
                   <Input type="number" value={form.priceAnnual} onChange={(e) => setForm({ ...form, priceAnnual: e.target.value })} />
                 </div>
               </div>
@@ -171,12 +171,12 @@ export default function AdminPlansPage() {
                   <Input type="number" value={form.messagesPerDay} onChange={(e) => setForm({ ...form, messagesPerDay: parseInt(e.target.value) || 0 })} />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Limite de Inst\u00e2ncias</Label>
+                  <Label>Limite de Instâncias</Label>
                   <Input type="number" value={form.instancesLimit} onChange={(e) => setForm({ ...form, instancesLimit: parseInt(e.target.value) || 0 })} />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Ordem de Exibi\u00e7\u00e3o</Label>
+                <Label>Ordem de Exibição</Label>
                 <Input type="number" value={form.displayOrder} onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value) || 0 })} />
               </div>
               <div className="flex gap-4">
@@ -198,12 +198,12 @@ export default function AdminPlansPage() {
               <div className="rounded-md border p-4 space-y-2 bg-muted/50">
                 <div className="flex items-center gap-2">
                   <Cloud className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">Integra\u00e7\u00e3o Asaas</span>
+                  <span className="text-sm font-medium">Integração Asaas</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {editing?.asaasId
-                    ? `Plano j\u00e1 vinculado ao Asaas (ID: ${editing.asaasId}). Marque para atualizar os dados no Asaas.`
-                    : "Marque para criar este plano automaticamente no Asaas ao salvar. Planos gratuitos (R$ 0) n\u00e3o s\u00e3o sincronizados."}
+                    ? `Plano já vinculado ao Asaas (ID: ${editing.asaasId}). Marque para atualizar os dados no Asaas.`
+                    : "Marque para criar este plano automaticamente no Asaas ao salvar. Planos gratuitos (R$ 0) não são sincronizados."}
                 </p>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -216,7 +216,7 @@ export default function AdminPlansPage() {
               </div>
             </div>
             <Button onClick={handleSubmit} className="w-full">
-              {editing ? "Salvar Altera\u00e7\u00f5es" : "Criar Plano"}
+              {editing ? "Salvar Alterações" : "Criar Plano"}
             </Button>
           </DialogContent>
         </Dialog>
@@ -225,7 +225,7 @@ export default function AdminPlansPage() {
       {plansError && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <p>Erro ao carregar planos. Verifique sua conex\u00e3o e tente novamente.</p>
+          <p>Erro ao carregar planos. Verifique sua conexão e tente novamente.</p>
         </div>
       )}
 
@@ -240,11 +240,11 @@ export default function AdminPlansPage() {
                   <TableHead>ID</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Mensal</TableHead>
-                  <TableHead>Inst\u00e2ncias</TableHead>
+                  <TableHead>Instâncias</TableHead>
                   <TableHead>Msgs/Dia</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Asaas</TableHead>
-                  <TableHead>A\u00e7\u00f5es</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -253,8 +253,8 @@ export default function AdminPlansPage() {
                     <TableCell className="font-mono text-sm">{plan.id}</TableCell>
                     <TableCell>{plan.name}</TableCell>
                     <TableCell>R$ {plan.priceMonthly}</TableCell>
-                    <TableCell>{plan.instancesLimit}</TableCell>
-                    <TableCell>{plan.messagesPerDay}</TableCell>
+                    <TableCell>{plan.instancesLimit < 0 ? "Ilimitado" : plan.instancesLimit}</TableCell>
+                    <TableCell>{plan.messagesPerDay < 0 ? "Ilimitado" : plan.messagesPerDay}</TableCell>
                     <TableCell>
                       <Badge variant={plan.isActive ? "default" : "secondary"}>
                         {plan.isActive ? "Ativo" : "Inativo"}

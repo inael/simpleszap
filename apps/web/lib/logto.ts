@@ -14,7 +14,7 @@ function buildLogtoConfig(baseUrl: string): LogtoNextConfig {
     cookieSecret: process.env.LOGTO_COOKIE_SECRET!,
     cookieSecure: process.env.NODE_ENV === 'production',
     resources: [process.env.LOGTO_API_RESOURCE || 'https://back.simpleszap.com/api'],
-    scopes: ['openid', 'profile', 'email'],
+    scopes: ['openid', 'profile', 'email', 'roles'],
   };
 }
 
