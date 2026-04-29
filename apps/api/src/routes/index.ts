@@ -17,6 +17,7 @@ import { AsaasWebhookController } from '../controllers/asaas-webhook.controller'
 import { CampaignsController } from '../controllers/campaigns.controller';
 import { DashboardController } from '../controllers/dashboard.controller';
 import { UserSettingsController } from '../controllers/user-settings.controller';
+import { MeController } from '../controllers/me.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -31,6 +32,9 @@ router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
 // Dashboard
 router.get('/dashboard/metrics', orgAuthWithSecurity, DashboardController.metrics);
+
+// Conta atual
+router.get('/me/subscription', orgAuthWithSecurity, MeController.subscription);
 
 // Subscription
 router.post('/subscription/checkout', orgAuthWithSecurity, SubscriptionController.createCheckout);

@@ -2,21 +2,47 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check } from "lucide-react";
+import { Check, Sparkles, AlertTriangle, ShieldCheck } from "lucide-react";
 import useSWR from "swr";
 import { api, fetcher } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { useState } from "react";
 
+type MeSubscription = {
+  plan: { id: string; name: string; priceMonthly: number; priceAnnual: number; instancesLimit: number; messagesPerDay: number } | null;
+  trialEndsAt: string | null;
+  trialActive: boolean;
+  status: 'trial' | 'paid' | 'free' | 'free_after_trial';
+  limits: { instancesLimit: number; messagesPerDay: number };
+  hasPaid: boolean;
+};
+
+function fmtBR(d: Date) {
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export default function SubscriptionPage() {
-  const { getToken } = useAuth();
+  const { getToken, user } = useAuth();
+  const orgId = user?.sub;
   const { data: pricingData } = useSWR('/pricing', fetcher);
+  const { data: me } = useSWR<MeSubscription>(
+    orgId ? ['/me/subscription', orgId] : null,
+    async ([url, oid]: [string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { 'x-org-id': oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then((r) => r.data);
+    }
+  );
   const [loading, setLoading] = useState<string | null>(null);
   const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [cpfCnpj, setCpfCnpj] = useState('');
 
   const plans = pricingData?.plans || [];
+
+  const trialEndsAtDate = me?.trialEndsAt ? new Date(me.trialEndsAt) : null;
+  const daysLeft = trialEndsAtDate
+    ? Math.max(0, Math.ceil((trialEndsAtDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const handleSubscribe = async (planId: string) => {
     if (!cpfCnpj.trim()) {
@@ -67,6 +93,55 @@ export default function SubscriptionPage() {
           Gerencie seu plano e cobranças.
         </p>
       </div>
+
+      {me?.status === 'trial' && me.plan && (
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+          <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">
+              Você está no trial do plano <strong>{me.plan.name}</strong>
+              {trialEndsAtDate ? <> — expira em <strong>{fmtBR(trialEndsAtDate)}</strong> ({daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} restantes)</> : null}.
+            </p>
+            <p className="text-emerald-800/80">
+              Assine antes do fim do trial para continuar com {me.plan.name}. Sem assinatura, sua conta cai automaticamente para o plano gratuito.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {me?.status === 'paid' && me.plan && (
+        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
+          <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">
+              Plano ativo: <strong>{me.plan.name}</strong>
+            </p>
+            <p className="text-blue-800/80">
+              Pagamento confirmado. Você tem acesso a todos os recursos do {me.plan.name}.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {me?.status === 'free_after_trial' && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">Seu trial expirou — você está no plano gratuito.</p>
+            <p className="text-amber-800/80">
+              Limites: {me.limits.instancesLimit} instância(s), {me.limits.messagesPerDay} msgs/dia. Assine um plano abaixo para liberar mais capacidade.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {me?.status === 'free' && (
+        <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4 text-sm">
+          <p>
+            Você está no plano gratuito ({me.limits.instancesLimit} instância(s), {me.limits.messagesPerDay} msgs/dia). Assine um plano abaixo para escalar.
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Button variant={cycle === 'MONTHLY' ? 'default' : 'outline'} onClick={() => setCycle('MONTHLY')}>Mensal</Button>

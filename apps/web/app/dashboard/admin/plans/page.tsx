@@ -194,26 +194,6 @@ export default function AdminPlansPage() {
                 </label>
               </div>
 
-              {/* Asaas Sync Option */}
-              <div className="rounded-md border p-4 space-y-2 bg-muted/50">
-                <div className="flex items-center gap-2">
-                  <Cloud className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">Integração Asaas</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {editing?.asaasId
-                    ? `Plano já vinculado ao Asaas (ID: ${editing.asaasId}). Marque para atualizar os dados no Asaas.`
-                    : "Marque para criar este plano automaticamente no Asaas ao salvar. Planos gratuitos (R$ 0) não são sincronizados."}
-                </p>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.syncToAsaas}
-                    onChange={(e) => setForm({ ...form, syncToAsaas: e.target.checked })}
-                  />
-                  {editing?.asaasId ? "Atualizar no Asaas ao salvar" : "Criar no Asaas ao salvar"}
-                </label>
-              </div>
             </div>
             <Button onClick={handleSubmit} className="w-full">
               {editing ? "Salvar Alterações" : "Criar Plano"}
@@ -243,7 +223,6 @@ export default function AdminPlansPage() {
                   <TableHead>Instâncias</TableHead>
                   <TableHead>Msgs/Dia</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Asaas</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -261,55 +240,9 @@ export default function AdminPlansPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {plan.asaasId ? (
-                        <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
-                          <Cloud className="h-3 w-3 mr-1" />
-                          Sincronizado
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-gray-400">
-                          <CloudOff className="h-3 w-3 mr-1" />
-                          Local
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(plan)}>
-                          Editar
-                        </Button>
-                        {plan.asaasId ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-orange-600 hover:text-orange-700"
-                            disabled={syncingPlan === plan.id}
-                            onClick={() => handleUnsyncFromAsaas(plan.id)}
-                            title="Desvincular do Asaas"
-                          >
-                            {syncingPlan === plan.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CloudOff className="h-4 w-4" />
-                            )}
-                          </Button>
-                        ) : Number(plan.priceMonthly) > 0 ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-700"
-                            disabled={syncingPlan === plan.id}
-                            onClick={() => handleSyncToAsaas(plan.id)}
-                            title="Sincronizar com Asaas"
-                          >
-                            {syncingPlan === plan.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-4 w-4" />
-                            )}
-                          </Button>
-                        ) : null}
-                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(plan)}>
+                        Editar
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
