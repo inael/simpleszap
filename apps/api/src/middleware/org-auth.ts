@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
-import { verifyLogtoToken } from '../lib/logto';
+import { verifyLogtoToken, fetchLogtoUser } from '../lib/logto';
 
 export async function orgAuth(req: Request, res: Response, next: NextFunction) {
   // Try Logto JWT from Authorization header
@@ -19,17 +19,21 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
         try {
           const existing = await prisma.user.findUnique({ where: { logtoId: auth.sub } });
           if (!existing) {
+            // Access token usually doesn't carry email/name. Pull profile from Logto Management API.
+            const profile = !auth.email ? await fetchLogtoUser(auth.sub) : null;
+            const email = auth.email || profile?.primaryEmail || `${auth.sub}@logto.user`;
+            const name = profile?.name || auth.email?.split('@')[0] || auth.sub;
             const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             await prisma.user.create({
               data: {
                 logtoId: auth.sub,
-                email: auth.email || `${auth.sub}@logto.user`,
-                name: auth.email?.split('@')[0] || auth.sub,
+                email,
+                name,
                 subscriptionPlanId: 'pro',
                 trialEndsAt,
               },
             });
-            console.log(`Lazy-created user for Logto sub ${auth.sub} (Pro trial until ${trialEndsAt.toISOString()})`);
+            console.log(`Lazy-created user ${email} (Pro trial until ${trialEndsAt.toISOString()})`);
           }
         } catch (err: any) {
           // Unique constraint race — another request may have created it
