@@ -103,8 +103,8 @@ export default function SubscriptionPage() {
                         <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
                     </div>
                     <ul className="space-y-2 text-sm">
-                        <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.instancesLimit} Instância(s)</li>
-                        <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.messagesPerDay} msgs/dia</li>
+                        <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.instancesLimit < 0 ? 'Instâncias ilimitadas' : `${plan.limits.instancesLimit} Instância(s)`}</li>
+                        <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.messagesPerDay < 0 ? 'Mensagens ilimitadas' : `${plan.limits.messagesPerDay} msgs/dia`}</li>
                         {plan.features.hasWebhooks && <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> Webhooks</li>}
                         {plan.features.hasTemplates && <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> Templates</li>}
                     </ul>
