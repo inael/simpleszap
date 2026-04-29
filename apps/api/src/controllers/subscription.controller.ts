@@ -31,6 +31,10 @@ export class SubscriptionController {
         return res.status(500).json({ error: 'Failed to create customer' });
       }
 
+      if (user.asaasCustomerId !== customerId) {
+        await prisma.user.update({ where: { id: user.id }, data: { asaasCustomerId: customerId } }).catch(() => {});
+      }
+
       const value = cycle === 'YEARLY' ? Number(plan.priceAnnual) : Number(plan.priceMonthly);
       
       const effectiveCycle = (cycle || 'MONTHLY') as 'MONTHLY' | 'YEARLY';

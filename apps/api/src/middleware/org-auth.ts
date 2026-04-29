@@ -15,18 +15,21 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
         // No organizations in Logto for now — use user sub as org ID
         req.headers['x-org-id'] = auth.sub;
 
-        // Lazy user creation: ensure user exists in DB
+        // Lazy user creation: ensure user exists in DB. New users get a 7-day Pro trial.
         try {
           const existing = await prisma.user.findUnique({ where: { logtoId: auth.sub } });
           if (!existing) {
+            const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             await prisma.user.create({
               data: {
                 logtoId: auth.sub,
                 email: auth.email || `${auth.sub}@logto.user`,
                 name: auth.email?.split('@')[0] || auth.sub,
+                subscriptionPlanId: 'pro',
+                trialEndsAt,
               },
             });
-            console.log(`Lazy-created user for Logto sub ${auth.sub}`);
+            console.log(`Lazy-created user for Logto sub ${auth.sub} (Pro trial until ${trialEndsAt.toISOString()})`);
           }
         } catch (err: any) {
           // Unique constraint race — another request may have created it

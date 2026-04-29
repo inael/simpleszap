@@ -33,9 +33,10 @@ export class AsaasWebhookController {
 
           if (match) {
             const [, userId, planId] = match;
+            // Confirmed payment: lock plan and clear the trial expiration flag
             await prisma.user.update({
               where: { logtoId: userId },
-              data: { subscriptionPlanId: planId }
+              data: { subscriptionPlanId: planId, trialEndsAt: null }
             }).catch(() => {});
           }
         }

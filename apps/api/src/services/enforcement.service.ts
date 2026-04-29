@@ -37,6 +37,11 @@ export class EnforcementService {
       });
       user = key?.user ?? null;
     }
+    // Trial expired and user has no Asaas customer (never paid) → fall back to Free defaults
+    const trialExpired = user?.trialEndsAt && user.trialEndsAt < new Date();
+    if (trialExpired && !user?.asaasCustomerId) {
+      return this.limitsFromPlan(null);
+    }
     return this.limitsFromPlan(user?.subscriptionPlan ?? null);
   }
 
