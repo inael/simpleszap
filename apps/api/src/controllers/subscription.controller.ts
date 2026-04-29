@@ -62,6 +62,15 @@ export class SubscriptionController {
         couponMeta = { id: v.couponId, code: v.code, discount: v.discountValue };
       }
 
+      // Asaas exige cobrança mínima de R$ 5,00. Bloqueia antes de chamar Asaas pra dar erro claro.
+      const ASAAS_MIN = 5;
+      if (finalValue > 0 && finalValue < ASAAS_MIN) {
+        return res.status(400).json({
+          error: 'VALUE_BELOW_ASAAS_MINIMUM',
+          reason: `Valor final (R$ ${finalValue.toFixed(2)}) está abaixo do mínimo do Asaas (R$ ${ASAAS_MIN.toFixed(2)}). Reduza o desconto do cupom.`,
+        });
+      }
+
       const encoded = `sz|uid:${userId}|plan:${plan.id}|cycle:${effectiveCycle}${couponMeta ? `|coupon:${couponMeta.code}` : ''}`;
       const planLabel = couponMeta
         ? `SimplesZap ${plan.name} (cupom ${couponMeta.code}) [${encoded}]`

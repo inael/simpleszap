@@ -134,10 +134,13 @@ export default function SubscriptionPage() {
             toast.error("A requisição excedeu o tempo limite. Tente novamente.");
         } else {
             const code = e?.response?.data?.error;
+            const reason = e?.response?.data?.reason;
             if (code === 'CPF_CNPJ_REQUIRED') {
-                toast.error("Informe CPF/CNPJ para prosseguir com o pagamento.");
+                toast.error("Informe CPF/CNPJ em Configurações antes de assinar.");
+            } else if (code === 'VALUE_BELOW_ASAAS_MINIMUM' || code === 'COUPON_INVALID') {
+                toast.error(reason || code);
             } else {
-                toast.error(e?.response?.data?.error || "Erro ao iniciar assinatura.");
+                toast.error(reason || code || "Erro ao iniciar assinatura.");
             }
         }
     } finally {
