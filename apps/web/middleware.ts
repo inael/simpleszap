@@ -4,10 +4,10 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check for Logto session cookie (the SDK uses "logto:session" as the cookie name pattern)
+  // @logto/next stores session under cookie name `logto_${appId}`
   const cookies = request.cookies;
   const hasSession = Array.from(cookies.getAll()).some(
-    (c) => c.name.startsWith('logto:') || c.name === 'logto-session'
+    (c) => c.name.startsWith('logto_')
   );
 
   // Protect dashboard routes - redirect to sign in if not authenticated
