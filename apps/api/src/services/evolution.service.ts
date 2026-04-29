@@ -19,8 +19,8 @@ export class EvolutionService {
     try {
       const response = await client.post(`/instance/create`, {
         instanceName,
-        token: "", // Optional, can be auto-generated
-        qrcode: true, // Return QR immediately if possible? Usually not for create
+        qrcode: true,
+        integration: 'WHATSAPP-BAILEYS',
       }, { headers: this.headers });
       return response.data;
     } catch (error: any) {
