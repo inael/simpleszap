@@ -102,8 +102,11 @@ export class MeController {
       const trialActive = !!(user.trialEndsAt && user.trialEndsAt > now);
       const trialExpired = !!(user.trialEndsAt && user.trialEndsAt <= now);
       const hasPaid = !!user.asaasCustomerId;
+      const manualActive = !!(user.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
+      // Cortesia VIP tem prioridade sobre os outros estados.
       const effectiveStatus =
-        hasPaid && !trialActive ? 'paid'
+        manualActive ? 'manual'
+        : hasPaid && !trialActive ? 'paid'
         : trialActive ? 'trial'
         : trialExpired ? 'free_after_trial'
         : 'free';
@@ -127,6 +130,8 @@ export class MeController {
         limits,
         hasPaid,
         cpfCnpj: user.cpfCnpj,
+        manualSubscriptionUntil: user.manualSubscriptionUntil?.toISOString() ?? null,
+        manualPlanReason: user.manualPlanReason,
       });
     } catch (e: any) {
       console.error('me.subscription error:', e);

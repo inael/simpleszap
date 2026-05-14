@@ -23,6 +23,12 @@ model User {
   asaasCustomerId   String?
   cpfCnpj           String?
 
+  // Cortesia VIP (bypass Asaas) — admin concede plano por N meses sem cobrar.
+  // Quando manualSubscriptionUntil > now, enforcement usa o plano linkado em
+  // subscriptionPlanId ignorando trialEndsAt e asaasCustomerId.
+  manualSubscriptionUntil DateTime?
+  manualPlanReason        String?
+
   instances         Instance[]
   apiKeys           ApiKey[]
   dailyUsages       DailyUsage[]

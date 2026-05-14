@@ -37,8 +37,14 @@ export class EnforcementService {
       });
       user = key?.user ?? null;
     }
-    // Trial expired and user has no Asaas customer (never paid) → fall back to Free defaults
-    const trialExpired = user?.trialEndsAt && user.trialEndsAt < new Date();
+    const now = new Date();
+    // Cortesia VIP ativa: usa plano linkado ignorando trial/Asaas.
+    const manualActive = !!(user?.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
+    if (manualActive) {
+      return this.limitsFromPlan(user?.subscriptionPlan ?? null);
+    }
+    // Trial expirado sem Asaas customer (nunca pagou) → defaults Free
+    const trialExpired = user?.trialEndsAt && user.trialEndsAt < now;
     if (trialExpired && !user?.asaasCustomerId) {
       return this.limitsFromPlan(null);
     }

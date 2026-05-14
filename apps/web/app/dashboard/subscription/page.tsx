@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Sparkles, AlertTriangle, ShieldCheck, Receipt } from "lucide-react";
+import { Check, Sparkles, AlertTriangle, ShieldCheck, Receipt, Gift } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 import { api, fetcher } from "@/lib/api";
@@ -14,10 +14,12 @@ type MeSubscription = {
   plan: { id: string; name: string; priceMonthly: number; priceAnnual: number; instancesLimit: number; messagesPerDay: number } | null;
   trialEndsAt: string | null;
   trialActive: boolean;
-  status: 'trial' | 'paid' | 'free' | 'free_after_trial';
+  status: 'trial' | 'paid' | 'free' | 'free_after_trial' | 'manual';
   limits: { instancesLimit: number; messagesPerDay: number };
   hasPaid: boolean;
   cpfCnpj: string | null;
+  manualSubscriptionUntil?: string | null;
+  manualPlanReason?: string | null;
 };
 
 function formatCpfCnpj(d: string | null) {
@@ -157,6 +159,24 @@ export default function SubscriptionPage() {
           Gerencie seu plano e cobranças.
         </p>
       </div>
+
+      {me?.status === 'manual' && me.plan && (
+        <div className="flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 p-4 text-purple-900">
+          <Gift className="mt-0.5 h-5 w-5 flex-shrink-0 text-purple-600" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">
+              Plano cortesia <strong>{me.plan.name}</strong>
+              {me.manualSubscriptionUntil ? <> — válido até <strong>{fmtBR(new Date(me.manualSubscriptionUntil))}</strong></> : null}.
+            </p>
+            {me.manualPlanReason ? (
+              <p className="text-purple-800/80">Motivo: {me.manualPlanReason}</p>
+            ) : null}
+            <p className="text-purple-800/80">
+              Você está usando todos os recursos do plano {me.plan.name} sem cobrança. Após o vencimento, a conta volta ao plano gratuito.
+            </p>
+          </div>
+        </div>
+      )}
 
       {me?.status === 'trial' && me.plan && (
         <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">

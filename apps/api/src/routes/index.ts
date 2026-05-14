@@ -107,6 +107,8 @@ router.post('/admin/plans/:id/sync-asaas', requireAdmin, AdminPlanController.syn
 router.delete('/admin/plans/:id/sync-asaas', requireAdmin, AdminPlanController.unsyncFromAsaas);
 router.get('/admin/asaas/plans', requireAdmin, AdminPlanController.listAsaasPlans);
 router.get('/admin/users', requireAdmin, AdminUserController.list);
+router.post('/admin/users/:id/grant-plan', requireAdmin, AdminUserController.grantPlan);
+router.delete('/admin/users/:id/grant-plan', requireAdmin, AdminUserController.revokeGrant);
 router.get('/admin/metrics', requireAdmin, AdminMetricsController.get);
 router.get('/admin/audit-logs', requireAdmin, AdminAuditController.list);
 router.get('/admin/settings', requireAdmin, AdminSettingsController.get);
