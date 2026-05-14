@@ -2,9 +2,11 @@
 // Em dev sem SIMPLESMAIL_API_KEY, loga no console em vez de enviar.
 
 const API_BASE = process.env.SIMPLESMAIL_API_BASE || 'https://api.simplesmail.itbooster.com.br';
-const API_KEY = process.env.SIMPLESMAIL_API_KEY || process.env.SIMPLESMAIL_API_KEY_SIMPLESZAP || '';
-const FROM = process.env.SIMPLESMAIL_FROM || 'SimplesZap <noreply@simpleszap.com>';
-const REPLY_TO = process.env.SIMPLESMAIL_REPLY_TO || 'suporte@simpleszap.com';
+const API_KEY = process.env.SIMPLESMAIL_API_KEY || process.env.SIMPLESMAIL_SIMPLESZAP_API_KEY || '';
+// SimplesMail aceita email puro em "from" + "fromName" separado (não suporta "Name <email>").
+const FROM = process.env.SIMPLESMAIL_FROM || 'noreply@simplesmail.itbooster.com.br';
+const FROM_NAME = process.env.SIMPLESMAIL_FROM_NAME || 'SimplesZap';
+const REPLY_TO = process.env.SIMPLESMAIL_REPLY_TO || 'inael@itbooster.com.br';
 
 export type SendEmailInput = {
   to: string;
@@ -40,13 +42,12 @@ export class EmailService {
         },
         body: JSON.stringify({
           from: FROM,
+          fromName: FROM_NAME,
           to: input.to,
           subject: input.subject,
           html: input.html,
           text: input.text,
-          reply_to: REPLY_TO,
-          headers: { 'X-Project': 'simpleszap' },
-          tags: input.tags || [{ name: 'category', value: 'transactional' }],
+          replyTo: REPLY_TO,
         }),
       });
 
