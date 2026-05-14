@@ -29,6 +29,8 @@ model User {
   manualSubscriptionUntil DateTime?
   manualPlanReason        String?
 
+  emailQueue              EmailQueue[]
+
   instances         Instance[]
   apiKeys           ApiKey[]
   dailyUsages       DailyUsage[]
@@ -267,4 +269,29 @@ model UserSettings {
   updatedAt DateTime @updatedAt
 
   @@map("user_settings")
+}
+
+// Fila de emails transacionais (onboarding, win-back, alertas).
+// Cron diário processa rows com status=pending e sendAt<=now (até maxAttempts).
+// userId aqui é User.id (não logtoId) — relation pra facilitar joins.
+model EmailQueue {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  userEmail String
+  template  String   // ex: 'onboarding_d0', 'winback_d3', 'trial_ending'
+  sendAt    DateTime
+  sentAt    DateTime?
+  status    String   @default("pending") // pending | sent | failed | skipped
+  attempts  Int      @default(0)
+  error     String?
+  payload   Json?    // dados arbitrários consumidos pelo template
+  messageId String?  // id retornado pelo SimplesMail
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, sendAt])
+  @@index([userId, template])
+  @@map("EmailQueue")
 }

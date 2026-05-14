@@ -122,6 +122,35 @@ export class AsaasService {
     }
   }
 
+  // Atualiza valor de um Payment pendente (usado em win-back: aplica desconto na próxima fatura).
+  static async updatePaymentValue(paymentId: string, newValue: number) {
+    const { baseUrl, headers } = await this.getConfig();
+    try {
+      const response = await axios.put(`${baseUrl}/payments/${paymentId}`, { value: newValue }, { headers });
+      return response.data;
+    } catch (error: any) {
+      const desc =
+        error?.response?.data?.errors?.[0]?.description ||
+        error?.response?.data?.errors?.[0]?.message ||
+        error?.message;
+      console.error('Error updating Asaas payment value:', error.response?.data || error.message);
+      throw new Error(desc || 'Failed to update payment');
+    }
+  }
+
+  // Lista subscriptions ACTIVE de um customer (usado pra encontrar a sub atual em cancelamento).
+  static async listActiveSubscriptionsFor(customerId: string): Promise<{ id: string; value: number }[]> {
+    const { baseUrl, headers } = await this.getConfig();
+    try {
+      const r = await axios.get(`${baseUrl}/subscriptions`, { params: { customer: customerId, status: 'ACTIVE', limit: 50 }, headers });
+      const items = Array.isArray(r.data?.data) ? r.data.data : [];
+      return items.map((s: any) => ({ id: s.id, value: Number(s.value) }));
+    } catch (e: any) {
+      console.error('listActiveSubscriptionsFor failed:', e.response?.data || e.message);
+      return [];
+    }
+  }
+
   /** Cancela todas as subscriptions ACTIVE de um customer. Usado antes de criar uma nova
    *  pra evitar cobrança duplicada em upgrades/downgrades/troca de plano. */
   static async cancelActiveSubscriptionsFor(customerId: string) {

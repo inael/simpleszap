@@ -20,6 +20,7 @@ import { UserSettingsController } from '../controllers/user-settings.controller'
 import { MeController } from '../controllers/me.controller';
 import { AdminCouponController } from '../controllers/admin-coupon.controller';
 import { CouponController } from '../controllers/coupon.controller';
+import { CronController } from '../controllers/cron.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -32,6 +33,9 @@ router.get('/pricing', PricingController.getPlans);
 router.post('/webhooks/logto', WebhookController.handleLogto);
 router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
+// Cron — protegido por CRON_SECRET (Vercel Scheduled Function)
+router.post('/cron/process-emails', CronController.processEmails);
+
 // Dashboard
 router.get('/dashboard/metrics', orgAuthWithSecurity, DashboardController.metrics);
 
@@ -42,6 +46,7 @@ router.get('/me/subscription', orgAuthWithSecurity, MeController.subscription);
 
 // Subscription
 router.post('/subscription/checkout', orgAuthWithSecurity, SubscriptionController.createCheckout);
+router.post('/subscription/cancel', orgAuthWithSecurity, SubscriptionController.cancel);
 
 // Cupons (público para usuário autenticado validar)
 router.post('/coupons/validate', orgAuthWithSecurity, CouponController.validate);

@@ -2,7 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Sparkles, AlertTriangle, ShieldCheck, Receipt, Gift } from "lucide-react";
+import { Check, Sparkles, AlertTriangle, ShieldCheck, Receipt, Gift, Loader2, X } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import useSWR from "swr";
 import { api, fetcher } from "@/lib/api";
@@ -37,7 +40,7 @@ export default function SubscriptionPage() {
   const { getToken, user } = useAuth();
   const orgId = user?.sub;
   const { data: pricingData } = useSWR('/pricing', fetcher);
-  const { data: me } = useSWR<MeSubscription>(
+  const { data: me, mutate: mutateMe } = useSWR<MeSubscription>(
     orgId ? ['/me/subscription', orgId] : null,
     async ([url, oid]: [string, string]) => {
       const token = await getToken();
@@ -45,6 +48,9 @@ export default function SubscriptionPage() {
     }
   );
   const [loading, setLoading] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelStep, setCancelStep] = useState<'offer' | 'confirm'>('offer');
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [couponInput, setCouponInput] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
@@ -65,6 +71,42 @@ export default function SubscriptionPage() {
   const daysLeft = trialEndsAtDate
     ? Math.max(0, Math.ceil((trialEndsAtDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
+
+  const handleAcceptDiscount = async () => {
+    setCancelBusy(true);
+    try {
+      const token = await getToken();
+      const res = await api.post('/subscription/cancel', { acceptDiscount: true }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      toast.success(res.data?.message || 'Desconto aplicado na próxima fatura!');
+      setCancelOpen(false);
+      setCancelStep('offer');
+      mutateMe();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Erro ao aplicar desconto');
+    } finally {
+      setCancelBusy(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    setCancelBusy(true);
+    try {
+      const token = await getToken();
+      await api.post('/subscription/cancel', { acceptDiscount: false }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      toast.success('Assinatura cancelada. Você pode reassinar a qualquer momento.');
+      setCancelOpen(false);
+      setCancelStep('offer');
+      mutateMe();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Erro ao cancelar assinatura');
+    } finally {
+      setCancelBusy(false);
+    }
+  };
 
   const handleApplyCoupon = async (planId: string) => {
     if (!couponInput.trim()) return;
@@ -196,7 +238,7 @@ export default function SubscriptionPage() {
       {me?.status === 'paid' && me.plan && (
         <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
           <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-          <div className="space-y-1 text-sm">
+          <div className="flex-1 space-y-1 text-sm">
             <p className="font-medium">
               Plano ativo: <strong>{me.plan.name}</strong>
             </p>
@@ -204,8 +246,83 @@ export default function SubscriptionPage() {
               Pagamento confirmado. Você tem acesso a todos os recursos do {me.plan.name}.
             </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-blue-300 text-blue-900 hover:bg-blue-100"
+            onClick={() => { setCancelStep('offer'); setCancelOpen(true); }}
+          >
+            Cancelar plano
+          </Button>
         </div>
       )}
+
+      <Dialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelStep('offer'); }}>
+        <DialogContent>
+          {cancelStep === 'offer' ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Gift className="h-5 w-5 text-purple-600" />
+                  Espera um pouco — temos uma oferta
+                </DialogTitle>
+                <DialogDescription>
+                  Antes de cancelar, que tal continuar com <strong>50% de desconto no próximo mês</strong>?
+                  Sua assinatura continua ativa, e a próxima fatura sai pela metade do preço.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="rounded-lg bg-purple-50 border border-purple-200 p-4 my-2">
+                <p className="text-sm text-purple-900 font-medium">Como funciona:</p>
+                <ul className="text-sm text-purple-800/90 mt-2 space-y-1 list-disc pl-5">
+                  <li>Próxima fatura sai com 50% off automaticamente</li>
+                  <li>Faturas seguintes voltam ao valor normal do plano</li>
+                  <li>Você não precisa fazer mais nada</li>
+                </ul>
+              </div>
+              <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => setCancelStep('confirm')}
+                  disabled={cancelBusy}
+                >
+                  Cancelar mesmo assim
+                </Button>
+                <Button onClick={handleAcceptDiscount} disabled={cancelBusy} className="bg-purple-600 hover:bg-purple-700">
+                  {cancelBusy ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Aplicando</> : 'Aceitar 50% off'}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <X className="h-5 w-5 text-red-600" />
+                  Confirmar cancelamento
+                </DialogTitle>
+                <DialogDescription>
+                  Tem certeza que deseja cancelar a assinatura? Suas instâncias e dados ficam preservados, mas:
+                </DialogDescription>
+              </DialogHeader>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5 my-2">
+                <li>Sua conta volta ao plano gratuito (1 instância, 50 mensagens/dia)</li>
+                <li>Cobranças futuras são interrompidas imediatamente</li>
+                <li>Você pode reassinar a qualquer momento</li>
+              </ul>
+              <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCancelStep('offer')} disabled={cancelBusy}>
+                  ← Voltar
+                </Button>
+                <Button variant="destructive" onClick={handleConfirmCancel} disabled={cancelBusy}>
+                  {cancelBusy ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Cancelando</> : 'Sim, cancelar assinatura'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       {me?.status === 'free_after_trial' && (
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">

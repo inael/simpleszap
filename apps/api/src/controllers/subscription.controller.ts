@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AsaasService } from '../services/asaas.service';
 import { prisma } from '../lib/prisma';
 import { CouponService } from '../services/coupon.service';
+import { EmailQueueService } from '../services/email-queue.service';
 
 export class SubscriptionController {
   static async createCheckout(req: Request, res: Response) {
@@ -129,6 +130,82 @@ export class SubscriptionController {
         return res.status(400).json({ error: 'CPF_CNPJ_REQUIRED' });
       }
       res.status(500).json({ error: message || 'Internal error' });
+    }
+  }
+
+  // Cancela assinatura do usuário ou aplica desconto win-back de 50% no próximo pagamento.
+  // Body: { acceptDiscount: boolean }.
+  static async cancel(req: Request, res: Response) {
+    const userId = req.headers['x-user-id'] as string | undefined;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { acceptDiscount } = (req.body || {}) as { acceptDiscount?: boolean };
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { logtoId: userId },
+        include: { subscriptionPlan: true },
+      });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      if (!user.asaasCustomerId) return res.status(400).json({ error: 'NO_PAID_SUBSCRIPTION' });
+
+      const subs = await AsaasService.listActiveSubscriptionsFor(user.asaasCustomerId);
+      if (subs.length === 0) return res.status(400).json({ error: 'NO_ACTIVE_SUBSCRIPTION' });
+
+      // Win-back: aplica 50% no próximo pagamento pendente, mantém subscription ativa.
+      if (acceptDiscount) {
+        let appliedTo: { paymentId: string; oldValue: number; newValue: number } | null = null;
+        for (const sub of subs) {
+          const payments = await AsaasService.listSubscriptionPayments(sub.id);
+          const next = payments.find((p: any) => p.status === 'PENDING');
+          if (next) {
+            const oldValue = Number(next.value);
+            const newValue = Math.max(5, +(oldValue * 0.5).toFixed(2));
+            await AsaasService.updatePaymentValue(next.id, newValue);
+            appliedTo = { paymentId: next.id, oldValue, newValue };
+            break;
+          }
+        }
+
+        // Email de confirmação
+        EmailQueueService.enqueue({
+          userId: user.id,
+          userEmail: user.email,
+          template: 'winback_accepted' as any,
+          sendAt: new Date(),
+          payload: {
+            couponCode: 'WINBACK50',
+            planName: user.subscriptionPlan?.name || 'pago',
+          },
+        }).catch((e) => console.error('enqueue winback_accepted failed:', e));
+
+        return res.json({
+          ok: true,
+          action: 'discount_applied',
+          appliedTo,
+          message: appliedTo
+            ? `Desconto de 50% aplicado. Próxima fatura: R$ ${appliedTo.newValue.toFixed(2)}`
+            : 'Desconto registrado. Será aplicado quando próxima fatura for emitida.',
+        });
+      }
+
+      // Cancela de fato: cancela todas subs ativas no Asaas, limpa plano, enfileira win-back.
+      await AsaasService.cancelActiveSubscriptionsFor(user.asaasCustomerId);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { subscriptionPlanId: null },
+      });
+
+      EmailQueueService.enqueueWinbackSequence({
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+      }).catch((e) => console.error('enqueueWinbackSequence failed:', e));
+
+      return res.json({ ok: true, action: 'cancelled' });
+    } catch (e: any) {
+      console.error('subscription.cancel error:', e);
+      return res.status(500).json({ error: e?.message || 'Internal error' });
     }
   }
 }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { verifyLogtoToken, fetchLogtoUser } from '../lib/logto';
+import { EmailQueueService } from '../services/email-queue.service';
 
 export async function orgAuth(req: Request, res: Response, next: NextFunction) {
   // Try Logto JWT from Authorization header
@@ -24,7 +25,7 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
             const email = auth.email || profile?.primaryEmail || `${auth.sub}@logto.user`;
             const name = profile?.name || auth.email?.split('@')[0] || auth.sub;
             const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-            await prisma.user.create({
+            const created = await prisma.user.create({
               data: {
                 logtoId: auth.sub,
                 email,
@@ -34,6 +35,16 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
               },
             });
             console.log(`Lazy-created user ${email} (Pro trial until ${trialEndsAt.toISOString()})`);
+
+            // Dispara sequência de onboarding (5 emails). Skipa email fake (`<sub>@logto.user`).
+            if (!email.endsWith('@logto.user')) {
+              EmailQueueService.enqueueOnboardingSequence({
+                userId: created.id,
+                userEmail: email,
+                userName: name,
+                trialEndsAt,
+              }).catch((e) => console.error('enqueueOnboardingSequence failed:', e));
+            }
           }
         } catch (err: any) {
           // Unique constraint race — another request may have created it
