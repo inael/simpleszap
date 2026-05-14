@@ -55,9 +55,9 @@ export default function AdminSettingsPage() {
         environment: asaasForm.environment,
       };
 
-      // Set API URL based on environment
+      // Asaas usa caminhos diferentes em prod (/v3) e sandbox (/api/v3)
       if (asaasForm.environment === "production") {
-        payload.apiUrl = "https://api.asaas.com/api/v3";
+        payload.apiUrl = "https://api.asaas.com/v3";
       } else {
         payload.apiUrl = "https://sandbox.asaas.com/api/v3";
       }

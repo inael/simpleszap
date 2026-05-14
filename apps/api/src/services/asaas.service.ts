@@ -262,18 +262,46 @@ export class AsaasService {
 
   // ─── Webhook Registration ──────────────────────────────────────────
 
-  static async registerWebhook(webhookUrl: string, accessToken: string) {
+  // Registra/atualiza webhook via endpoint plural /webhooks (multi-webhook).
+  // O singular /webhook é legacy e sobrescreve a config única — quebra outros produtos
+  // que compartilham a mesma conta Asaas (Tokia, SimplesMail, etc).
+  // Faz upsert por URL: PUT se já existe, POST se não.
+  static async registerWebhook(
+    webhookUrl: string,
+    accessToken: string,
+    opts?: { name?: string; email?: string; events?: string[] }
+  ) {
     const { baseUrl, headers } = await this.getConfig();
+    const body = {
+      name: opts?.name || 'SimplesZap',
+      url: webhookUrl,
+      email: opts?.email || 'inael@itbooster.com.br',
+      enabled: true,
+      interrupted: false,
+      apiVersion: 3,
+      authToken: accessToken,
+      sendType: 'SEQUENTIALLY',
+      events: opts?.events || [
+        'PAYMENT_CONFIRMED',
+        'PAYMENT_RECEIVED',
+        'PAYMENT_REFUNDED',
+        'PAYMENT_OVERDUE',
+        'PAYMENT_DELETED',
+        'PAYMENT_CHARGEBACK_REQUESTED',
+        'PAYMENT_CHARGEBACK_DISPUTE',
+        'SUBSCRIPTION_DELETED',
+        'SUBSCRIPTION_INACTIVATED',
+      ],
+    };
+
     try {
-      const response = await axios.post(`${baseUrl}/webhook`, {
-        url: webhookUrl,
-        email: '',
-        apiVersion: 3,
-        enabled: true,
-        interrupted: false,
-        authToken: accessToken,
-        sendType: 'SEQUENTIALLY',
-      }, { headers });
+      const existing = await axios.get(`${baseUrl}/webhooks`, { params: { limit: 100 }, headers });
+      const items: { id: string; url: string }[] = Array.isArray(existing.data?.data) ? existing.data.data : [];
+      const match = items.find((w) => w.url === webhookUrl);
+
+      const response = match
+        ? await axios.put(`${baseUrl}/webhooks/${match.id}`, body, { headers })
+        : await axios.post(`${baseUrl}/webhooks`, body, { headers });
 
       return response.data;
     } catch (error: any) {
@@ -289,7 +317,7 @@ export class AsaasService {
   static async getWebhookConfig() {
     const { baseUrl, headers } = await this.getConfig();
     try {
-      const response = await axios.get(`${baseUrl}/webhook`, { headers });
+      const response = await axios.get(`${baseUrl}/webhooks`, { params: { limit: 100 }, headers });
       return response.data;
     } catch (error: any) {
       console.error('Error fetching Asaas webhook config:', error.response?.data || error.message);
