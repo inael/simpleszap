@@ -5,6 +5,60 @@ Status do produto: **em produção, vendendo**
 
 ---
 
+## 0. Leia isto antes de qualquer coisa (pegadinhas que já mordiam)
+
+Se você pular esta seção, vai perder tempo nas mesmas armadilhas que já
+custaram horas de debug.
+
+1. **Configure o git author inline em todo commit** — o autor padrão da
+   máquina é uma conta secundária que **não é membro do team Vercel
+   IT Booster**. Se você commitar com ela, o deploy é bloqueado
+   ("Deployment Blocked") antes do build rodar e o site fica preso na
+   última versão. Use **sempre**:
+   ```bash
+   git commit --author="inael <inael.rodrigues@gmail.com>" -m "..."
+   ```
+   Vale também para `--amend`. **Nunca** rode `git config user.email`
+   para "resolver" — use a flag inline.
+
+2. **Webhook Asaas é `/webhooks/asaas` (plural)** — singular sobrescreve
+   webhooks de outros produtos IT Booster que compartilham a mesma conta
+   Asaas. Bug histórico no commit `54a633a`.
+
+3. **SimplesMail exige `from` puro + `fromName` separado** — `from`
+   recebe **só o email**, e o nome vai em campo dedicado `fromName`.
+   **Não** mande `"Nome <email@dominio>"` no `from` (a API rejeita).
+   Bug histórico no commit `520ad17`.
+
+4. **DB é `simpleszap`, não `postgres`** — Postgres dedicado em
+   `supabase.toolpad.cloud:5432/simpleszap`. O DB `postgres` é
+   compartilhado com outras apps IT Booster e tem cross-schema FKs que
+   quebram `prisma db push` com erro P4002. Antes de rodar `db:push`
+   localmente, exporte `DATABASE_URL` **e** `DIRECT_URL` apontando para
+   `/simpleszap`.
+
+5. **Credenciais nunca vão pro chat nem pro repo** — tudo em
+   `~/.claude/credentials/services.env` (Logto, Asaas, Evolution, SMTP,
+   Vercel, Supabase). Peça acesso a esse arquivo na máquina; não cole
+   secrets em mensagens ou commits.
+
+6. **Não comite `proposta-alyn.*` nem `apagar-sessao-claude-code.md` da
+   raiz** — são artefatos pessoais/comerciais que ficaram fora do
+   `.gitignore`. Mova pra fora do repo (ou ignore localmente) antes de
+   `git add -A`.
+
+7. **Trial mínimo do Asaas é R$ 5,00** — `subscription.controller.ts`
+   valida antes de chamar Asaas e retorna `VALUE_BELOW_ASAAS_MINIMUM`.
+   Se for testar cupom agressivo (`TESTE99`), use o plano Scale
+   (Pro com 99% off dá R$0,89 e quebra).
+
+8. **Ao expor URL pública nova** (`*.itbooster.com.br`, deploy Vercel
+   novo, novo subdomínio de produto), cadastrar em
+   https://status.toolpad.cloud/ — esse é o painel único que o time
+   consulta. URL nova fora dele fica invisível em incidentes.
+
+---
+
 ## 1. O que é o SimplesZap
 
 API REST + painel para uso da Evolution API (WhatsApp não oficial) com billing
