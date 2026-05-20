@@ -140,79 +140,41 @@ export default async function Home() {
               {/* Abstract decorative elements */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-50"></div>
               
-              {/* Main Image Representation */}
-              <div className="relative z-10 w-full max-w-[400px]">
-                 <div className="relative rounded-[2.5rem] border-8 border-gray-900 bg-gray-900 shadow-2xl overflow-hidden aspect-[9/19]">
-                    <div className="absolute top-0 w-full h-8 bg-gray-800 rounded-b-2xl z-20 flex justify-center">
-                        <div className="w-20 h-4 bg-black rounded-b-xl"></div>
+              {/* Hero IA — dashboard + chat mockup gerado via Higgsfield */}
+              <div className="relative z-10 w-full max-w-[640px]">
+                <Image
+                  src="/hero-saas.png"
+                  alt="Painel SimplesZap exibindo fila de mensagens e API integrada a um chat WhatsApp"
+                  width={1200}
+                  height={896}
+                  priority
+                  className="w-full h-auto rounded-2xl shadow-2xl ring-1 ring-gray-900/5"
+                />
+
+                {/* Floating Cards — payload realista de API */}
+                <div className="absolute -right-4 md:-right-8 top-8 bg-white p-3 rounded-xl shadow-xl border border-gray-100 animate-bounce duration-[3000ms]">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <Check className="w-4 h-4 text-green-600" />
                     </div>
-                    <div className="h-full w-full bg-white flex flex-col pt-12 relative overflow-hidden">
-                         {/* Chat UI Mockup */}
-                         <div className="bg-[#075E54] p-4 flex items-center gap-3 text-white shadow-sm">
-                             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                                <MessageSquare className="w-5 h-5" />
-                             </div>
-                             <div>
-                                 <div className="font-semibold text-sm">SimplesZap Bot</div>
-                                 <div className="text-xs opacity-80">Online</div>
-                             </div>
-                         </div>
-                         <div className="flex-1 bg-[#E5DDD5] p-4 flex flex-col gap-4 overflow-hidden relative">
-                             {/* Background pattern opacity */}
-                             <div className="absolute inset-0 opacity-[0.05] bg-repeat" style={{backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')"}}></div>
-                             
-                             <div className="self-start bg-white rounded-lg rounded-tl-none p-3 shadow-sm max-w-[80%] z-10">
-                                 <p className="text-sm text-gray-800">Olá! Gostaria de saber mais sobre a API.</p>
-                                 <span className="text-[10px] text-gray-400 block text-right mt-1">10:42</span>
-                             </div>
-
-                             <div className="self-end bg-[#dcf8c6] rounded-lg rounded-tr-none p-3 shadow-sm max-w-[80%] z-10">
-                                 <p className="text-sm text-gray-800">Claro! O SimplesZap permite automação completa.</p>
-                                 <span className="text-[10px] text-gray-500 block text-right mt-1">10:42</span>
-                             </div>
-
-                             <div className="self-end bg-[#dcf8c6] rounded-lg rounded-tr-none p-3 shadow-sm max-w-[80%] z-10">
-                                 <p className="text-sm text-gray-800">Você pode enviar textos, mídias e arquivos.</p>
-                                 <span className="text-[10px] text-gray-500 block text-right mt-1">10:43</span>
-                             </div>
-
-                             <div className="self-start bg-white rounded-lg rounded-tl-none p-3 shadow-sm max-w-[80%] z-10">
-                                 <p className="text-sm text-gray-800">Funciona com Webhooks?</p>
-                                 <span className="text-[10px] text-gray-400 block text-right mt-1">10:44</span>
-                             </div>
-
-                             <div className="self-end bg-[#dcf8c6] rounded-lg rounded-tr-none p-3 shadow-sm max-w-[80%] z-10">
-                                 <p className="text-sm text-gray-800">Sim! Notificamos seu sistema em tempo real sobre qualquer evento.</p>
-                                 <span className="text-[10px] text-gray-500 block text-right mt-1">10:44</span>
-                             </div>
-                         </div>
+                    <div className="font-mono">
+                      <p className="text-xs font-semibold text-gray-800">POST /message/sendText</p>
+                      <p className="text-[10px] text-green-700">200 OK · 12ms</p>
                     </div>
-                 </div>
+                  </div>
+                </div>
 
-                 {/* Floating Cards */}
-                 <div className="absolute -right-12 top-20 bg-white p-4 rounded-xl shadow-xl border border-gray-100 animate-bounce duration-[3000ms]">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-green-100 p-2 rounded-full">
-                            <Check className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold text-gray-800">Mensagem Enviada</p>
-                            <p className="text-xs text-gray-500">Via API Rest</p>
-                        </div>
+                <div className="absolute -left-4 md:-left-8 bottom-12 bg-white p-3 rounded-xl shadow-xl border border-gray-100 animate-bounce duration-[4000ms]">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <Code2 className="w-4 h-4 text-blue-600" />
                     </div>
-                 </div>
-
-                 <div className="absolute -left-8 bottom-32 bg-white p-4 rounded-xl shadow-xl border border-gray-100 animate-bounce duration-[4000ms]">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-full">
-                            <Code2 className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold text-gray-800">Webhook Recebido</p>
-                            <p className="text-xs text-gray-500">Status: 200 OK</p>
-                        </div>
+                    <div className="font-mono">
+                      <p className="text-xs font-semibold text-gray-800">webhook → message.sent</p>
+                      <p className="text-[10px] text-blue-700">Entregue · 200 OK</p>
                     </div>
-                 </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -457,7 +419,7 @@ export default async function Home() {
               </Link>
             )}
             <Link href={docsUrl} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" variant="outline" className="rounded-full border-white/40 text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" className="rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
                 Abrir documentação
               </Button>
             </Link>
