@@ -21,6 +21,10 @@ import {
 import Image from "next/image";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { getLogtoConfigFromHeaders } from "@/lib/logto";
+import { HeroV2 } from "@/components/landing/hero-v2";
+import { IntegrateSection } from "@/components/landing/integrate-section";
+import { FlowsSection } from "@/components/landing/flows-section";
+import { MetaBusinessSection } from "@/components/landing/meta-business-section";
 
 const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
 const supportWaDigits = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999").replace(/\D/g, "");
@@ -74,112 +78,10 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-24 lg:pt-32 lg:pb-40 bg-gradient-to-br from-green-50/50 to-white">
-        <div className="container px-4 md:px-6 mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="flex flex-col gap-6 text-left">
-              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary w-fit">
-                <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
-                API WhatsApp Mais Estável do Brasil
-              </div>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-green-950 leading-[1.1]">
-                Conecte seu negócio ao <span className="text-primary relative">
-                  WhatsApp
-                  <svg className="absolute w-full h-3 -bottom-1 left-0 text-primary/20" viewBox="0 0 100 10" preserveAspectRatio="none">
-                    <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
-                  </svg>
-                </span>
-              </h1>
-              <p className="text-xl text-gray-600 max-w-[600px] leading-relaxed">
-                Automatize fluxos, notificações e atendimento. Uma API robusta para integrar CRMs, ERPs e sistemas próprios com suporte 100% nacional.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                {!isSignedIn ? (
-                  <Link href="/api/logto/sign-up">
-                    <Button size="lg" className="rounded-full px-8 h-12 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                      Teste Grátis por 7 Dias
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/dashboard">
-                    <Button size="lg" className="rounded-full px-8 h-12 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                      Acessar Painel
-                    </Button>
-                  </Link>
-                )}
-                <Link href={docsUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="lg" className="rounded-full px-8 h-12 text-base border-2 hover:bg-gray-50/50">
-                    Ver Documentação
-                  </Button>
-                </Link>
-              </div>
-              
-              <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-                <div className="flex -space-x-2">
-                  {[1,2,3,4].map((i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden">
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`} alt="User" width={32} height={32} />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="flex text-yellow-400">
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                  </div>
-                  <span className="font-medium text-gray-700">4.9/5 de 500+ devs</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative lg:h-[600px] w-full flex items-center justify-center">
-              {/* Abstract decorative elements */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-50"></div>
-              
-              {/* Hero IA — dashboard + chat mockup gerado via Higgsfield */}
-              <div className="relative z-10 w-full max-w-[640px]">
-                <Image
-                  src="/hero-saas.png"
-                  alt="Painel SimplesZap exibindo fila de mensagens e API integrada a um chat WhatsApp"
-                  width={1200}
-                  height={896}
-                  priority
-                  className="w-full h-auto rounded-2xl shadow-2xl ring-1 ring-gray-900/5"
-                />
-
-                {/* Floating Cards — payload realista de API */}
-                <div className="absolute -right-4 md:-right-8 top-8 bg-white p-3 rounded-xl shadow-xl border border-gray-100 animate-bounce duration-[3000ms]">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <Check className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="font-mono">
-                      <p className="text-xs font-semibold text-gray-800">POST /message/sendText</p>
-                      <p className="text-[10px] text-green-700">200 OK · 12ms</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute -left-4 md:-left-8 bottom-12 bg-white p-3 rounded-xl shadow-xl border border-gray-100 animate-bounce duration-[4000ms]">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <Code2 className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="font-mono">
-                      <p className="text-xs font-semibold text-gray-800">webhook → message.sent</p>
-                      <p className="text-[10px] text-blue-700">Entregue · 200 OK</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroV2 isSignedIn={isSignedIn} docsUrl={docsUrl} />
+      <IntegrateSection />
+      <FlowsSection />
+      <MetaBusinessSection isSignedIn={isSignedIn} />
 
       {/* Social proof — texto honesto (sem marcas fictícias) */}
       <section className="py-12 border-y bg-gray-50/50">
