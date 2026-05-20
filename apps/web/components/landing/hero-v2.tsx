@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -19,16 +20,14 @@ export function HeroV2({ isSignedIn, docsUrl }: { isSignedIn: boolean; docsUrl: 
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="flex justify-center lg:justify-end order-2 lg:order-1"
           >
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full max-w-[400px] rounded-3xl shadow-[0_30px_80px_-15px_rgba(16,185,129,0.35)]"
-            >
-              <source src="/hero-phone.webm" type="video/webm" />
-              <source src="/hero-phone.mp4" type="video/mp4" />
-            </video>
+            <Image
+              src="/hero-saas.png"
+              alt="Painel SimplesZap com fila de mensagens e chat integrado por API"
+              width={1200}
+              height={896}
+              priority
+              className="w-full max-w-[560px] rounded-3xl shadow-[0_30px_80px_-15px_rgba(16,185,129,0.35)] ring-1 ring-white/10"
+            />
           </motion.div>
 
           <motion.div
