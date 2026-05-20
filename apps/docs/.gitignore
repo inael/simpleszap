@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+*.log
+.env*.local
+.vercel
+next-env.d.ts
+
+# Spec é copiada de docs/api/openapi.yaml no build (script sync-spec.mjs)
+public/openapi.yaml

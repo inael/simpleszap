@@ -1,0 +1,786 @@
+openapi: 3.1.0
+info:
+  title: SimplesZap API
+  version: 1.0.0
+  summary: API pública do SimplesZap para envio de WhatsApp em escala
+  description: |
+    API REST do SimplesZap. Permite enviar mensagens WhatsApp, gerenciar contatos,
+    templates, campanhas e receber callbacks via webhook.
+
+    ## Autenticação
+
+    Todos os endpoints (exceto `/pricing`) exigem o header:
+
+    ```
+    x-api-key: sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    ```
+
+    Gere sua chave em [simpleszap.com/configuracoes/api-keys](https://simpleszap.com/configuracoes/api-keys).
+
+    > Alternativa: `Authorization: Bearer sk_...` também é aceito.
+
+    ## Rate limit
+
+    O limite diário de mensagens é definido pelo plano da conta dona da chave
+    (header `messagesPerDay`). Ao estourar, o endpoint de envio retorna `429`.
+
+    ## Convenções
+
+    - Números no formato E.164 sem `+` (ex: `5511999999999`)
+    - IDs são UUIDs v4 (exceto `SubscriptionPlan.id` que é slug: `free`, `basic`, `pro`, `enterprise`)
+    - Campos JSON serializados como string (ex: `tags`, `events`, `variables`) — parse no cliente
+    - Datas em ISO 8601 UTC
+
+    ## Endpoints UI-only
+
+    Gerenciamento de conta (criar instância, criar chave de API, gerenciar
+    assinatura) só funciona via UI logada em [simpleszap.com](https://simpleszap.com)
+    porque exige JWT do provedor de identidade — não está exposto à API key pública.
+
+  contact:
+    name: Suporte SimplesZap
+    url: https://simpleszap.com/suporte
+    email: suporte@simpleszap.com
+  license:
+    name: Proprietary
+  termsOfService: https://simpleszap.com/termos
+
+servers:
+  - url: https://back.simpleszap.com/api
+    description: Produção
+  - url: http://localhost:3001/api
+    description: Desenvolvimento local
+
+tags:
+  - name: Messages
+    description: Enviar mensagens WhatsApp e consultar histórico
+  - name: Instances
+    description: Listar instâncias WhatsApp pareadas
+  - name: Contacts
+    description: CRUD de contatos
+  - name: Templates
+    description: Templates de mensagem reutilizáveis com variáveis
+  - name: Campaigns
+    description: Disparo em massa para listas segmentadas
+  - name: Webhooks
+    description: Receber callbacks de eventos do SimplesZap
+  - name: Dashboard
+    description: Métricas agregadas
+  - name: Pricing
+    description: Planos disponíveis (público)
+
+security:
+  - apiKey: []
+
+paths:
+  # ───────────────────────────── Messages ─────────────────────────────
+  /message/sendText/{instanceId}:
+    post:
+      tags: [Messages]
+      summary: Enviar mensagem de texto
+      description: |
+        Envia uma mensagem WhatsApp via a instância indicada. A instância precisa
+        estar com status `connected` (pareada via QR no app).
+
+        **Scope necessário (se a chave tiver scopes restritos):** `messages:send`
+      operationId: sendTextMessage
+      parameters:
+        - $ref: '#/components/parameters/InstanceIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendTextRequest'
+            examples:
+              simples:
+                value:
+                  number: "5511999999999"
+                  text: "Olá! Sua assinatura foi confirmada."
+      responses:
+        '200':
+          description: Mensagem enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendTextResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          description: Limite diário do plano excedido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Daily message limit reached" }
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /messages:
+    get:
+      tags: [Messages]
+      summary: Listar mensagens enviadas
+      description: Retorna o histórico de mensagens da organização (ordenado por mais recente).
+      operationId: listMessages
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 100, maximum: 500 }
+          description: Quantidade máxima de mensagens a retornar
+      responses:
+        '200':
+          description: Lista de mensagens
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Message' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ───────────────────────────── Instances ─────────────────────────────
+  /instances:
+    get:
+      tags: [Instances]
+      summary: Listar instâncias
+      description: |
+        Retorna todas as instâncias WhatsApp da organização, com status
+        sincronizado em tempo real com a Evolution API.
+      operationId: listInstances
+      responses:
+        '200':
+          description: Lista de instâncias
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Instance' }
+        '400':
+          description: orgId ausente
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ───────────────────────────── Contacts ─────────────────────────────
+  /contacts:
+    get:
+      tags: [Contacts]
+      summary: Listar contatos
+      operationId: listContacts
+      responses:
+        '200':
+          description: Lista de contatos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Contact' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Contacts]
+      summary: Criar contato
+      operationId: createContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactCreate'
+      responses:
+        '200':
+          description: Contato criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contact' }
+        '400':
+          description: Telefone obrigatório
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Telefone já cadastrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Contato com este telefone já existe" }
+
+  /contacts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Contacts]
+      summary: Atualizar contato
+      operationId: updateContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactUpdate'
+      responses:
+        '200':
+          description: Contato atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contact' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Contato não encontrado
+    delete:
+      tags: [Contacts]
+      summary: Remover contato
+      operationId: deleteContact
+      responses:
+        '200':
+          description: Removido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ───────────────────────────── Templates ─────────────────────────────
+  /templates:
+    get:
+      tags: [Templates]
+      summary: Listar templates
+      operationId: listTemplates
+      responses:
+        '200':
+          description: Lista de templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Template' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Templates]
+      summary: Criar template
+      description: |
+        Templates suportam variáveis no formato `{{nome}}`. Use
+        `variables: "[\"nome\",\"telefone\"]"` (JSON string) para listar quais.
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateCreate'
+      responses:
+        '200':
+          description: Template criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Template' }
+        '400':
+          description: Campos obrigatórios ausentes
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /templates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Templates]
+      summary: Atualizar template
+      operationId: updateTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateCreate'
+      responses:
+        '200':
+          description: Template atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Template' }
+    delete:
+      tags: [Templates]
+      summary: Remover template
+      operationId: deleteTemplate
+      responses:
+        '200':
+          description: Removido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+
+  # ───────────────────────────── Campaigns ─────────────────────────────
+  /campaigns:
+    get:
+      tags: [Campaigns]
+      summary: Listar campanhas
+      operationId: listCampaigns
+      responses:
+        '200':
+          description: Lista de campanhas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Campaign' }
+    post:
+      tags: [Campaigns]
+      summary: Criar campanha
+      operationId: createCampaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignCreate'
+      responses:
+        '200':
+          description: Campanha criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Campaign' }
+
+  /campaigns/{id}/run:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Campaigns]
+      summary: Executar campanha
+      description: |
+        Dispara o envio para todos os contatos que casam com `segmentTags`.
+        Aplica jitter anti-spam (`campaignJitterMinMs`–`campaignJitterMaxMs` em
+        user settings). Pode ser interrompida por rate-limit do plano.
+      operationId: runCampaign
+      responses:
+        '200':
+          description: Resultado da execução
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent: { type: integer }
+                  failed: { type: integer }
+                  blockedByLimit: { type: integer }
+
+  # ───────────────────────────── Webhooks ─────────────────────────────
+  /webhooks/config:
+    get:
+      tags: [Webhooks]
+      summary: Listar webhooks configurados
+      operationId: listWebhooks
+      responses:
+        '200':
+          description: Lista de webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/WebhookConfig' }
+    post:
+      tags: [Webhooks]
+      summary: Cadastrar webhook
+      description: |
+        Cadastra uma URL para receber callbacks. Eventos disponíveis:
+        - `message.sent` — mensagem entregue à Evolution com sucesso
+        - `message.failed` — falha no envio
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookConfigCreate'
+      responses:
+        '200':
+          description: Webhook cadastrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebhookConfig' }
+        '400':
+          description: URL obrigatória
+
+  /webhooks/config/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Webhooks]
+      summary: Atualizar webhook
+      operationId: updateWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookConfigCreate'
+      responses:
+        '200':
+          description: Atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebhookConfig' }
+    delete:
+      tags: [Webhooks]
+      summary: Remover webhook
+      operationId: deleteWebhook
+      responses:
+        '200':
+          description: Removido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+
+  /webhooks/logs:
+    get:
+      tags: [Webhooks]
+      summary: Logs de entregas de webhook
+      operationId: listWebhookLogs
+      responses:
+        '200':
+          description: Logs recentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/WebhookLog' }
+
+  # ───────────────────────────── Dashboard ─────────────────────────────
+  /dashboard/metrics:
+    get:
+      tags: [Dashboard]
+      summary: Métricas agregadas
+      description: Total de instâncias, mensagens hoje, série dos últimos 7 dias e atividade recente.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Métricas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardMetrics' }
+
+  # ───────────────────────────── Pricing (público) ─────────────────────────────
+  /pricing:
+    get:
+      tags: [Pricing]
+      summary: Listar planos disponíveis
+      description: Endpoint público (sem autenticação). Retorna planos ativos ordenados.
+      operationId: getPricing
+      security: []
+      responses:
+        '200':
+          description: Lista de planos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SubscriptionPlan' }
+
+# ═════════════════════════════ Components ═════════════════════════════
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: |
+        Chave de API no formato `sk_<48 hex chars>`. Gere em
+        [simpleszap.com/configuracoes/api-keys](https://simpleszap.com/configuracoes/api-keys).
+
+  parameters:
+    InstanceIdPath:
+      name: instanceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+      description: ID da instância WhatsApp (UUID)
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Chave de API ausente ou inválida
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: "Invalid API Key" }
+    Forbidden:
+      description: Chave sem scope suficiente
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: "Insufficient scope" }
+    ServerError:
+      description: Erro interno
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+
+  schemas:
+    # ───── Messages
+    SendTextRequest:
+      type: object
+      required: [number, text]
+      properties:
+        number:
+          type: string
+          description: Número de destino no formato E.164 sem `+` (DDI+DDD+número)
+          example: "5511999999999"
+        text:
+          type: string
+          description: Conteúdo da mensagem
+          example: "Sua assinatura foi confirmada!"
+
+    SendTextResponse:
+      type: object
+      description: Resposta crua da Evolution API. Campos podem variar.
+      properties:
+        key:
+          type: object
+          properties:
+            remoteJid: { type: string, example: "5511999999999@s.whatsapp.net" }
+            id: { type: string }
+        status: { type: string, example: "PENDING" }
+      additionalProperties: true
+
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string }
+        instanceId: { type: string, format: uuid }
+        to: { type: string, example: "5511999999999" }
+        body: { type: string }
+        type:
+          type: string
+          enum: [text, image, audio, document]
+          default: text
+        status:
+          type: string
+          enum: [queued, sent, delivered, failed]
+        error: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    # ───── Instances
+    Instance:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        status:
+          type: string
+          enum: [disconnected, connecting, connected]
+          description: Status sincronizado com a Evolution API
+        serverUrl: { type: string, nullable: true }
+        orgId: { type: string, nullable: true }
+        userId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    # ───── Contacts
+    Contact:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string }
+        name: { type: string, nullable: true }
+        phone: { type: string, example: "5511999999999" }
+        tags:
+          type: string
+          nullable: true
+          description: JSON array de strings serializado. Ex: `"[\"vip\",\"sao-paulo\"]"`
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ContactCreate:
+      type: object
+      required: [phone]
+      properties:
+        name: { type: string }
+        phone: { type: string, example: "5511999999999" }
+        tags:
+          type: string
+          description: JSON array de tags serializado
+
+    ContactUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        tags: { type: string }
+
+    # ───── Templates
+    Template:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string }
+        name: { type: string }
+        body:
+          type: string
+          description: Suporta variáveis `{{nome}}`, `{{telefone}}`, etc.
+          example: "Olá {{name}}, sua fatura vence em {{vencimento}}."
+        variables:
+          type: string
+          nullable: true
+          description: JSON array de nomes de variáveis usadas
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TemplateCreate:
+      type: object
+      required: [name, body]
+      properties:
+        name: { type: string, example: "Boas vindas" }
+        body: { type: string, example: "Olá {{name}}!" }
+        variables: { type: string, example: "[\"name\"]" }
+
+    # ───── Campaigns
+    Campaign:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string }
+        name: { type: string }
+        instanceId: { type: string, format: uuid }
+        templateId: { type: string, format: uuid, nullable: true }
+        segmentTags:
+          type: string
+          nullable: true
+          description: JSON array de tags que segmenta os contatos alvo
+        scheduledAt: { type: string, format: date-time, nullable: true }
+        status:
+          type: string
+          enum: [draft, scheduled, running, done, rate_limited]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CampaignCreate:
+      type: object
+      required: [name, instanceId]
+      properties:
+        name: { type: string }
+        instanceId: { type: string, format: uuid }
+        templateId: { type: string, format: uuid }
+        segmentTags: { type: string, example: "[\"vip\"]" }
+        scheduledAt: { type: string, format: date-time }
+
+    # ───── Webhooks
+    WebhookConfig:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string }
+        url: { type: string, format: uri, example: "https://assina-agora.com.br/webhooks/simpleszap" }
+        events:
+          type: string
+          description: JSON array de eventos. Ex&colon; `"[\"message.sent\",\"message.failed\"]"`
+        secret:
+          type: string
+          description: Segredo para assinar payload (HMAC roadmap)
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    WebhookConfigCreate:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, format: uri }
+        events:
+          type: array
+          items:
+            type: string
+            enum: [message.sent, message.failed]
+        secret: { type: string }
+
+    WebhookLog:
+      type: object
+      description: Entrega de webhook (sucesso ou falha)
+      properties:
+        id: { type: string, format: uuid }
+        webhookConfigId: { type: string, format: uuid }
+        event: { type: string, example: "message.sent" }
+        statusCode: { type: integer, example: 200 }
+        attempts: { type: integer }
+        deliveredAt: { type: string, format: date-time, nullable: true }
+        error: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    WebhookEventPayload:
+      type: object
+      description: |
+        Payload enviado pelo SimplesZap para a URL cadastrada quando um evento
+        ocorre. POST com Content-Type application/json.
+      properties:
+        event:
+          type: string
+          enum: [message.sent, message.failed]
+        orgId: { type: string }
+        data:
+          type: object
+          properties:
+            instanceId: { type: string, format: uuid }
+            number: { type: string }
+            text: { type: string }
+            error: { type: string, nullable: true }
+
+    # ───── Dashboard
+    DashboardMetrics:
+      type: object
+      properties:
+        totalInstances: { type: integer }
+        messagesSent: { type: integer, description: Mensagens enviadas hoje }
+        messagesLast7Days:
+          type: array
+          items: { type: integer }
+          description: Série dos últimos 7 dias (índice 0 = 7 dias atrás)
+          minItems: 7
+          maxItems: 7
+        recentActivity:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    # ───── Pricing
+    SubscriptionPlan:
+      type: object
+      properties:
+        id: { type: string, enum: [free, basic, pro, enterprise] }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        priceMonthly: { type: number, format: float, example: 49.90 }
+        priceAnnual: { type: number, format: float, example: 499.00 }
+        messagesPerDay:
+          type: integer
+          description: Limite diário de envios. `-1` = ilimitado.
+        instancesLimit: { type: integer }
+        hasWebhooks: { type: boolean }
+        hasTemplates: { type: boolean }
+        hasSmsIncluded: { type: boolean }

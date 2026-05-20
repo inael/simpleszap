@@ -1,0 +1,26 @@
+slug: simpleszap-docs
+nome: SimplesZap Docs
+tipo: landing
+status: ativo
+
+descricao: |
+  Portal de documentação pública da API SimplesZap.
+  Renderiza docs/api/openapi.yaml via Scalar + página de quickstart.
+
+stack:
+  - Next.js 15
+  - React 19
+  - Tailwind 3
+  - "@scalar/api-reference-react"
+
+deploy:
+  vercel:
+    projeto: simpleszap-docs
+    dominio: docs.simpleszap.com
+    org: IT Booster
+
+integra_com:
+  - simpleszap-back  # consome OpenAPI gerado a partir do back
+
+owners:
+  - inael.rodrigues@gmail.com
