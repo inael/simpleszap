@@ -614,7 +614,7 @@ components:
         tags:
           type: string
           nullable: true
-          description: JSON array de strings serializado. Ex: `"[\"vip\",\"sao-paulo\"]"`
+          description: 'JSON array de strings serializado. Ex: `"[\"vip\",\"sao-paulo\"]"`'
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
