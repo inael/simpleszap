@@ -22,7 +22,7 @@ import Image from "next/image";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { getLogtoConfigFromHeaders } from "@/lib/logto";
 
-const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://github.com/inael/simpleszap";
+const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
 const supportWaDigits = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999").replace(/\D/g, "");
 const contactWhatsAppHref = `https://wa.me/${supportWaDigits}`;
 
@@ -47,6 +47,7 @@ export default async function Home() {
             <Link href="#pricing" className="hover:text-primary transition-colors">Preços</Link>
             <Link href="/comparativo" className="hover:text-primary transition-colors">Comparativo</Link>
             <Link href="/blog" className="hover:text-primary transition-colors">Blog</Link>
+            <Link href={docsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Docs API</Link>
             <Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link>
           </nav>
 
@@ -633,7 +634,7 @@ export default async function Home() {
                 <li><Link href="/comparativo" className="hover:text-primary transition-colors">Comparativo</Link></li>
                 <li>
                   <Link href={docsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                    Documentação
+                    Docs API
                   </Link>
                 </li>
               </ul>
