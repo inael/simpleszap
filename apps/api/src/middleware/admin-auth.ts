@@ -15,9 +15,10 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     return res.status(401).json({ error: 'Autenticação necessária' });
   }
 
-  // Check 1: roles claim in token contains "admin"
-  if (auth.roles && auth.roles.includes('admin')) {
-    (req as any).adminUser = { logtoId: auth.sub, role: 'admin' };
+  // Check 1: roles claim in token contains "simpleszap:admin"
+  // (convenção IT Booster: <sistema>:<role> — Logto é compartilhado entre produtos)
+  if (auth.roles && auth.roles.includes('simpleszap:admin')) {
+    (req as any).adminUser = { logtoId: auth.sub, role: 'simpleszap:admin' };
     return next();
   }
 

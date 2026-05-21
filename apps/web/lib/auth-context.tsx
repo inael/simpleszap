@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isSignedIn = !!user;
-  const isAdmin = user?.roles?.includes("admin") ?? false;
+  const isAdmin = user?.roles?.includes("simpleszap:admin") ?? false;
 
   return (
     <AuthContext.Provider value={{ user, isLoaded, isSignedIn, isAdmin, getToken }}>
