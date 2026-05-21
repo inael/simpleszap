@@ -113,9 +113,27 @@ export default function CampaignsPage() {
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                {instances?.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>))}
+                {instances?.map((i: any) => {
+                  const ready = i.status === 'connected' || i.status === 'open';
+                  return (
+                    <SelectItem key={i.id} value={i.id} disabled={!ready}>
+                      <span className="flex items-center gap-2">
+                        <span>{i.name}</span>
+                        <span className={`text-[10px] uppercase tracking-wide ${ready ? 'text-green-600' : 'text-amber-600'}`}>
+                          {ready ? '✓ conectado' : `· ${i.status || 'aguardando'}`}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+                {!instances?.length && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância. Crie uma em Instâncias.</div>
+                )}
               </SelectContent>
             </Select>
+            {instances && instances.length > 0 && !instances.some((i: any) => i.status === 'connected' || i.status === 'open') && (
+              <p className="text-xs text-amber-600">⚠ Conecte uma instância em <a href="/dashboard/instances" className="underline">Instâncias</a> antes de criar campanha.</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Template</Label>
@@ -134,7 +152,12 @@ export default function CampaignsPage() {
           </div>
           <div className="md:col-span-4 flex flex-col gap-2">
             {validationError && <p className="text-sm text-red-600">{validationError}</p>}
-            <Button onClick={create}>Criar</Button>
+            <Button
+              onClick={create}
+              disabled={!instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open'))}
+            >
+              Criar
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -102,11 +102,29 @@ export default function MessagesPage() {
                       <SelectValue placeholder="Selecione uma instância" />
                     </SelectTrigger>
                     <SelectContent>
-                      {instances?.map((inst: any) => (
-                        <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
-                      ))}
+                      {instances?.map((inst: any) => {
+                        const ready = inst.status === 'connected' || inst.status === 'open';
+                        return (
+                          <SelectItem key={inst.id} value={inst.id} disabled={!ready}>
+                            <span className="flex items-center gap-2">
+                              <span>{inst.name}</span>
+                              <span className={`text-[10px] uppercase tracking-wide ${ready ? 'text-green-600' : 'text-amber-600'}`}>
+                                {ready ? '✓ conectado' : `· ${inst.status || 'aguardando'}`}
+                              </span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                      {!instances?.length && (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância. Crie uma em Instâncias.</div>
+                      )}
                     </SelectContent>
                   </Select>
+                  {instances && instances.length > 0 && !instances.some((i: any) => i.status === 'connected' || i.status === 'open') && (
+                    <p className="text-xs text-amber-600">
+                      ⚠ Nenhuma instância está conectada. Vá em <a href="/dashboard/instances" className="underline">Instâncias</a> e escaneie o QR.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Número (com DDD)</Label>
@@ -122,7 +140,14 @@ export default function MessagesPage() {
                     className="min-h-[100px]"
                   />
                 </div>
-                <Button className="w-full" onClick={handleSend} disabled={sending}>
+                <Button
+                  className="w-full"
+                  onClick={handleSend}
+                  disabled={
+                    sending ||
+                    !instances?.some((i: any) => i.id === selectedInstance && (i.status === 'connected' || i.status === 'open'))
+                  }
+                >
                   <Send className="mr-2 h-4 w-4" /> {sending ? "Enviando..." : "Enviar Mensagem"}
                 </Button>
               </CardContent>

@@ -1,7 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, MessageSquare, AlertCircle, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Smartphone, MessageSquare, AlertCircle, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import useSWR from "swr";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -52,6 +53,22 @@ export default function DashboardPage() {
         .then((res) => res.data);
     }
   );
+
+  const { data: instances } = useSWR<Array<{ id: string; name: string; status: string }>>(
+    orgId ? ["/instances", orgId] : null,
+    async ([url, oid]: [string, string]) => {
+      const token = await getToken();
+      return api
+        .get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
+        .then((res) => res.data);
+    },
+    { refreshInterval: 15000 }
+  );
+
+  const instancesOk = instances?.filter((i) => i.status === "connected" || i.status === "open") ?? [];
+  const instancesPending = instances?.filter((i) => !(i.status === "connected" || i.status === "open")) ?? [];
+  const allOk = (instances?.length ?? 0) > 0 && instancesPending.length === 0;
+  const noneOk = (instances?.length ?? 0) > 0 && instancesOk.length === 0;
 
   const chartDays = metrics?.messagesLast7Days ?? [];
   const maxVal = Math.max(1, ...chartDays);
@@ -105,15 +122,65 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status do Serviço</CardTitle>
-            <AlertCircle className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">Conectadas</CardTitle>
+            {allOk ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : noneOk ? <AlertCircle className="h-4 w-4 text-red-500" /> : <Loader2 className="h-4 w-4 text-amber-500" />}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">Operacional</div>
-            <p className="text-xs text-muted-foreground">Todos os sistemas funcionando</p>
+            <div className={`text-2xl font-bold ${allOk ? "text-green-600" : noneOk ? "text-red-600" : "text-amber-600"}`}>
+              {instancesOk.length}/{instances?.length ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {!instances?.length
+                ? "Nenhuma instância criada"
+                : allOk
+                ? "Todas conectadas e prontas"
+                : noneOk
+                ? "Nenhuma instância pronta para enviar"
+                : `${instancesPending.length} aguardando QR / com problema`}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {instances && instances.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Suas Instâncias</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {instances.map((inst) => {
+                const ready = inst.status === "connected" || inst.status === "open";
+                return (
+                  <li key={inst.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Smartphone className={`h-4 w-4 flex-shrink-0 ${ready ? "text-green-600" : "text-amber-600"}`} />
+                      <span className="font-medium truncate">{inst.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <Badge
+                        className={
+                          ready
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "bg-amber-50 text-amber-700 border-amber-200"
+                        }
+                        variant={ready ? "default" : "outline"}
+                      >
+                        {ready ? "✓ conectado" : inst.status || "aguardando"}
+                      </Badge>
+                      {!ready && (
+                        <Link href="/dashboard/instances" className="text-xs text-primary hover:underline">
+                          Conectar →
+                        </Link>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">

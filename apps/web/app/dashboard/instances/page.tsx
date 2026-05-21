@@ -111,7 +111,9 @@ export default function InstancesPage() {
     void fetchQr(instanceName);
   };
 
-  // Countdown + connection polling while QR modal is open
+  // Countdown + connection polling + auto-regen do QR enquanto o modal estiver aberto.
+  // Auto-regen: aos 10s restantes (proativo, evita race do scan no último segundo)
+  // e aos 0s (fallback). Botão manual continua ativo pra forçar novo QR a qualquer momento.
   useEffect(() => {
     if (!qrInstanceId) {
       if (tickRef.current) clearInterval(tickRef.current);
@@ -120,8 +122,16 @@ export default function InstancesPage() {
       pollRef.current = null;
       return;
     }
+    let regenerating = false;
     tickRef.current = setInterval(() => {
-      setQrSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+      setQrSecondsLeft((s) => {
+        const next = s > 0 ? s - 1 : 0;
+        if ((next === 10 || next === 0) && !regenerating && qrInstanceId) {
+          regenerating = true;
+          void fetchQr(qrInstanceId).finally(() => { regenerating = false; });
+        }
+        return next;
+      });
     }, 1000);
     pollRef.current = setInterval(async () => {
       const list = await mutate();
@@ -136,7 +146,7 @@ export default function InstancesPage() {
       if (tickRef.current) clearInterval(tickRef.current);
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [qrInstanceId, mutate]);
+  }, [qrInstanceId, mutate, fetchQr]);
 
   const handleRegenerate = () => {
     if (qrInstanceId) void fetchQr(qrInstanceId);
@@ -242,12 +252,12 @@ export default function InstancesPage() {
                   </DialogHeader>
                   <div className="flex flex-col items-center gap-3 p-4">
                       <img src={qrCode} alt="QR Code" className="max-w-[250px]" />
-                      <p className={`text-sm ${qrSecondsLeft <= 10 ? "text-red-600" : "text-muted-foreground"}`}>
-                        {qrSecondsLeft > 0 ? `Expira em ${qrSecondsLeft}s` : "QR expirado"}
+                      <p className={`text-sm ${qrSecondsLeft <= 10 ? "text-amber-600" : "text-muted-foreground"}`}>
+                        {qrLoading ? "Renovando..." : qrSecondsLeft > 0 ? `Expira em ${qrSecondsLeft}s · renova automaticamente` : "Renovando..."}
                       </p>
                       <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={qrLoading}>
                         <RefreshCw className={`h-4 w-4 mr-2 ${qrLoading ? "animate-spin" : ""}`} />
-                        {qrLoading ? "Gerando..." : "Gerar novo QR"}
+                        {qrLoading ? "Gerando..." : "Gerar novo QR agora"}
                       </Button>
                   </div>
               </DialogContent>
