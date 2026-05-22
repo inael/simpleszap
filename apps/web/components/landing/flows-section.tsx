@@ -5,8 +5,9 @@ import { Sparkles, Layers, MousePointerClick } from 'lucide-react';
 
 export function FlowsSection() {
   return (
-    <section className="bg-white py-24 lg:py-32">
-      <div className="container mx-auto px-4 md:px-6">
+    <section className="bg-black py-28 lg:py-32 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_50%,rgba(16,185,129,0.08),transparent_55%)]" />
+      <div className="container mx-auto px-4 md:px-6 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -14,35 +15,35 @@ export function FlowsSection() {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-medium text-primary mb-6">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-400 mb-6">
               <Sparkles className="w-3.5 h-3.5" />
               WhatsApp Flows
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-green-950">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
               Mini-apps dentro do<br />
-              <span className="text-primary">WhatsApp</span>
+              <span className="bg-gradient-to-r from-emerald-300 via-emerald-400 to-teal-400 bg-clip-text text-transparent">WhatsApp</span>
             </h2>
-            <p className="mt-6 text-lg text-gray-600 leading-relaxed">
+            <p className="mt-6 text-lg text-neutral-400 leading-relaxed">
               Crie formulários, agendamentos, catálogos e fluxos interativos completos —
               tudo dentro da conversa, sem o cliente precisar sair do app.
             </p>
             <ul className="mt-8 space-y-4">
               <li className="flex items-start gap-3">
-                <Layers className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-gray-700">
-                  <strong className="text-green-950">Formulários multi-etapa</strong> — coleta dados estruturados com validação
+                <Layers className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="text-neutral-300">
+                  <strong className="text-white">Formulários multi-etapa</strong> — coleta dados estruturados com validação
                 </span>
               </li>
               <li className="flex items-start gap-3">
-                <MousePointerClick className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-gray-700">
-                  <strong className="text-green-950">Botões, listas e seletores</strong> — UX rica sem digitação
+                <MousePointerClick className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="text-neutral-300">
+                  <strong className="text-white">Botões, listas e seletores</strong> — UX rica sem digitação
                 </span>
               </li>
               <li className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-gray-700">
-                  <strong className="text-green-950">Conecta na sua API</strong> — qualquer endpoint REST, payload livre
+                <Sparkles className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="text-neutral-300">
+                  <strong className="text-white">Conecta na sua API</strong> — qualquer endpoint REST, payload livre
                 </span>
               </li>
             </ul>
