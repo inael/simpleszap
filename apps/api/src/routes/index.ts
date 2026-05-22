@@ -21,6 +21,7 @@ import { MeController } from '../controllers/me.controller';
 import { AdminCouponController } from '../controllers/admin-coupon.controller';
 import { CouponController } from '../controllers/coupon.controller';
 import { CronController } from '../controllers/cron.controller';
+import { BetaFeaturesController } from '../controllers/beta-features.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -71,7 +72,13 @@ router.delete('/api-keys/:id', orgAuthWithSecurity, ApiKeyController.revoke);
 
 // Message Routes (Protected by Rate Limit)
 router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), rateLimit, InstanceController.sendText);
+router.post('/message/sendButtons/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), rateLimit, InstanceController.sendButtons);
 router.get('/messages', orgAuthWithSecurity, MessagesController.list);
+
+// Beta Features (aceitação de termos)
+router.get('/me/beta-features', orgAuthWithSecurity, BetaFeaturesController.list);
+router.post('/me/beta-features', orgAuthWithSecurity, BetaFeaturesController.accept);
+router.delete('/me/beta-features/:featureKey', orgAuthWithSecurity, BetaFeaturesController.revoke);
 
 // Contacts
 router.get('/contacts', orgAuthWithSecurity, ContactsController.list);

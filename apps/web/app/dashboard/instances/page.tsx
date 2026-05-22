@@ -49,15 +49,22 @@ export default function InstancesPage() {
     setIsCreating(true);
     try {
       const token = await getToken();
-      await api.post(
+      const res = await api.post(
         "/instance/create",
         { name: newInstanceName },
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
-      toast.success("Instância criada com sucesso!");
+      const instanceId = res.data?.instance?.id;
+      toast.success("Instância criada! Escaneie o QR Code para conectar.");
       setIsCreateOpen(false);
       setNewInstanceName("");
-      mutate();
+      await mutate();
+      if (instanceId) {
+        // Abre o QR direto — user não precisa clicar em "Conectar" depois.
+        // Pequeno delay pra dar tempo da Evolution API gerar o QR após a criação;
+        // sem isso a 1ª chamada às vezes volta vazia e mostra toast "sem QR".
+        setTimeout(() => { void fetchQr(instanceId); }, 1200);
+      }
     } catch (e) {
       toast.error("Erro ao criar instância.");
     } finally {

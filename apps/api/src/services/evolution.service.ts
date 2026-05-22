@@ -121,4 +121,24 @@ export class EvolutionService {
       throw new Error('Failed to send message');
     }
   }
+
+  /**
+   * Envia mensagem com botões interativos via Evolution API.
+   * AVISO: entrega não é garantida pela Meta — destinatário pode receber
+   * só o texto sem botões. Endpoint protegido por aceitação de termos (beta).
+   * Aceita o payload já no formato Evolution v2 pra não inventar shape próprio.
+   */
+  static async sendButtons(instanceName: string, payload: Record<string, unknown>) {
+    try {
+      const response = await client.post(
+        `/message/sendButtons/${instanceName}`,
+        payload,
+        { headers: this.headers }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error sending buttons:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to send buttons message');
+    }
+  }
 }

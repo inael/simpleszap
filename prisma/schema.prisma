@@ -34,6 +34,25 @@ model User {
   instances         Instance[]
   apiKeys           ApiKey[]
   dailyUsages       DailyUsage[]
+  betaFeatureAcceptances BetaFeatureAcceptance[]
+}
+
+/// Aceitação de features beta com termos de uso. Cada user aceita por
+/// feature (`featureKey`) uma versão específica do termo. Usado pra liberar
+/// endpoints como POST /message/sendButtons (botões interativos do WhatsApp
+/// — entrega errática por restrição da Meta, exige aceitação explícita).
+model BetaFeatureAcceptance {
+  id           String    @id @default(uuid())
+  userId       String
+  featureKey   String
+  termsVersion String
+  acceptedAt   DateTime  @default(now())
+  revokedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureKey])
+  @@map("beta_feature_acceptances")
 }
 
 model SubscriptionPlan {

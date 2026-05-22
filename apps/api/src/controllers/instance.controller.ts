@@ -6,6 +6,7 @@ import { EnforcementService } from '../services/enforcement.service';
 import { respondEnforcementDenied } from '../lib/enforcement-error';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
+import { BetaFeaturesController } from './beta-features.controller';
 export class InstanceController {
   static async list(req: Request, res: Response) {
     try {
@@ -171,6 +172,63 @@ export class InstanceController {
         }
       });
       await WebhookDeliveryService.trigger(orgId, 'message.failed', { instanceId, number, text, error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Envia mensagem com botões interativos. Requer aceitação da feature beta
+   * "buttons" (POST /me/beta-features). Entrega não é garantida — depende da
+   * Meta. Body: passa direto pro Evolution (number + buttons no formato dele).
+   */
+  static async sendButtons(req: Request, res: Response) {
+    const { instanceId } = req.params;
+    const orgId = req.headers['x-org-id'] as string;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // 1. Aceitação dos termos
+    const accepted = await BetaFeaturesController.requireAccepted(orgId, 'buttons', res);
+    if (!accepted) return;
+
+    // 2. Enforcement de limite de mensagens
+    const check = await EnforcementService.canSendMessage(orgId);
+    if (!check.allowed) return respondEnforcementDenied(res, check);
+
+    // 3. Ownership da instância
+    const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
+    if (!instance || instance.orgId !== orgId) {
+      return res.status(404).json({ error: 'Instance not found' });
+    }
+    const evoName = instance.evolutionInstanceName || instanceId;
+    const number = (req.body?.number as string | undefined) || '';
+
+    try {
+      const result = await EvolutionService.sendButtons(evoName, req.body);
+      await prisma.message.create({
+        data: {
+          orgId,
+          instanceId,
+          to: number,
+          body: JSON.stringify(req.body),
+          type: 'buttons',
+          status: 'sent',
+        },
+      });
+      await EnforcementService.incrementMessageCount(orgId);
+      await WebhookDeliveryService.trigger(orgId, 'message.sent', { instanceId, number, type: 'buttons' });
+      res.json(result);
+    } catch (error: any) {
+      await prisma.message.create({
+        data: {
+          orgId,
+          instanceId,
+          to: number,
+          body: JSON.stringify(req.body),
+          type: 'buttons',
+          status: 'failed',
+          error: error.message,
+        },
+      });
       res.status(500).json({ error: error.message });
     }
   }

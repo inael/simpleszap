@@ -32,6 +32,7 @@ import {
   User,
   PanelLeftClose,
   PanelLeftOpen,
+  Beaker,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
@@ -58,6 +59,7 @@ const settingsSubRoutes: RouteItem[] = [
   { label: "Chaves de API", icon: Key, href: "/dashboard/api-keys", color: "text-orange-700" },
   { label: "Configurações de envio", icon: SlidersHorizontal, href: "/dashboard/campaigns/settings", color: "text-teal-500" },
   { label: "Segurança", icon: Lock, href: "/dashboard/security", color: "text-slate-300" },
+  { label: "Beta", icon: Beaker, href: "/dashboard/settings/beta", color: "text-amber-500" },
 ];
 
 const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
@@ -92,6 +94,7 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
 
   const settingsActive =
     pathname === "/dashboard/settings" ||
+    pathname.startsWith("/dashboard/settings/") ||
     pathname.startsWith("/dashboard/api-keys") ||
     pathname.startsWith("/dashboard/campaigns/settings") ||
     pathname.startsWith("/dashboard/security");
