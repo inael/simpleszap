@@ -15,6 +15,26 @@ export class EvolutionService {
     };
   }
 
+  /**
+   * Constrói o nome enviado à Evolution API. A Evolution é compartilhada entre
+   * produtos IT Booster — o prefixo "simpleszap_" identifica a origem, e o slug
+   * + short-id preservam o nome dado pelo cliente sem perder unicidade.
+   *
+   * Exemplo: ("b2e1c4a8-9c3a-…", "Atendimento Vendas") →
+   *          "simpleszap_atendimento-vendas_b2e1c4a8"
+   */
+  static buildInstanceName(dbId: string, userName: string): string {
+    const slug = (userName || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')   // remove acentos
+      .replace(/[^a-z0-9]+/g, '-')       // não-alfanumérico → hífen
+      .replace(/^-+|-+$/g, '')           // trim hífens
+      .slice(0, 30);
+    const shortId = dbId.replace(/-/g, '').slice(0, 8);
+    return `simpleszap_${slug || 'instance'}_${shortId}`;
+  }
+
   static async createInstance(instanceName: string) {
     try {
       const response = await client.post(`/instance/create`, {
@@ -62,6 +82,24 @@ export class EvolutionService {
     } catch (error: any) {
        console.error('Error deleting instance:', error.response?.data || error.message);
        throw new Error('Failed to delete instance');
+    }
+  }
+
+  /**
+   * Lista todos os contatos sincronizados pela instância (Evolution v2).
+   * Retorna array de { id, pushName, profilePicUrl, ... } — formato Baileys.
+   */
+  static async findContacts(instanceName: string) {
+    try {
+      const response = await client.post(
+        `/chat/findContacts/${instanceName}`,
+        { where: {} },
+        { headers: this.headers, timeout: 30000 }
+      );
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      console.error('Error fetching contacts:', error.response?.data || error.message);
+      throw new Error('Failed to fetch contacts from WhatsApp');
     }
   }
 

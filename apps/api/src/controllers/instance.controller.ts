@@ -3,6 +3,7 @@ import { EvolutionService } from '../services/evolution.service';
 import { prisma } from '../lib/prisma';
 import { Instance as PrismaInstance } from '@prisma/client';
 import { EnforcementService } from '../services/enforcement.service';
+import { respondEnforcementDenied } from '../lib/enforcement-error';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
 export class InstanceController {
@@ -19,7 +20,11 @@ export class InstanceController {
           const evoInstances = await EvolutionService.fetchInstances();
           const list = Array.isArray(evoInstances) ? evoInstances : [];
           const syncedInstances = await Promise.all(instances.map(async (inst: PrismaInstance) => {
-              const evo = list.find((e: any) => e.name === inst.id || e.name === inst.name);
+              const evo = list.find((e: any) =>
+                e.name === inst.evolutionInstanceName ||
+                e.name === inst.id ||
+                e.name === inst.name
+              );
               const evoStatus = evo?.connectionStatus;
               const status = evoStatus === 'open' ? 'connected' : evoStatus === 'connecting' ? 'connecting' : 'disconnected';
               if (status !== inst.status) {
@@ -53,8 +58,8 @@ export class InstanceController {
       const user = await prisma.user.findUnique({ where: { logtoId: userId } });
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      const allowed = await EnforcementService.canCreateInstance(orgId);
-      if (!allowed) return res.status(403).json({ error: 'Instance limit reached for your plan' });
+      const check = await EnforcementService.canCreateInstance(orgId);
+      if (!check.allowed) return respondEnforcementDenied(res, check);
       // 1. Create in DB first (pending)
       const instance = await prisma.instance.create({
         data: {
@@ -67,17 +72,19 @@ export class InstanceController {
       await AuditService.log(orgId, 'instance.create', undefined, { id: instance.id, name });
 
       // 2. Create in Evolution API
-      // Use DB ID or Name as instance name in Evolution to ensure uniqueness? 
-      // Plan says "ID, status...". Using ID is safer.
-      const evoName = instance.id; 
-      
+      // Nome enviado à Evolution: simpleszap_<slug>_<8chars>. Identifica origem
+      // (Evolution é compartilhada com outros produtos IT Booster) + preserva nome
+      // do cliente. Persistido em evolutionInstanceName pra todas as chamadas futuras.
+      const evoName = EvolutionService.buildInstanceName(instance.id, name);
+
       const evoResult = await EvolutionService.createInstance(evoName);
-      
+
       // 3. Update DB
       await prisma.instance.update({
         where: { id: instance.id },
         data: {
-          token: evoResult.hash?.apikey || evoResult.token, // Adjust based on actual Evolution response
+          evolutionInstanceName: evoName,
+          token: evoResult.hash?.apikey || evoResult.token,
           status: 'disconnected'
         }
       });
@@ -90,20 +97,33 @@ export class InstanceController {
 
   static async getQr(req: Request, res: Response) {
     const { id } = req.params;
+    const orgId = req.headers['x-org-id'] as string | undefined;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
-      const result = await EvolutionService.connectInstance(id);
+      const instance = await prisma.instance.findUnique({ where: { id } });
+      if (!instance || instance.orgId !== orgId) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      // Fallback pra id puro pra instâncias criadas antes da coluna existir
+      const evoName = instance.evolutionInstanceName || instance.id;
+      const result = await EvolutionService.connectInstance(evoName);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
-  
+
   static async delete(req: Request, res: Response) {
       const { id } = req.params;
-      
+
       try {
-          await EvolutionService.deleteInstance(id);
+          const instance = await prisma.instance.findUnique({ where: { id } });
+          const evoName = instance?.evolutionInstanceName || id;
+          await EvolutionService.deleteInstance(evoName).catch((e) => {
+            // Se a Evolution já não tem essa instância (ex: limpeza manual), segue o delete no DB
+            console.warn('Evolution delete failed (continuing with DB delete):', e?.message);
+          });
           await prisma.instance.delete({ where: { id } });
           res.json({ success: true });
       } catch (error: any) {
@@ -117,9 +137,13 @@ export class InstanceController {
     const orgId = req.headers['x-org-id'] as string;
 
     try {
-      const allowed = await EnforcementService.canSendMessage(orgId);
-      if (!allowed) return res.status(429).json({ error: 'Daily message limit reached' });
-      const result = await EvolutionService.sendText(instanceId, number, text);
+      const check = await EnforcementService.canSendMessage(orgId);
+      if (!check.allowed) return respondEnforcementDenied(res, check);
+      // Lookup do nome Evolution: cliente passa nosso DB id na URL, mas a Evolution
+      // precisa do nome registrado nela (simpleszap_<slug>_<id> ou id legacy).
+      const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
+      const evoName = instance?.evolutionInstanceName || instanceId;
+      const result = await EvolutionService.sendText(evoName, number, text);
       // Log message in DB
       await prisma.message.create({
         data: {

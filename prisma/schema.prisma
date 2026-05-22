@@ -67,18 +67,19 @@ model SubscriptionPlan {
 }
 
 model Instance {
-  id                String   @id @default(uuid())
-  name              String
-  status            String   @default("disconnected") // disconnected, connecting, connected
-  serverUrl         String?  // URL da Evolution API para esta instancia (se multi-server)
-  token             String?  // Token da Evolution API
-  orgId             String?
-  
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  name                  String   // nome exibido ao usuário (livre, pode ter espaços/acentos)
+  evolutionInstanceName String?  // nome enviado à Evolution API: simpleszap_<slug>_<8chars>
+  status                String   @default("disconnected") // disconnected, connecting, connected
+  serverUrl             String?  // URL da Evolution API para esta instancia (se multi-server)
+  token                 String?  // Token da Evolution API
+  orgId                 String?
+
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id])
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model ApiKey {

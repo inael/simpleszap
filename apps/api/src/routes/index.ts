@@ -61,7 +61,7 @@ router.get('/admin/coupons/:id/redemptions', requireAdmin, AdminCouponController
 // Instance Routes
 router.get('/instances', orgAuthWithSecurity, InstanceController.list);
 router.post('/instance/create', orgAuthWithSecurity, requireScope('instances:create'), InstanceController.create);
-router.get('/instance/qr/:id', InstanceController.getQr);
+router.get('/instance/qr/:id', orgAuthWithSecurity, requireScope('instances:read'), InstanceController.getQr);
 router.delete('/instance/:id', orgAuthWithSecurity, InstanceController.delete);
 
 // API Keys
@@ -76,6 +76,7 @@ router.get('/messages', orgAuthWithSecurity, MessagesController.list);
 // Contacts
 router.get('/contacts', orgAuthWithSecurity, ContactsController.list);
 router.post('/contacts', orgAuthWithSecurity, ContactsController.create);
+router.post('/contacts/import/:instanceId', orgAuthWithSecurity, ContactsController.importFromInstance);
 router.put('/contacts/:id', orgAuthWithSecurity, ContactsController.update);
 router.delete('/contacts/:id', orgAuthWithSecurity, ContactsController.remove);
 

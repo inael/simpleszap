@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Download } from "lucide-react";
 
 export default function ContactsPage() {
   const { getToken, user } = useAuth();
@@ -24,8 +26,42 @@ export default function ContactsPage() {
     }
   );
 
+  const { data: instances } = useSWR<Array<{ id: string; name: string; status: string }>>(
+    orgId ? ["/instances", orgId, "contacts-import"] : null,
+    async ([url, oid]: [string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
+  );
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importInstanceId, setImportInstanceId] = useState("");
+  const [importing, setImporting] = useState(false);
+  const readyInstances = instances?.filter((i) => i.status === "connected" || i.status === "open") ?? [];
+
+  const importContacts = async () => {
+    if (!orgId || !importInstanceId) return;
+    setImporting(true);
+    try {
+      const token = await getToken();
+      const res = await api.post(
+        `/contacts/import/${importInstanceId}`,
+        {},
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      const { imported, skipped, total } = res.data ?? {};
+      toast.success(`${imported} contato(s) importado(s) · ${skipped} já existiam · ${total} encontrados`);
+      setImportOpen(false);
+      setImportInstanceId("");
+      mutate();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Erro ao importar contatos");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const addContact = async () => {
     if (!orgId) return toast.error("Erro de autenticação.");
@@ -59,6 +95,47 @@ export default function ContactsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Contatos</h1>
           <p className="text-muted-foreground">Gerencie sua base de contatos.</p>
         </div>
+        <Dialog open={importOpen} onOpenChange={setImportOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" disabled={readyInstances.length === 0}>
+              <Download className="h-4 w-4 mr-2" />
+              Importar do WhatsApp
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Importar contatos do WhatsApp</DialogTitle>
+              <DialogDescription>
+                Lista todos os contatos sincronizados pela Evolution na instância escolhida. Telefones duplicados são ignorados.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Label>Instância</Label>
+              <Select value={importInstanceId} onValueChange={setImportInstanceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma instância conectada" />
+                </SelectTrigger>
+                <SelectContent>
+                  {readyInstances.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                  ))}
+                  {readyInstances.length === 0 && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância conectada</div>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                A importação pode demorar alguns segundos dependendo do tamanho da agenda.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>Cancelar</Button>
+              <Button onClick={importContacts} disabled={!importInstanceId || importing}>
+                {importing ? "Importando..." : "Importar agora"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {contactsError && (
