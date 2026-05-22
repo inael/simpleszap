@@ -106,7 +106,7 @@ export default function SettingsPage() {
               variant="outline"
               className="w-fit"
               onClick={() => {
-                const endpoint = process.env.NEXT_PUBLIC_LOGTO_ENDPOINT || 'https://auth.toolpad.cloud';
+                const endpoint = process.env.NEXT_PUBLIC_LOGTO_ENDPOINT || 'https://auth.itbooster.com.br';
                 window.open(`${endpoint}/profile`, '_blank');
               }}
             >

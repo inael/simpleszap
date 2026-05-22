@@ -1,10 +1,10 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-const JWKS_URI = process.env.LOGTO_JWKS_URI || 'https://auth.toolpad.cloud/oidc/jwks';
-const ISSUER = process.env.LOGTO_ISSUER || 'https://auth.toolpad.cloud/oidc';
+const JWKS_URI = process.env.LOGTO_JWKS_URI || 'https://auth.itbooster.com.br/oidc/jwks';
+const ISSUER = process.env.LOGTO_ISSUER || 'https://auth.itbooster.com.br/oidc';
 const AUDIENCE = process.env.LOGTO_API_RESOURCE || 'https://back.simpleszap.com/api';
 const ADMIN_ENDPOINT = process.env.LOGTO_ADMIN_ENDPOINT || '';
-const MAIN_ENDPOINT = process.env.LOGTO_ENDPOINT || 'https://auth.toolpad.cloud';
+const MAIN_ENDPOINT = process.env.LOGTO_ENDPOINT || 'https://auth.itbooster.com.br';
 const M2M_ID = process.env.LOGTO_M2M_ID || '';
 const M2M_SECRET = process.env.LOGTO_M2M_SECRET || '';
 const MANAGEMENT_RESOURCE = process.env.LOGTO_MANAGEMENT_RESOURCE || 'https://default.logto.app/api';

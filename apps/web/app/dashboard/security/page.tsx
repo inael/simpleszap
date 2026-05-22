@@ -40,7 +40,7 @@ export default function SecurityPage() {
     }
   }, [data?.ipAllowlist]);
 
-  const logtoEndpoint = process.env.NEXT_PUBLIC_LOGTO_ENDPOINT || "https://auth.toolpad.cloud";
+  const logtoEndpoint = process.env.NEXT_PUBLIC_LOGTO_ENDPOINT || "https://auth.itbooster.com.br";
 
   const saveIpList = async () => {
     if (!orgId) return;
