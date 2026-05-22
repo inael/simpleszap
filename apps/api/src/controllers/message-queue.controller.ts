@@ -100,6 +100,9 @@ export class MessageQueueController {
     const todayUtc = new Date();
     const todayDate = new Date(Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate()));
 
+    // DailyUsage.userId é FK pra User.id (PK), não logtoId — precisa converter
+    const user = await prisma.user.findUnique({ where: { logtoId: orgId } });
+
     const [pending, sentToday, failedToday, dailyUsage, limits, perInstance] = await Promise.all([
       prisma.outboundMessageQueue.count({ where: { orgId, status: 'pending' } }),
       prisma.outboundMessageQueue.count({
@@ -108,7 +111,9 @@ export class MessageQueueController {
       prisma.outboundMessageQueue.count({
         where: { orgId, status: 'failed', updatedAt: { gte: todayDate } },
       }),
-      prisma.dailyUsage.findUnique({ where: { userId_date: { userId: orgId, date: todayDate } } }),
+      user
+        ? prisma.dailyUsage.findUnique({ where: { userId_date: { userId: user.id, date: todayDate } } })
+        : Promise.resolve(null),
       EnforcementService.getLimitsForOrg(orgId),
       prisma.outboundMessageQueue.groupBy({
         by: ['instanceId'],

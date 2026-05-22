@@ -58,8 +58,9 @@ export class EnforcementService {
 
     const usageMap = new Map(usagesByInstance.map((u) => [u.instanceId, u.count]));
     const poolLimit = addons.reduce((acc, a) => acc + a.messagesPerDay, 0);
+    // FK: DailyUsage.userId = User.id (PK), não logtoId
     const poolUsage = await prisma.dailyUsage.findUnique({
-      where: { userId_date: { userId: logtoId, date: today } },
+      where: { userId_date: { userId: user.id, date: today } },
     });
 
     return {
@@ -180,10 +181,11 @@ export class EnforcementService {
       // Estourou cap próprio: tenta pool global
       const poolLimit = user.messageAddons.reduce((acc, a) => acc + a.messagesPerDay, 0);
       if (poolLimit > 0) {
+        // FK: DailyUsage.userId referencia User.id (PK UUID), NÃO logtoId
         const poolUsage = await prisma.dailyUsage.upsert({
-          where: { userId_date: { userId: orgId, date: today } },
+          where: { userId_date: { userId: user.id, date: today } },
           update: {},
-          create: { userId: orgId, orgId, date: today, count: 0 },
+          create: { userId: user.id, orgId, date: today, count: 0 },
         });
         if (poolUsage.count < poolLimit) {
           return { allowed: true, consumesPool: true };
@@ -222,6 +224,8 @@ export class EnforcementService {
   /**
    * Incrementa contador da instância sempre. Se consumesPool=true, incrementa
    * também o contador global (pool).
+   * IMPORTANTE: DailyUsage.userId referencia User.id (UUID PK), não logtoId.
+   * Sempre fazer lookup pra evitar FK violation.
    */
   static async incrementMessageCount(orgId: string, instanceId?: string, consumesPool = false) {
     const today = todayUtc();
@@ -233,12 +237,12 @@ export class EnforcementService {
       });
     }
     if (consumesPool || !instanceId) {
-      // !instanceId mantém compatibilidade com callsites antigos que ainda não
-      // passam instanceId. Vai ser removido quando todos forem migrados.
+      const user = await prisma.user.findUnique({ where: { logtoId: orgId } });
+      if (!user) return; // user fantasma (não deveria acontecer)
       await prisma.dailyUsage.upsert({
-        where: { userId_date: { userId: orgId, date: today } },
+        where: { userId_date: { userId: user.id, date: today } },
         update: { count: { increment: 1 } },
-        create: { userId: orgId, orgId, date: today, count: 1 },
+        create: { userId: user.id, orgId, date: today, count: 1 },
       });
     }
   }
