@@ -2,11 +2,21 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 
 export class WebhookConfigController {
+  /**
+   * Lista webhooks. Query params:
+   * - sem filtro: retorna TODOS da org (globais + overrides) — usado em /dashboard/webhooks
+   * - ?instanceId=<id>: só os daquela instância (override) — usado na aba Webhooks da instância
+   * - ?global=true: só os globais (instanceId IS NULL)
+   */
   static async list(req: Request, res: Response) {
     try {
       const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
-      const items = await prisma.webhookConfig.findMany({ where: { orgId } });
+      const { instanceId, global } = req.query as { instanceId?: string; global?: string };
+      const where: any = { orgId };
+      if (instanceId) where.instanceId = instanceId;
+      else if (global === 'true') where.instanceId = null;
+      const items = await prisma.webhookConfig.findMany({ where, orderBy: { createdAt: 'desc' } });
       res.json(items);
     } catch (error: any) {
       console.error('webhookConfig.list error:', error);
@@ -17,9 +27,22 @@ export class WebhookConfigController {
     try {
       const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
-      const { url, events, secret } = req.body;
+      const { url, events, secret, instanceId } = req.body;
       if (!url) return res.status(400).json({ error: 'url is required' });
-      const item = await prisma.webhookConfig.create({ data: { orgId, url, events: JSON.stringify(events || []), secret: secret || '' } });
+      // Segurança: se passou instanceId, garante que pertence à org
+      if (instanceId) {
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.orgId !== orgId) return res.status(404).json({ error: 'Instance not found' });
+      }
+      const item = await prisma.webhookConfig.create({
+        data: {
+          orgId,
+          instanceId: instanceId || null,
+          url,
+          events: JSON.stringify(events || []),
+          secret: secret || '',
+        },
+      });
       res.json(item);
     } catch (error: any) {
       console.error('webhookConfig.create error:', error);
@@ -29,8 +52,21 @@ export class WebhookConfigController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { url, events, secret } = req.body;
-      const item = await prisma.webhookConfig.update({ where: { id }, data: { url, events: events ? JSON.stringify(events) : undefined, secret } });
+      const orgId = req.headers['x-org-id'] as string;
+      const { url, events, secret, instanceId } = req.body;
+      // Segurança: valida instância se vier
+      if (instanceId) {
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.orgId !== orgId) return res.status(404).json({ error: 'Instance not found' });
+      }
+      const data: any = {
+        url,
+        events: events ? JSON.stringify(events) : undefined,
+        secret,
+      };
+      // instanceId só atualiza se enviado explicitamente (null limpa, undefined preserva)
+      if (instanceId !== undefined) data.instanceId = instanceId || null;
+      const item = await prisma.webhookConfig.update({ where: { id }, data });
       res.json(item);
     } catch (error: any) {
       console.error('webhookConfig.update error:', error);

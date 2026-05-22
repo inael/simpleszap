@@ -235,13 +235,19 @@ model DailyUsage {
 }
 
 model WebhookConfig {
-  id        String   @id @default(uuid())
-  orgId     String
-  url       String
-  events    String   // JSON array of event names
-  secret    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  orgId      String
+  // Override por instância (estilo Stripe/Twilio): null = config global da org
+  // (recebe eventos de todas as instâncias). Quando preenchido, sobrescreve
+  // o global para aquela instância específica em WebhookDeliveryService.trigger.
+  instanceId String?
+  url        String
+  events     String   // JSON array of event names
+  secret     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([orgId, instanceId])
 }
 
 model WebhookLog {
