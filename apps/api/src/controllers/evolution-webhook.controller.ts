@@ -125,17 +125,33 @@ export class EvolutionWebhookController {
       for (const raw of msgs) {
         const key = raw?.key || {};
         const fromMe = !!key.fromMe;
-        if (fromMe) continue; // já temos message.sent ao enfileirar/processar
-
         const messageId = key.id as string | undefined;
         const remoteJid = key.remoteJid as string | undefined;
         const number = normalizeJidNumber(remoteJid);
         const fromName = raw?.pushName || null;
-        const quotedMessageId = raw?.message?.extendedTextMessage?.contextInfo?.stanzaId
+        const message = raw?.message || {};
+
+        // Reaction vem como reactionMessage dentro de MESSAGES_UPSERT
+        // (Evolution v2 não tem evento MESSAGES_REACTION separado)
+        if (message?.reactionMessage) {
+          const reactedKey = message.reactionMessage.key || {};
+          await WebhookDeliveryService.trigger(orgId, 'message.reaction', {
+            instanceId: instance.id,
+            messageId: reactedKey.id,
+            from: normalizeJidNumber(reactedKey.remoteJid || remoteJid),
+            emoji: message.reactionMessage.text || '',
+            fromMe,
+            occurredAt,
+          }).catch(() => null);
+          continue;
+        }
+
+        if (fromMe) continue; // já temos message.sent ao enfileirar/processar
+
+        const quotedMessageId = message.extendedTextMessage?.contextInfo?.stanzaId
           || raw?.contextInfo?.stanzaId
           || null;
 
-        const message = raw?.message || {};
         const text = message.conversation || message.extendedTextMessage?.text || null;
         const media = pickMediaInfo(message);
 

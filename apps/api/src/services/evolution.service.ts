@@ -9,14 +9,14 @@ const client = axios.create({
 });
 
 /**
- * Eventos da Evolution que o SimplesZap consome. byEvents=false envia tudo
- * pra mesma URL; base64=true vem com mídia já decodificada.
+ * Eventos da Evolution v2 que o SimplesZap consome. webhookByEvents=false envia
+ * tudo pra mesma URL. MESSAGES_REACTION NÃO existe como evento próprio — reactions
+ * vêm dentro de MESSAGES_UPSERT (raw.message.reactionMessage).
  */
 const WEBHOOK_EVENTS = [
   'MESSAGES_UPSERT',
   'MESSAGES_UPDATE',
   'MESSAGES_DELETE',
-  'MESSAGES_REACTION',
   'CONNECTION_UPDATE',
   'QRCODE_UPDATED',
   'CONTACTS_UPDATE',
@@ -26,9 +26,10 @@ const WEBHOOK_EVENTS = [
 
 function buildWebhookConfig(instanceName: string) {
   return {
+    enabled: true,
     url: `${WEBHOOK_BASE_URL}/${instanceName}`,
-    byEvents: false,
-    base64: true,
+    webhookByEvents: false,
+    webhookBase64: true,
     events: WEBHOOK_EVENTS,
   };
 }
