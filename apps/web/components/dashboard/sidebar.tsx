@@ -99,6 +99,7 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
     pathname.startsWith("/dashboard/campaigns/settings") ||
     pathname.startsWith("/dashboard/security");
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
+  const [helpOpen, setHelpOpen] = useState(true);
 
   const handleSignOut = () => {
     window.location.href = "/api/logto/sign-out";
@@ -234,23 +235,35 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
         {!collapsed && (
           <>
             <Separator className="my-4 bg-zinc-700" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
-              Ajuda
-            </p>
-            <div className="space-y-1">
-              {helpLinks.map((item) => (
-                <a
-                  key={item.href + item.label}
-                  href={item.href}
-                  {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  {...(item.download ? { download: true } : {})}
-                  className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition text-zinc-400"
-                >
-                  <item.icon className="h-5 w-5 mr-3 text-zinc-400 group-hover:text-white" />
-                  {item.label}
-                </a>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setHelpOpen((o) => !o)}
+              aria-expanded={helpOpen ? "true" : "false"}
+              className="flex items-center justify-between w-full px-3 mb-2 text-xs text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition"
+            >
+              <span>Ajuda</span>
+              {helpOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+              )}
+            </button>
+            {helpOpen && (
+              <div className="space-y-1">
+                {helpLinks.map((item) => (
+                  <a
+                    key={item.href + item.label}
+                    href={item.href}
+                    {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    {...(item.download ? { download: true } : {})}
+                    className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition text-zinc-400"
+                  >
+                    <item.icon className="h-5 w-5 mr-3 text-zinc-400 group-hover:text-white" />
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            )}
           </>
         )}
 
