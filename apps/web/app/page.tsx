@@ -354,75 +354,82 @@ export default async function Home() {
 
         <div className="container px-4 md:px-6 mx-auto relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Escolha o plano ideal</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Pague pelo que usar</h2>
             <p className="text-xl text-green-100/80">
-              Comece pequeno e cresça conosco. Sem contratos de fidelidade.
+              Sem planos fixos. Comece grátis, escale por instância. Sem fidelidade, cancele a qualquer momento.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
-            {/* Free Plan */}
+          <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
+            {/* Free */}
             <Card className="bg-white/5 border-white/10 text-white backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-2xl">Starter</CardTitle>
-                <CardDescription className="text-green-100/60">Para testes e pequenos projetos</CardDescription>
+                <CardTitle className="text-2xl">Free</CardTitle>
+                <CardDescription className="text-green-100/60">Pra testar, validar integração e usos leves</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-4xl font-bold">R$ 0 <span className="text-lg font-normal text-green-100/60">/mês</span></div>
                 <ul className="space-y-3 text-sm">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> 1 Instância</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> 1 instância de WhatsApp</li>
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> 100 mensagens/dia</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Webhooks Básicos</li>
-                  <li className="flex items-center gap-2 text-white/40"><Check className="w-4 h-4" /> Suporte Prioritário</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> API REST + Webhooks completos</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Sem cartão de crédito</li>
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full bg-white/10 hover:bg-white/20 text-white border-0">Começar Grátis</Button>
+                <Link href="/api/logto/sign-up" className="w-full">
+                  <Button className="w-full bg-white/10 hover:bg-white/20 text-white border-0">Começar grátis</Button>
+                </Link>
               </CardFooter>
             </Card>
 
-            {/* Pro Plan */}
-            <Card className="bg-white text-green-950 border-primary shadow-2xl scale-110 z-20 relative">
+            {/* Profissional — elástico */}
+            <Card className="bg-white text-green-950 border-primary shadow-2xl relative">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">
-                Mais Popular
+                Recomendado
               </div>
               <CardHeader>
-                <CardTitle className="text-2xl">Pro</CardTitle>
-                <CardDescription className="text-gray-500">Para empresas em crescimento</CardDescription>
+                <CardTitle className="text-2xl">Profissional</CardTitle>
+                <CardDescription className="text-gray-500">Cresça por instância, sem se preocupar com limites de plano</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="text-4xl font-bold">R$ 89 <span className="text-lg font-normal text-gray-500">/mês</span></div>
+                <div>
+                  <div className="text-4xl font-bold">R$ 59 <span className="text-lg font-normal text-gray-500">/mês por instância</span></div>
+                  <p className="text-sm text-gray-500 mt-1">Inclui 300 mensagens/dia <em>por instância</em>.</p>
+                </div>
                 <ul className="space-y-3 text-sm font-medium">
-                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> 3 Instâncias</li>
-                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Mensagens Ilimitadas</li>
-                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Envios de Mídia</li>
-                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Grupos e Listas</li>
+                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Quantas instâncias quiser (R$ 59 cada)</li>
+                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> 300 msgs/dia incluídas por instância</li>
+                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Precisa mais? <strong>+100 msgs/dia por R$ 15/mês</strong> (lote global)</li>
+                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Campanhas, fila com jitter anti-banimento, aquecimento</li>
+                  <li className="flex items-center gap-2"><div className="bg-primary/20 p-1 rounded-full"><Check className="w-3 h-3 text-primary" /></div> Sem fidelidade — cancela quando quiser</li>
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-base shadow-lg shadow-primary/20">Assinar Pro</Button>
+                <Link href="/api/logto/sign-up" className="w-full">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-base shadow-lg shadow-primary/20">Criar conta e assinar</Button>
+                </Link>
               </CardFooter>
             </Card>
+          </div>
 
-            {/* Business Plan */}
-            <Card className="bg-white/5 border-white/10 text-white backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl">Scale</CardTitle>
-                <CardDescription className="text-green-100/60">Para alta demanda</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="text-4xl font-bold">R$ 199 <span className="text-lg font-normal text-green-100/60">/mês</span></div>
-                <ul className="space-y-3 text-sm">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> 10 Instâncias</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Mensagens Ilimitadas</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> API White-label</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Suporte via WhatsApp</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full bg-white/10 hover:bg-white/20 text-white border-0">Falar com Vendas</Button>
-              </CardFooter>
-            </Card>
+          {/* Bloco explicando o modelo elástico */}
+          <div className="mt-12 max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-sm">
+            <h3 className="text-xl font-semibold mb-3">Como funciona o preço elástico</h3>
+            <div className="grid md:grid-cols-3 gap-6 text-sm text-green-100/80">
+              <div>
+                <p className="font-semibold text-white mb-1">1. Comece grátis</p>
+                <p>1 instância + 100 msgs/dia, permanente. Sem cartão.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-white mb-1">2. Adicione instâncias</p>
+                <p>Pague R$ 59/mês por cada número conectado. Cada um vem com 300 msgs/dia.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-white mb-1">3. Compre lotes se precisar</p>
+                <p>+100 msgs/dia por R$ 15/mês, somam num pool global compartilhado entre instâncias.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

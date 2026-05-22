@@ -16,7 +16,10 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
         // No organizations in Logto for now — use user sub as org ID
         req.headers['x-org-id'] = auth.sub;
 
-        // Lazy user creation: ensure user exists in DB. New users get a 7-day Pro trial.
+        // Lazy user creation: ensure user exists in DB.
+        // Modelo elástico (2026-05): user novo é FREE permanente (1 instância,
+        // 100 msgs/dia). Sem trial — trial não existe mais. Cobrança só quando
+        // o user assina 1ª instância paga ou compra add-on de mensagens.
         try {
           const existing = await prisma.user.findUnique({ where: { logtoId: auth.sub } });
           if (!existing) {
@@ -24,17 +27,16 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
             const profile = !auth.email ? await fetchLogtoUser(auth.sub) : null;
             const email = auth.email || profile?.primaryEmail || `${auth.sub}@logto.user`;
             const name = profile?.name || auth.email?.split('@')[0] || auth.sub;
-            const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             const created = await prisma.user.create({
               data: {
                 logtoId: auth.sub,
                 email,
                 name,
-                subscriptionPlanId: 'pro',
-                trialEndsAt,
+                // subscriptionPlanId, trialEndsAt deixam de ser usados — Free
+                // é determinado por "user sem Instance.subscriptionStatus=active".
               },
             });
-            console.log(`Lazy-created user ${email} (Pro trial until ${trialEndsAt.toISOString()})`);
+            console.log(`Lazy-created user ${email} (Free permanente)`);
 
             // Dispara sequência de onboarding (5 emails). Skipa email fake (`<sub>@logto.user`).
             if (!email.endsWith('@logto.user')) {
@@ -42,7 +44,7 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
                 userId: created.id,
                 userEmail: email,
                 userName: name,
-                trialEndsAt,
+                trialEndsAt: null,
               }).catch((e) => console.error('enqueueOnboardingSequence failed:', e));
             }
           } else if (existing.email.endsWith('@logto.user')) {
