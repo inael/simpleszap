@@ -281,13 +281,29 @@ model Message {
   id          String   @id @default(uuid())
   orgId       String
   instanceId  String
+  /// Número do "outro lado" — se direction=sent, é o destinatário; se direction=received, é o remetente.
   to          String
   body        String
-  type        String   @default("text") // text, image, audio, document
-  status      String   @default("queued") // queued, sent, delivered, failed
+  /// text | image | audio | video | document | location | buttons | reaction
+  type        String   @default("text")
+  /// queued | sent | delivered | read | failed | received
+  status      String   @default("queued")
+  /// sent (saída, nós enviamos) | received (entrada, lead/contato mandou pra gente)
+  direction   String   @default("sent")
+  /// ID original da mensagem no WhatsApp (whatsapp.net key.id). Usado pra dedup.
+  whatsappMessageId String? @unique
+  /// URL do anexo (audio/image/video/document), quando type != text
+  mediaUrl    String?
+  /// Nome do contato (se disponível via webhook Evolution)
+  fromName    String?
+  /// Se essa msg é resposta a outra, ID da msg citada
+  quotedMessageId String?
   error       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([orgId, direction, createdAt])
+  @@index([instanceId, createdAt])
 }
 
 model Template {

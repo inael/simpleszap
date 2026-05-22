@@ -2,10 +2,36 @@ import axios from 'axios';
 
 const BASE_URL = process.env.EVOLUTION_API_URL || process.env.EVOLUTION_APT_URL || 'https://whatsapp.toolpad.cloud';
 const API_KEY = process.env.EVOLUTION_API_KEY || process.env.EVOLUTION_APT_KEY;
+const WEBHOOK_BASE_URL = process.env.SIMPLESZAP_WEBHOOK_BASE_URL || 'https://back.simpleszap.com/api/webhooks/evolution';
 const client = axios.create({
   baseURL: BASE_URL,
   timeout: 7000,
 });
+
+/**
+ * Eventos da Evolution que o SimplesZap consome. byEvents=false envia tudo
+ * pra mesma URL; base64=true vem com mídia já decodificada.
+ */
+const WEBHOOK_EVENTS = [
+  'MESSAGES_UPSERT',
+  'MESSAGES_UPDATE',
+  'MESSAGES_DELETE',
+  'MESSAGES_REACTION',
+  'CONNECTION_UPDATE',
+  'QRCODE_UPDATED',
+  'CONTACTS_UPDATE',
+  'PRESENCE_UPDATE',
+  'SEND_MESSAGE',
+];
+
+function buildWebhookConfig(instanceName: string) {
+  return {
+    url: `${WEBHOOK_BASE_URL}/${instanceName}`,
+    byEvents: false,
+    base64: true,
+    events: WEBHOOK_EVENTS,
+  };
+}
 
 export class EvolutionService {
   private static get headers() {
@@ -41,11 +67,35 @@ export class EvolutionService {
         instanceName,
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
+        webhook: buildWebhookConfig(instanceName),
       }, { headers: this.headers });
       return response.data;
     } catch (error: any) {
       console.error('Error creating instance:', error.response?.data || error.message);
       throw new Error('Failed to create instance on Evolution API');
+    }
+  }
+
+  /**
+   * (Re)configura o webhook de uma instância existente. Usado pelo endpoint
+   * admin /admin/instances/sync-webhooks pra subir instâncias antigas pro novo
+   * modelo de webhook centralizado. Retorna true em sucesso, false em erro
+   * (não lança — o caller itera várias instâncias).
+   */
+  static async setInstanceWebhook(instanceName: string): Promise<boolean> {
+    try {
+      await client.post(
+        `/webhook/set/${instanceName}`,
+        { webhook: buildWebhookConfig(instanceName) },
+        { headers: this.headers }
+      );
+      return true;
+    } catch (error: any) {
+      console.error(
+        `Error setting webhook for ${instanceName}:`,
+        error.response?.data || error.message
+      );
+      return false;
     }
   }
 

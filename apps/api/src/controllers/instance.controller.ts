@@ -324,4 +324,28 @@ export class InstanceController {
       res.status(500).json({ error: e.message || 'Erro ao gerar QR.' });
     }
   }
+
+  /**
+   * Admin: itera todas as instâncias do DB e (re)configura o webhook na
+   * Evolution. Útil pra subir instâncias antigas pro novo modelo de webhook
+   * centralizado (PR7). Continua processando mesmo se uma falhar.
+   */
+  static async syncAllWebhooks(req: Request, res: Response) {
+    try {
+      const instances = await prisma.instance.findMany();
+      const results = await Promise.all(
+        instances.map(async (inst) => {
+          const evoName = inst.evolutionInstanceName || inst.id;
+          const ok = await EvolutionService.setInstanceWebhook(evoName);
+          return { id: inst.id, name: inst.name, ok };
+        })
+      );
+      const succeeded = results.filter((r) => r.ok).length;
+      const failed = results.length - succeeded;
+      res.json({ total: results.length, succeeded, failed, results });
+    } catch (error: any) {
+      console.error('instance.syncAllWebhooks error:', error);
+      res.status(500).json({ error: error.message || 'Failed to sync webhooks' });
+    }
+  }
 }

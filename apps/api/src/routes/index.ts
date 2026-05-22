@@ -24,6 +24,7 @@ import { CronController } from '../controllers/cron.controller';
 import { BetaFeaturesController } from '../controllers/beta-features.controller';
 import { MessageQueueController } from '../controllers/message-queue.controller';
 import { BillingController } from '../controllers/billing.controller';
+import { EvolutionWebhookController } from '../controllers/evolution-webhook.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -35,6 +36,9 @@ const router = Router();
 router.get('/pricing', PricingController.getPlans);
 router.post('/webhooks/logto', WebhookController.handleLogto);
 router.post('/webhooks/asaas', AsaasWebhookController.handle);
+
+// Webhook PÚBLICO recebendo eventos da Evolution API (sem auth — Evolution chama direto)
+router.post('/webhooks/evolution/:instanceName', EvolutionWebhookController.handle);
 
 // Cron — protegido por CRON_SECRET (Vercel Scheduled Function)
 router.post('/cron/process-emails', CronController.processEmails);
@@ -155,5 +159,6 @@ router.post('/admin/settings/asaas/test', requireAdmin, AdminSettingsController.
 router.post('/admin/settings/asaas/webhook', requireAdmin, AdminSettingsController.registerAsaasWebhook);
 router.get('/admin/settings/asaas/webhook', requireAdmin, AdminSettingsController.getAsaasWebhookStatus);
 router.post('/admin/settings/asaas/webhook/token', requireAdmin, AdminSettingsController.generateWebhookToken);
+router.post('/admin/instances/sync-webhooks', requireAdmin, InstanceController.syncAllWebhooks);
 
 export default router;
