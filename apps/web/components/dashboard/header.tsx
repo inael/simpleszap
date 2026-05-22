@@ -37,7 +37,14 @@ export const Header = () => {
             {user.picture && (
               <img src={user.picture} alt="Avatar" className="w-8 h-8 rounded-full" />
             )}
-            <span className="text-sm text-muted-foreground">{user.name || user.email}</span>
+            <div className="flex flex-col items-end leading-tight">
+              {user.name && (
+                <span className="text-sm font-medium">{user.name}</span>
+              )}
+              <span className={user.name ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
+                {user.email}
+              </span>
+            </div>
           </div>
         )}
       </div>

@@ -45,6 +45,19 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
                 trialEndsAt,
               }).catch((e) => console.error('enqueueOnboardingSequence failed:', e));
             }
+          } else if (existing.email.endsWith('@logto.user')) {
+            // Backfill: user criado anteriormente sem email real (Management API estava offline
+            // ou JWT sem claim email). Tenta atualizar agora — barato e cura silenciosamente.
+            const profile = !auth.email ? await fetchLogtoUser(auth.sub) : null;
+            const realEmail = auth.email || profile?.primaryEmail;
+            if (realEmail && realEmail !== existing.email) {
+              const realName = profile?.name || existing.name || realEmail.split('@')[0];
+              await prisma.user.update({
+                where: { logtoId: auth.sub },
+                data: { email: realEmail, name: realName },
+              });
+              console.log(`Backfilled email for user ${auth.sub}: ${existing.email} → ${realEmail}`);
+            }
           }
         } catch (err: any) {
           // Unique constraint race — another request may have created it

@@ -6,6 +6,16 @@ type PlanLimits = {
   isActive: boolean;
 };
 
+export type EnforcementCheck =
+  | { allowed: true }
+  | {
+      allowed: false;
+      code: 'PLAN_INSTANCE_LIMIT_REACHED' | 'PLAN_DAILY_MESSAGE_LIMIT_REACHED';
+      limit: number;
+      current: number;
+      planId: string | null;
+    };
+
 export class EnforcementService {
   // Simple defaults if no plan is linked
   static DEFAULT_INSTANCE_LIMIT = 1;
@@ -41,26 +51,33 @@ export class EnforcementService {
     // Cortesia VIP ativa: usa plano linkado ignorando trial/Asaas.
     const manualActive = !!(user?.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
     if (manualActive) {
-      return this.limitsFromPlan(user?.subscriptionPlan ?? null);
+      return { ...this.limitsFromPlan(user?.subscriptionPlan ?? null), planId: user?.subscriptionPlanId ?? null };
     }
     // Trial expirado sem Asaas customer (nunca pagou) → defaults Free
     const trialExpired = user?.trialEndsAt && user.trialEndsAt < now;
     if (trialExpired && !user?.asaasCustomerId) {
-      return this.limitsFromPlan(null);
+      return { ...this.limitsFromPlan(null), planId: null };
     }
-    return this.limitsFromPlan(user?.subscriptionPlan ?? null);
+    return { ...this.limitsFromPlan(user?.subscriptionPlan ?? null), planId: user?.subscriptionPlanId ?? null };
   }
 
-  static async canCreateInstance(orgId: string) {
+  static async canCreateInstance(orgId: string): Promise<EnforcementCheck> {
     const limits = await this.getLimitsForOrg(orgId);
-    if (limits.instancesLimit < 0) return true;
+    if (limits.instancesLimit < 0) return { allowed: true };
     const count = await prisma.instance.count({ where: { orgId } });
-    return count < limits.instancesLimit;
+    if (count < limits.instancesLimit) return { allowed: true };
+    return {
+      allowed: false,
+      code: 'PLAN_INSTANCE_LIMIT_REACHED',
+      limit: limits.instancesLimit,
+      current: count,
+      planId: limits.planId,
+    };
   }
 
-  static async canSendMessage(orgId: string) {
+  static async canSendMessage(orgId: string): Promise<EnforcementCheck> {
     const limits = await this.getLimitsForOrg(orgId);
-    if (limits.messagesPerDay < 0) return true;
+    if (limits.messagesPerDay < 0) return { allowed: true };
     const today = new Date();
     const dateOnly = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
@@ -68,7 +85,14 @@ export class EnforcementService {
     if (!usage) {
       usage = await prisma.dailyUsage.create({ data: { userId: orgId, orgId, date: dateOnly, count: 0 } });
     }
-    return usage.count < limits.messagesPerDay;
+    if (usage.count < limits.messagesPerDay) return { allowed: true };
+    return {
+      allowed: false,
+      code: 'PLAN_DAILY_MESSAGE_LIMIT_REACHED',
+      limit: limits.messagesPerDay,
+      current: usage.count,
+      planId: limits.planId,
+    };
   }
 
   static async incrementMessageCount(orgId: string) {

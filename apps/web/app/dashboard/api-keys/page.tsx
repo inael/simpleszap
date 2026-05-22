@@ -3,8 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Copy, Trash } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Copy, Trash, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
@@ -27,9 +27,14 @@ export default function ApiKeysPage() {
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [keyToRevoke, setKeyToRevoke] = useState<{ id: string; name?: string | null } | null>(null);
 
   const createKey = async () => {
     if (!orgId) return toast.error("Erro de autenticação.");
+    if (creating) return;
+    setCreating(true);
     try {
       const token = await getToken();
       const res = await api.post(
@@ -49,18 +54,24 @@ export default function ApiKeysPage() {
       }
     } catch {
       toast.error("Erro ao criar chave.");
+    } finally {
+      setCreating(false);
     }
   };
 
-  const revoke = async (id: string) => {
-    if (!orgId) return;
+  const confirmRevoke = async () => {
+    if (!orgId || !keyToRevoke || deletingId) return;
+    setDeletingId(keyToRevoke.id);
     try {
       const token = await getToken();
-      await api.delete(`/api-keys/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      await api.delete(`/api-keys/${keyToRevoke.id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       await mutate();
+      setKeyToRevoke(null);
       toast.success("Chave revogada.");
     } catch {
       toast.error("Erro ao revogar chave.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -94,8 +105,17 @@ export default function ApiKeysPage() {
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Integração Zapier" />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={createKey}>Criar</Button>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={creating}>Cancelar</Button>
+              <Button onClick={createKey} disabled={creating}>
+                {creating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  "Criar"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -128,8 +148,18 @@ export default function ApiKeysPage() {
                     <Button variant="ghost" size="icon" onClick={() => copy(k.key)}>
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={() => revoke(k.id)}>
-                      <Trash className="h-4 w-4" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-600"
+                      onClick={() => setKeyToRevoke({ id: k.id, name: k.name })}
+                      disabled={deletingId === k.id}
+                    >
+                      {deletingId === k.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash className="h-4 w-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -145,6 +175,46 @@ export default function ApiKeysPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!keyToRevoke}
+        onOpenChange={(o) => {
+          if (!o && !deletingId) setKeyToRevoke(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revogar API key</DialogTitle>
+            <DialogDescription>
+              Você está revogando <strong>{keyToRevoke?.name || "Chave"}</strong>. Qualquer aplicação
+              usando esta chave começará a receber 401 Unauthorized. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setKeyToRevoke(null)}
+              disabled={!!deletingId}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmRevoke}
+              disabled={!!deletingId}
+            >
+              {deletingId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Revogando...
+                </>
+              ) : (
+                "Revogar chave"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

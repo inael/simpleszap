@@ -97,8 +97,8 @@ export class CampaignsController {
       const maxMs = settings.campaignJitterMaxMs;
 
       for (const c of contacts) {
-        const allowed = await EnforcementService.canSendMessage(orgId);
-        if (!allowed) {
+        const check = await EnforcementService.canSendMessage(orgId);
+        if (!check.allowed) {
           blockedByLimit += 1;
           await prisma.campaign.update({ where: { id }, data: { status: 'rate_limited' } }).catch(() => {});
           break;
