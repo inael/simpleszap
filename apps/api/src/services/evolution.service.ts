@@ -105,20 +105,19 @@ export class EvolutionService {
 
   static async sendText(instanceName: string, number: string, text: string) {
     try {
+      // Evolution API v2.3+: shape flat (sem textMessage/options wrappers).
+      // delay/presence ficam no nível raiz como campos opcionais.
       const response = await client.post(`/message/sendText/${instanceName}`, {
         number,
-        options: {
-          delay: 1200,
-          presence: "composing",
-        },
-        textMessage: {
-          text,
-        },
+        text,
+        delay: 1200,
       }, { headers: this.headers });
       return response.data;
     } catch (error: any) {
-      console.error('Error sending message:', error.response?.data || error.message);
-      throw new Error('Failed to send message');
+      const detail = error.response?.data;
+      console.error('Error sending message:', detail || error.message);
+      const msg = detail?.message || detail?.response?.message || error.message || 'Failed to send message';
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
   }
 

@@ -298,32 +298,45 @@ export default function InstancesPage() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{inst.id}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleConnect(inst.id)}>
-                        <QrCode className="h-4 w-4 mr-1" /> Conectar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleShareLink(inst.id)}
-                      disabled={sharingId === inst.id || inst.status === 'open' || inst.status === 'connected'}
-                      title={inst.status === 'open' || inst.status === 'connected' ? 'Já conectado' : 'Gerar link público pra alguém escanear remotamente'}
-                    >
-                      {sharingId === inst.id ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Share2 className="h-4 w-4 mr-1" />
-                      )}
-                      Compartilhar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setTestInstanceId(inst.id); setTestPhone(""); }}
-                      disabled={!(inst.status === 'open' || inst.status === 'connected')}
-                      title={inst.status === 'open' || inst.status === 'connected' ? 'Enviar mensagem de teste' : 'Conecte a instância antes de testar'}
-                    >
-                      <Send className="h-4 w-4 mr-1" /> Testar envio
-                    </Button>
+                    {(() => {
+                      const connected = inst.status === 'open' || inst.status === 'connected';
+                      return (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleConnect(inst.id)}
+                            disabled={connected}
+                            title={connected ? 'Instância já conectada — não precisa escanear QR de novo. Use "Testar envio" pra verificar a integração.' : 'Abrir QR Code pra escanear no WhatsApp'}
+                          >
+                            <QrCode className="h-4 w-4 mr-1" /> Conectar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleShareLink(inst.id)}
+                            disabled={sharingId === inst.id || connected}
+                            title={connected ? 'Instância já conectada — link de pareamento remoto só faz sentido quando ainda não está conectada.' : 'Gerar link público pra alguém escanear o QR remotamente sem precisar de login.'}
+                          >
+                            {sharingId === inst.id ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Share2 className="h-4 w-4 mr-1" />
+                            )}
+                            Compartilhar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setTestInstanceId(inst.id); setTestPhone(""); }}
+                            disabled={!connected}
+                            title={connected ? 'Enviar mensagem de teste pra confirmar que a integração com o WhatsApp está OK.' : 'Conecte a instância (escaneie o QR) antes de testar o envio.'}
+                          >
+                            <Send className="h-4 w-4 mr-1" /> Testar envio
+                          </Button>
+                        </>
+                      );
+                    })()}
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(inst.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
