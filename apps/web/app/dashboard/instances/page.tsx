@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2 } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -31,8 +31,9 @@ export default function InstancesPage() {
   const [qrInstanceId, setQrInstanceId] = useState<string | null>(null);
   const [qrSecondsLeft, setQrSecondsLeft] = useState(60);
   const [qrLoading, setQrLoading] = useState(false);
-  const [shareLink, setShareLink] = useState<{ url: string; expiresAt: string; ttlMinutes: number } | null>(null);
+  const [shareLink, setShareLink] = useState<{ url: string; expiresAt: string; ttlMinutes: number; instanceId: string } | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [shareConnected, setShareConnected] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -130,7 +131,8 @@ export default function InstancesPage() {
         {},
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
-      setShareLink({ url: res.data.url, expiresAt: res.data.expiresAt, ttlMinutes: res.data.ttlMinutes });
+      setShareLink({ url: res.data.url, expiresAt: res.data.expiresAt, ttlMinutes: res.data.ttlMinutes, instanceId });
+      setShareConnected(false);
     } catch {
       toast.error("Erro ao gerar link de conexão.");
     } finally {
@@ -184,6 +186,22 @@ export default function InstancesPage() {
   const handleRegenerate = () => {
     if (qrInstanceId) void fetchQr(qrInstanceId);
   };
+
+  // Polling enquanto modal de Compartilhar está aberto: detecta quando a outra
+  // ponta escaneia e conecta, e mostra estado "Conectado" no dashboard tb.
+  useEffect(() => {
+    if (!shareLink || shareConnected) return;
+    const id = shareLink.instanceId;
+    const poll = setInterval(async () => {
+      const list = await mutate();
+      const inst = Array.isArray(list) ? list.find((i: any) => i.id === id) : null;
+      if (inst && (inst.status === 'connected' || inst.status === 'open')) {
+        setShareConnected(true);
+        toast.success("WhatsApp conectado pelo link!");
+      }
+    }, 3000);
+    return () => clearInterval(poll);
+  }, [shareLink, shareConnected, mutate]);
 
   return (
     <div className="space-y-6">
@@ -291,24 +309,45 @@ export default function InstancesPage() {
       {shareLink && (
         <Dialog open={!!shareLink} onOpenChange={(o) => !o && setShareLink(null)}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Link de conexão público</DialogTitle>
-              <DialogDescription>
-                Envie esse link pra quem vai escanear o QR. O link funciona sem login e expira em {shareLink.ttlMinutes} minutos
-                (ou assim que a conexão for feita).
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-3 p-2">
-              <div className="flex items-center gap-2">
-                <Input value={shareLink.url} readOnly className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={copyShareLink} title="Copiar">
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Expira em {new Date(shareLink.expiresAt).toLocaleString("pt-BR")}.
-              </p>
-            </div>
+            {shareConnected ? (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-green-700">WhatsApp conectado!</DialogTitle>
+                  <DialogDescription>
+                    A pessoa que recebeu o link escaneou o QR com sucesso. A instância já está pronta pra uso.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <div className="rounded-full bg-green-100 p-4">
+                    <CheckCircle2 className="h-12 w-12 text-green-600" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">O link público foi invalidado automaticamente.</p>
+                  <Button onClick={() => setShareLink(null)} className="mt-2">Fechar</Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Link de conexão público</DialogTitle>
+                  <DialogDescription>
+                    Envie esse link pra quem vai escanear o QR. O link funciona sem login e expira em {shareLink.ttlMinutes} minutos
+                    (ou assim que a conexão for feita).
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 p-2">
+                  <div className="flex items-center gap-2">
+                    <Input value={shareLink.url} readOnly className="font-mono text-xs" />
+                    <Button variant="outline" size="icon" onClick={copyShareLink} title="Copiar">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Aguardando conexão... · Expira em {new Date(shareLink.expiresAt).toLocaleString("pt-BR")}
+                  </p>
+                </div>
+              </>
+            )}
           </DialogContent>
         </Dialog>
       )}
