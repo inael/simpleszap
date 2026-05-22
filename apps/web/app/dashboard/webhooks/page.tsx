@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Globe, Smartphone } from "lucide-react";
 
 type EventDef = {
   key: string;
@@ -59,9 +61,23 @@ export default function WebhooksPage() {
       return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
     }
   );
+  const { data: instances } = useSWR<Array<{ id: string; name: string; status: string }>>(
+    orgId ? ["/instances", orgId, "webhooks"] : null,
+    async ([u, oid]: [string, string]) => {
+      const token = await getToken();
+      return api.get(u, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
+  );
+
+  const instanceMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const i of instances || []) m.set(i.id, i.name);
+    return m;
+  }, [instances]);
 
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
+  const [applyTo, setApplyTo] = useState<string>("global"); // "global" ou instanceId
   const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_SELECTED);
 
   const groupedEvents = useMemo(() => {
@@ -92,10 +108,16 @@ export default function WebhooksPage() {
       const token = await getToken();
       await api.post(
         "/webhooks/config",
-        { url, secret, events: selectedEvents },
+        {
+          url,
+          secret,
+          events: selectedEvents,
+          instanceId: applyTo === "global" ? null : applyTo,
+        },
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
       setUrl(""); setSecret("");
+      setApplyTo("global");
       setSelectedEvents(DEFAULT_SELECTED);
       mutate();
       toast.success("Webhook configurado");
@@ -125,7 +147,7 @@ export default function WebhooksPage() {
           <CardTitle>Novo Webhook</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
               <Label>URL</Label>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
@@ -133,6 +155,33 @@ export default function WebhooksPage() {
             <div className="space-y-1">
               <Label>Secret</Label>
               <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="secret" />
+            </div>
+            <div className="space-y-1">
+              <Label>Aplicar a</Label>
+              <Select value={applyTo} onValueChange={setApplyTo}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">
+                    <span className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-sky-600" />
+                      Global (todas as instâncias)
+                    </span>
+                  </SelectItem>
+                  {(instances ?? []).map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      <span className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4 text-violet-600" />
+                        Apenas {i.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Override por instância sobrescreve o global naquela instância (estilo Stripe).
+              </p>
             </div>
           </div>
 
@@ -206,17 +255,49 @@ export default function WebhooksPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Aplica a</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Eventos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {configs?.map((c: any) => (
-                <TableRow key={c.id}>
-                  <TableCell>{c.url}</TableCell>
-                  <TableCell>{c.events}</TableCell>
+              {configs?.map((c: any) => {
+                const isGlobal = !c.instanceId;
+                const instName = c.instanceId ? instanceMap.get(c.instanceId) ?? c.instanceId : null;
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      {isGlobal ? (
+                        <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
+                          <Globe className="h-3 w-3 mr-1" /> Global
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200">
+                          <Smartphone className="h-3 w-3 mr-1" /> {instName}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{c.url}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {(() => {
+                        try {
+                          const arr = JSON.parse(c.events) as string[];
+                          return arr.length > 3 ? `${arr.slice(0, 3).join(", ")} +${arr.length - 3}` : arr.join(", ");
+                        } catch {
+                          return c.events;
+                        }
+                      })()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {!configs?.length && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                    Nenhum webhook configurado.
+                  </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

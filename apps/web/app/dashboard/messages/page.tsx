@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,7 +55,7 @@ function relativeTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR");
 }
 
-export default function MessagesPage() {
+function MessagesPageInner() {
   const { getToken, user } = useAuth();
   const orgId = user?.sub;
   const params = useSearchParams();
@@ -299,5 +300,15 @@ export default function MessagesPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// Wrapper Suspense: MessagesPageInner usa useSearchParams, que exige boundary
+// (Next 16 com Turbopack falha o build sem isso).
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <MessagesPageInner />
+    </Suspense>
   );
 }

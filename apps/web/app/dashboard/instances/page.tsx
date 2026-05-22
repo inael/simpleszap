@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren } from "lucide-react";
+import { WebhookOverrideDialog } from "@/components/dashboard/webhook-override-dialog";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
@@ -38,6 +39,7 @@ export default function InstancesPage() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareConnected, setShareConnected] = useState(false);
   const [testInstanceId, setTestInstanceId] = useState<string | null>(null);
+  const [webhookFor, setWebhookFor] = useState<{ id: string; name: string } | null>(null);
   const [testPhone, setTestPhone] = useState("");
   const [testText, setTestText] = useState("✅ Teste de envio SimplesZap. Se você recebeu, está tudo OK!");
   const [testSending, setTestSending] = useState(false);
@@ -380,6 +382,14 @@ export default function InstancesPage() {
                         </>
                       );
                     })()}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setWebhookFor({ id: inst.id, name: inst.name })}
+                      title="Configurar webhook desta instância (override do global)"
+                    >
+                      <Siren className="h-4 w-4 mr-1" /> Webhook
+                    </Button>
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(inst.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
@@ -398,6 +408,15 @@ export default function InstancesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {webhookFor && (
+        <WebhookOverrideDialog
+          open={!!webhookFor}
+          onOpenChange={(o) => !o && setWebhookFor(null)}
+          instanceId={webhookFor.id}
+          instanceName={webhookFor.name}
+        />
+      )}
 
       {testInstanceId && (
         <Dialog open={!!testInstanceId} onOpenChange={(o) => { if (!o && !testSending) setTestInstanceId(null); }}>
