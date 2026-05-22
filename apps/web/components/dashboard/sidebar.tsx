@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,139 +22,61 @@ import {
   ScrollText,
   Wrench,
   SlidersHorizontal,
-  Github,
   BookOpen,
   Package,
   Lock,
   Phone,
   Ticket,
+  ChevronDown,
+  ChevronRight,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
 
-const routes = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/dashboard",
-    color: "text-sky-500",
-  },
-  {
-    label: "Instâncias",
-    icon: Smartphone,
-    href: "/dashboard/instances",
-    color: "text-violet-500",
-  },
-  {
-    label: "Mensagens",
-    icon: MessageSquare,
-    href: "/dashboard/messages",
-    color: "text-pink-700",
-  },
-  {
-    label: "Contatos",
-    icon: Users,
-    href: "/dashboard/contacts",
-    color: "text-blue-600",
-  },
-  {
-    label: "Templates",
-    icon: HelpCircle,
-    href: "/dashboard/templates",
-    color: "text-indigo-600",
-  },
-  {
-    label: "Webhooks",
-    icon: Siren,
-    href: "/dashboard/webhooks",
-    color: "text-red-600",
-  },
-  {
-    label: "Campanhas",
-    icon: HelpCircle,
-    href: "/dashboard/campaigns",
-    color: "text-fuchsia-600",
-  },
-  {
-    label: "Envio em massa (config)",
-    icon: SlidersHorizontal,
-    href: "/dashboard/campaigns/settings",
-    color: "text-teal-500",
-  },
-  {
-    label: "Chaves de API",
-    icon: Key,
-    href: "/dashboard/api-keys",
-    color: "text-orange-700",
-  },
-  {
-    label: "Assinatura",
-    icon: CreditCard,
-    href: "/dashboard/subscription",
-    color: "text-emerald-500",
-  },
-  {
-    label: "Segurança",
-    icon: Lock,
-    href: "/dashboard/security",
-    color: "text-slate-300",
-  },
-  {
-    label: "Configurações",
-    icon: Settings,
-    href: "/dashboard/settings",
-  },
+type RouteItem = {
+  label: string;
+  icon: any;
+  href: string;
+  color?: string;
+};
+
+const routes: RouteItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", color: "text-sky-500" },
+  { label: "Instâncias", icon: Smartphone, href: "/dashboard/instances", color: "text-violet-500" },
+  { label: "Mensagens", icon: MessageSquare, href: "/dashboard/messages", color: "text-pink-700" },
+  { label: "Contatos", icon: Users, href: "/dashboard/contacts", color: "text-blue-600" },
+  { label: "Templates", icon: HelpCircle, href: "/dashboard/templates", color: "text-indigo-600" },
+  { label: "Webhooks", icon: Siren, href: "/dashboard/webhooks", color: "text-red-600" },
+  { label: "Campanhas", icon: HelpCircle, href: "/dashboard/campaigns", color: "text-fuchsia-600" },
+  { label: "Assinatura", icon: CreditCard, href: "/dashboard/subscription", color: "text-emerald-500" },
+  { label: "Segurança", icon: Lock, href: "/dashboard/security", color: "text-slate-300" },
 ];
 
-const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://github.com/inael/simpleszap";
-const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/inael/simpleszap";
-const postmanUrl = process.env.NEXT_PUBLIC_POSTMAN_URL || docsUrl;
+const settingsSubRoutes: RouteItem[] = [
+  { label: "Cadastro (CPF/CNPJ)", icon: User, href: "/dashboard/settings", color: "text-slate-400" },
+  { label: "Chaves de API", icon: Key, href: "/dashboard/api-keys", color: "text-orange-700" },
+  { label: "Envio em massa", icon: SlidersHorizontal, href: "/dashboard/campaigns/settings", color: "text-teal-500" },
+];
+
+const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
 const waNumber = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999";
 
-const helpLinks = [
-  { label: "WhatsApp", href: `https://wa.me/${waNumber}`, icon: Phone },
-  { label: "Github", href: githubUrl, icon: Github },
-  { label: "Documentação", href: docsUrl, icon: BookOpen },
-  { label: "Postman Collection", href: postmanUrl, icon: Package },
+type HelpLink = { label: string; href: string; icon: any; external?: boolean; download?: boolean };
+
+const helpLinks: HelpLink[] = [
+  { label: "WhatsApp", href: `https://wa.me/${waNumber}`, icon: Phone, external: true },
+  { label: "Documentação", href: docsUrl, icon: BookOpen, external: true },
+  { label: "Postman Collection", href: "/simpleszap-postman.zip", icon: Package, download: true },
 ];
 
-const adminRoutes = [
-  {
-    label: "Painel Admin",
-    icon: Shield,
-    href: "/dashboard/admin",
-    color: "text-red-500",
-  },
-  {
-    label: "Planos",
-    icon: FileBarChart,
-    href: "/dashboard/admin/plans",
-    color: "text-red-400",
-  },
-  {
-    label: "Usuários",
-    icon: Users,
-    href: "/dashboard/admin/users",
-    color: "text-red-400",
-  },
-  {
-    label: "Cupons",
-    icon: Ticket,
-    href: "/dashboard/admin/coupons",
-    color: "text-red-400",
-  },
-  {
-    label: "Logs de Auditoria",
-    icon: ScrollText,
-    href: "/dashboard/admin/audit-logs",
-    color: "text-red-400",
-  },
-  {
-    label: "Config. Sistema",
-    icon: Wrench,
-    href: "/dashboard/admin/settings",
-    color: "text-red-400",
-  },
+const adminRoutes: RouteItem[] = [
+  { label: "Painel Admin", icon: Shield, href: "/dashboard/admin", color: "text-red-500" },
+  { label: "Planos", icon: FileBarChart, href: "/dashboard/admin/plans", color: "text-red-400" },
+  { label: "Usuários", icon: Users, href: "/dashboard/admin/users", color: "text-red-400" },
+  { label: "Cupons", icon: Ticket, href: "/dashboard/admin/coupons", color: "text-red-400" },
+  { label: "Logs de Auditoria", icon: ScrollText, href: "/dashboard/admin/audit-logs", color: "text-red-400" },
+  { label: "Config. Sistema", icon: Wrench, href: "/dashboard/admin/settings", color: "text-red-400" },
 ];
 
 export const Sidebar = () => {
@@ -161,8 +84,36 @@ export const Sidebar = () => {
   const { isAdmin } = useAuth();
   const showAdmin = isAdmin || pathname.startsWith("/dashboard/admin");
 
+  const settingsActive =
+    pathname === "/dashboard/settings" ||
+    pathname.startsWith("/dashboard/api-keys") ||
+    pathname.startsWith("/dashboard/campaigns/settings");
+  const [settingsOpen, setSettingsOpen] = useState(settingsActive);
+
   const handleSignOut = () => {
     window.location.href = "/api/logto/sign-out";
+  };
+
+  const renderRoute = (route: RouteItem) => {
+    const isActive =
+      route.href === "/dashboard"
+        ? pathname === "/dashboard"
+        : pathname.startsWith(route.href);
+    return (
+      <Link
+        key={route.href}
+        href={route.href}
+        className={cn(
+          "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
+          isActive ? "text-white bg-white/10" : "text-zinc-400"
+        )}
+      >
+        <div className="flex items-center flex-1">
+          <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
+          {route.label}
+        </div>
+      </Link>
+    );
   };
 
   return (
@@ -180,28 +131,56 @@ export const Sidebar = () => {
           </div>
           <h1 className="text-2xl font-bold">SimplesZap</h1>
         </Link>
+
         <div className="space-y-1">
-          {routes.map((route) => {
-            const isActive = route.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(route.href);
-            return (
-            <Link
-              key={route.href}
-              href={route.href}
+          {routes.map(renderRoute)}
+
+          {/* Configurações expansível com sub-itens */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((o) => !o)}
+              aria-expanded={settingsOpen}
               className={cn(
-                "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                isActive ? "text-white bg-white/10" : "text-zinc-400"
+                "text-sm group flex items-center p-3 w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
+                settingsActive ? "text-white bg-white/10" : "text-zinc-400"
               )}
             >
               <div className="flex items-center flex-1">
-                <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
-                {route.label}
+                <Settings className="h-5 w-5 mr-3" />
+                Configurações
               </div>
-            </Link>
-            );
-          })}
+              {settingsOpen ? (
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              ) : (
+                <ChevronRight className="h-4 w-4 opacity-60" />
+              )}
+            </button>
+            {settingsOpen && (
+              <div className="ml-6 mt-1 space-y-1 border-l border-zinc-700 pl-2">
+                {settingsSubRoutes.map((sub) => {
+                  const isActive =
+                    pathname === sub.href ||
+                    (sub.href !== "/dashboard/settings" && pathname.startsWith(sub.href));
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={cn(
+                        "text-xs group flex items-center p-2 w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-md transition",
+                        isActive ? "text-white bg-white/10" : "text-zinc-400"
+                      )}
+                    >
+                      <sub.icon className={cn("h-4 w-4 mr-2", sub.color)} />
+                      {sub.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+
         <Separator className="my-4 bg-zinc-700" />
         <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
           Ajuda
@@ -211,8 +190,8 @@ export const Sidebar = () => {
             <a
               key={item.href + item.label}
               href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              {...(item.download ? { download: true } : {})}
               className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition text-zinc-400"
             >
               <item.icon className="h-5 w-5 mr-3 text-zinc-400 group-hover:text-white" />
@@ -227,28 +206,7 @@ export const Sidebar = () => {
             <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
               Administração
             </p>
-            <div className="space-y-1">
-              {adminRoutes.map((route) => {
-                const isActive = route.href === "/dashboard/admin"
-                  ? pathname === "/dashboard/admin"
-                  : pathname.startsWith(route.href);
-                return (
-                <Link
-                  key={route.href}
-                  href={route.href}
-                  className={cn(
-                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                    isActive ? "text-white bg-white/10" : "text-zinc-400"
-                  )}
-                >
-                  <div className="flex items-center flex-1">
-                    <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
-                    {route.label}
-                  </div>
-                </Link>
-                );
-              })}
-            </div>
+            <div className="space-y-1">{adminRoutes.map(renderRoute)}</div>
           </>
         )}
       </div>
