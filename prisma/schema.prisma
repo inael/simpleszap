@@ -75,6 +75,10 @@ model SubscriptionPlan {
   asaasId           String? // ID do produto no Asaas
   
   isActive          Boolean  @default(true)
+  /// Quando false, o plano não aparece na listagem pública (/pricing).
+  /// Usado pra planos internos IT Booster (cortesia, integrações) que existem
+  /// pro enforcement mas não devem ser vendidos.
+  isPublic          Boolean  @default(true)
   displayOrder      Int      @default(0)
   
   users             User[]

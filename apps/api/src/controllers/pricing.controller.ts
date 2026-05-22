@@ -4,8 +4,10 @@ import { prisma } from '../lib/prisma';
 export class PricingController {
   static async getPlans(req: Request, res: Response) {
     try {
+      // Filtra planos internos (isPublic=false) — usados só pra enforcement
+      // de contas IT Booster, não devem aparecer pra clientes.
       const plans = await prisma.subscriptionPlan.findMany({
-        where: { isActive: true },
+        where: { isActive: true, isPublic: true },
         orderBy: { displayOrder: 'asc' }
       });
 
