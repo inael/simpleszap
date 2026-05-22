@@ -75,9 +75,11 @@ router.get('/api-keys', orgAuthWithSecurity, ApiKeyController.list);
 router.post('/api-keys', orgAuthWithSecurity, ApiKeyController.create);
 router.delete('/api-keys/:id', orgAuthWithSecurity, ApiKeyController.revoke);
 
-// Message Routes (Protected by Rate Limit)
-router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), rateLimit, InstanceController.sendText);
-router.post('/message/sendButtons/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), rateLimit, InstanceController.sendButtons);
+// Message Routes — enforcement (limite + cobrança) feito no controller via
+// EnforcementService.canSendMessage, que aceita JWT (dashboard) e API key.
+// O middleware rateLimit antigo exigia x-api-key e quebrava o dashboard com 401.
+router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendText);
+router.post('/message/sendButtons/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendButtons);
 router.get('/messages', orgAuthWithSecurity, MessagesController.list);
 
 // Beta Features (aceitação de termos)

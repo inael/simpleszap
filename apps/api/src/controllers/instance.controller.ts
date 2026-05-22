@@ -8,6 +8,7 @@ import { respondEnforcementDenied } from '../lib/enforcement-error';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
 import { BetaFeaturesController } from './beta-features.controller';
+import { normalizePhoneBR } from '../lib/phone';
 export class InstanceController {
   static async list(req: Request, res: Response) {
     try {
@@ -135,7 +136,8 @@ export class InstanceController {
 
   static async sendText(req: Request, res: Response) {
     const { instanceId } = req.params;
-    const { number, text } = req.body;
+    const { number: rawNumber, text } = req.body;
+    const number = normalizePhoneBR(String(rawNumber || ''));
     const orgId = req.headers['x-org-id'] as string;
 
     try {
@@ -201,10 +203,12 @@ export class InstanceController {
       return res.status(404).json({ error: 'Instance not found' });
     }
     const evoName = instance.evolutionInstanceName || instanceId;
-    const number = (req.body?.number as string | undefined) || '';
+    const number = normalizePhoneBR(String(req.body?.number || ''));
+    // Repassa pro Evolution com number já normalizado
+    const payload = { ...req.body, number };
 
     try {
-      const result = await EvolutionService.sendButtons(evoName, req.body);
+      const result = await EvolutionService.sendButtons(evoName, payload);
       await prisma.message.create({
         data: {
           orgId,

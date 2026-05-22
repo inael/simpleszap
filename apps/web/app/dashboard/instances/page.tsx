@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -34,6 +36,10 @@ export default function InstancesPage() {
   const [shareLink, setShareLink] = useState<{ url: string; expiresAt: string; ttlMinutes: number; instanceId: string } | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareConnected, setShareConnected] = useState(false);
+  const [testInstanceId, setTestInstanceId] = useState<string | null>(null);
+  const [testPhone, setTestPhone] = useState("");
+  const [testText, setTestText] = useState("✅ Teste de envio SimplesZap. Se você recebeu, está tudo OK!");
+  const [testSending, setTestSending] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -144,6 +150,27 @@ export default function InstancesPage() {
     if (!shareLink) return;
     await navigator.clipboard.writeText(shareLink.url).catch(() => {});
     toast.success("Link copiado!");
+  };
+
+  const handleTestSend = async () => {
+    if (!orgId || !testInstanceId || testSending) return;
+    if (!testPhone.trim()) return toast.error("Informe o número.");
+    setTestSending(true);
+    try {
+      const token = await getToken();
+      await api.post(
+        `/message/sendText/${testInstanceId}`,
+        { number: testPhone, text: testText },
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      toast.success("Mensagem de teste enviada! Confira no celular destinatário.");
+      setTestInstanceId(null);
+    } catch (e: any) {
+      const msg = e?.response?.data?.error?.message || e?.response?.data?.error || "Falha ao enviar.";
+      toast.error(typeof msg === "string" ? msg : "Falha ao enviar.");
+    } finally {
+      setTestSending(false);
+    }
   };
 
   // Countdown + connection polling + auto-regen do QR enquanto o modal estiver aberto.
@@ -288,6 +315,15 @@ export default function InstancesPage() {
                       )}
                       Compartilhar
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setTestInstanceId(inst.id); setTestPhone(""); }}
+                      disabled={!(inst.status === 'open' || inst.status === 'connected')}
+                      title={inst.status === 'open' || inst.status === 'connected' ? 'Enviar mensagem de teste' : 'Conecte a instância antes de testar'}
+                    >
+                      <Send className="h-4 w-4 mr-1" /> Testar envio
+                    </Button>
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(inst.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
@@ -305,6 +341,39 @@ export default function InstancesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {testInstanceId && (
+        <Dialog open={!!testInstanceId} onOpenChange={(o) => { if (!o && !testSending) setTestInstanceId(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Testar envio</DialogTitle>
+              <DialogDescription>
+                Envia uma mensagem de teste pra um número escolhido. Útil pra confirmar que a integração está OK.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-2">
+                <Label>Número de destino</Label>
+                <PhoneInput value={testPhone} onChange={setTestPhone} placeholder="11 99999-9999" />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem</Label>
+                <Textarea value={testText} onChange={(e) => setTestText(e.target.value)} rows={3} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTestInstanceId(null)} disabled={testSending}>Cancelar</Button>
+              <Button onClick={handleTestSend} disabled={testSending || !testPhone.trim()}>
+                {testSending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</>
+                ) : (
+                  <><Send className="mr-2 h-4 w-4" /> Enviar teste</>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {shareLink && (
         <Dialog open={!!shareLink} onOpenChange={(o) => !o && setShareLink(null)}>

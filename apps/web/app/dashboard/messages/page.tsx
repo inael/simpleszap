@@ -15,6 +15,7 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 export default function MessagesPage() {
   const { getToken, user } = useAuth();
@@ -127,8 +128,8 @@ export default function MessagesPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Número (com DDD)</Label>
-                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5511999999999" />
+                  <Label htmlFor="phone">Número (DDD + número)</Label>
+                  <PhoneInput value={phone} onChange={setPhone} placeholder="11 99999-9999" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="message">Mensagem</Label>
