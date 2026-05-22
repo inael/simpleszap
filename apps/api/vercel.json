@@ -11,6 +11,5 @@
       "path": "/api/cron/process-emails",
       "schedule": "0 12 * * *"
     }
-  ],
-  "_note_message_queue_cron": "Processamento da fila de mensagens roda via crontab na VPS (a cada 1min) — Vercel Hobby plan só aceita cron diário."
+  ]
 }
