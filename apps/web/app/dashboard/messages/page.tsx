@@ -2,166 +2,263 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, Clock, CheckCircle2, XCircle, Ban, Loader2, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle } from "lucide-react";
-import { PhoneInput } from "@/components/ui/phone-input";
+import { useSearchParams } from "next/navigation";
+
+type QueueItem = {
+  id: string;
+  instanceId: string;
+  type: string;
+  number: string;
+  body: string | null;
+  scheduledAt: string;
+  status: string;
+  sentAt: string | null;
+  lastError: string | null;
+  attempts: number;
+  createdAt: string;
+};
+
+type Stats = {
+  pending: number;
+  sentToday: number;
+  failedToday: number;
+  dailyUsage: number;
+  dailyLimit: number; // -1 = ilimitado
+  perInstance: { instanceId: string; pending: number }[];
+};
+
+const STATUS_LABEL: Record<string, { text: string; cls: string; Icon: any }> = {
+  pending:       { text: "Pendente",       cls: "text-amber-600",  Icon: Clock },
+  processing:    { text: "Processando",    cls: "text-blue-600",   Icon: Loader2 },
+  sent:          { text: "Enviada",        cls: "text-green-600",  Icon: CheckCircle2 },
+  failed:        { text: "Falhou",         cls: "text-red-600",    Icon: XCircle },
+  cancelled:     { text: "Cancelada",      cls: "text-zinc-500",   Icon: Ban },
+  skipped_limit: { text: "Limite atingido", cls: "text-amber-700", Icon: Ban },
+};
+
+function relativeTime(iso: string) {
+  const diff = (new Date(iso).getTime() - Date.now()) / 1000;
+  const abs = Math.abs(diff);
+  if (abs < 60) return diff >= 0 ? `daqui ${Math.round(abs)}s` : `há ${Math.round(abs)}s`;
+  if (abs < 3600) return diff >= 0 ? `daqui ${Math.round(abs/60)}min` : `há ${Math.round(abs/60)}min`;
+  if (abs < 86400) return diff >= 0 ? `daqui ${Math.round(abs/3600)}h` : `há ${Math.round(abs/3600)}h`;
+  return new Date(iso).toLocaleString("pt-BR");
+}
 
 export default function MessagesPage() {
   const { getToken, user } = useAuth();
   const orgId = user?.sub;
-  const [selectedInstance, setSelectedInstance] = useState("");
-  const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  const params = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [instanceFilter, setInstanceFilter] = useState<string>(params?.get("instance") || "all");
 
-  const { data: instances, error: instancesError } = useSWR(
-    orgId ? ["/instances", orgId, "messages"] : null,
-    async ([url, oid]) => {
-      const token = await getToken();
-      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
-    }
-  );
-  const { data: history, error: historyError, mutate: mutateHistory } = useSWR(
-    orgId ? ["/messages", orgId] : null,
-    async ([url, oid]) => {
-      const token = await getToken();
-      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
-    }
-  );
-
-  const handleSend = async () => {
-    if (!selectedInstance || !phone || !message) {
-      toast.error("Preencha todos os campos.");
-      return;
-    }
-
-    setSending(true);
-    try {
-      const token = await getToken();
-      await api.post(`/message/sendText/${selectedInstance}`, {
-        number: phone,
-        text: message
-      }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-      toast.success("Mensagem enviada!");
-      setMessage("");
-      mutateHistory();
-    } catch (e) {
-      toast.error("Erro ao enviar mensagem.");
-    } finally {
-      setSending(false);
-    }
+  const fetcher = async ([url, oid]: [string, string]) => {
+    const token = await getToken();
+    return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(r => r.data);
   };
 
-  const loadError = instancesError || historyError;
+  const { data: instances } = useSWR(orgId ? ["/instances", orgId as string] : null, fetcher);
+  const { data: stats, mutate: mutateStats } = useSWR<Stats>(orgId ? ["/messages/queue/stats", orgId as string] : null, fetcher, { refreshInterval: 5000 });
+
+  const queueUrl = useMemo(() => {
+    const u = new URLSearchParams();
+    if (statusFilter !== "all") u.set("status", statusFilter);
+    if (instanceFilter !== "all") u.set("instanceId", instanceFilter);
+    u.set("limit", "100");
+    return `/messages/queue?${u.toString()}`;
+  }, [statusFilter, instanceFilter]);
+
+  const { data: queue, mutate: mutateQueue } = useSWR<{ items: QueueItem[] }>(
+    orgId ? [queueUrl, orgId as string] : null, fetcher, { refreshInterval: 5000 }
+  );
+  const { data: history } = useSWR(orgId ? ["/messages", orgId as string] : null, fetcher, { refreshInterval: 15000 });
+
+  const instanceName = (id: string) =>
+    Array.isArray(instances) ? instances.find((i: any) => i.id === id)?.name || id.slice(0, 8) : id.slice(0, 8);
+
+  const cancelOne = async (id: string) => {
+    if (!orgId) return;
+    try {
+      const token = await getToken();
+      await api.delete(`/messages/queue/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      toast.success("Mensagem cancelada.");
+      mutateQueue(); mutateStats();
+    } catch { toast.error("Erro ao cancelar."); }
+  };
+
+  const cancelInstance = async () => {
+    if (!orgId || instanceFilter === "all") return;
+    if (!confirm("Cancelar todas as mensagens pendentes desta instância?")) return;
+    try {
+      const token = await getToken();
+      const r = await api.post(`/messages/queue/${instanceFilter}/cancel-pending`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      toast.success(`${r.data.cancelled} mensagens canceladas.`);
+      mutateQueue(); mutateStats();
+    } catch { toast.error("Erro ao cancelar."); }
+  };
+
+  const isUnlimited = stats?.dailyLimit === -1;
+  const usagePct = stats && stats.dailyLimit > 0 ? Math.min(100, (stats.dailyUsage / stats.dailyLimit) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Mensagens</h1>
         <p className="text-muted-foreground">
-          Envie mensagens e veja o histórico.
+          Acompanhe a fila de saída, mensagens enviadas e falhas.
         </p>
       </div>
 
-      {loadError && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <p>Erro ao carregar dados. Verifique sua conexão e tente novamente.</p>
-        </div>
-      )}
+      {/* Card de limite diário */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Uso hoje</p>
+              <p className="text-2xl font-bold">
+                {stats?.dailyUsage ?? 0}
+                <span className="text-base font-normal text-muted-foreground">
+                  {" / "}{isUnlimited ? "∞ ilimitado" : stats?.dailyLimit ?? "—"}
+                </span>
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Na fila</p>
+                <p className="text-xl font-semibold text-amber-600">{stats?.pending ?? 0}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Enviadas hoje</p>
+                <p className="text-xl font-semibold text-green-600">{stats?.sentToday ?? 0}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Falhas hoje</p>
+                <p className="text-xl font-semibold text-red-600">{stats?.failedToday ?? 0}</p>
+              </div>
+            </div>
+          </div>
+          {!isUnlimited && stats && stats.dailyLimit > 0 && (
+            <div className="mt-3 w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full transition-all ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-green-500"}`}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <Tabs defaultValue="send" className="space-y-4">
+      <Tabs defaultValue="queue" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="send">Enviar Mensagem</TabsTrigger>
+          <TabsTrigger value="queue">Fila</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
-        <TabsContent value="send" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Nova Mensagem</CardTitle>
-                <CardDescription>
-                  Envie uma mensagem de texto simples ou com mídia.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="instance">Instância</Label>
-                  <Select value={selectedInstance} onValueChange={setSelectedInstance}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma instância" />
-                    </SelectTrigger>
+
+        <TabsContent value="queue" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <CardTitle>Fila de envio</CardTitle>
+                  <CardDescription>
+                    Mensagens enfileiradas são processadas em ordem (FIFO por instância), com pausa aleatória entre envios pra reduzir risco de banimento. Sem retry — se falhar, não tenta de novo.
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {instances?.map((inst: any) => {
-                        const ready = inst.status === 'connected' || inst.status === 'open';
-                        return (
-                          <SelectItem key={inst.id} value={inst.id} disabled={!ready}>
-                            <span className="flex items-center gap-2">
-                              <span>{inst.name}</span>
-                              <span className={`text-[10px] uppercase tracking-wide ${ready ? 'text-green-600' : 'text-amber-600'}`}>
-                                {ready ? '✓ conectado' : `· ${inst.status || 'aguardando'}`}
-                              </span>
-                            </span>
-                          </SelectItem>
-                        );
-                      })}
-                      {!instances?.length && (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância. Crie uma em Instâncias.</div>
-                      )}
+                      <SelectItem value="all">Todos status</SelectItem>
+                      <SelectItem value="pending">Pendentes</SelectItem>
+                      <SelectItem value="sent">Enviadas</SelectItem>
+                      <SelectItem value="failed">Falhas</SelectItem>
+                      <SelectItem value="cancelled">Canceladas</SelectItem>
+                      <SelectItem value="skipped_limit">Bloqueadas por limite</SelectItem>
                     </SelectContent>
                   </Select>
-                  {instances && instances.length > 0 && !instances.some((i: any) => i.status === 'connected' || i.status === 'open') && (
-                    <p className="text-xs text-amber-600">
-                      ⚠ Nenhuma instância está conectada. Vá em <a href="/dashboard/instances" className="underline">Instâncias</a> e escaneie o QR.
-                    </p>
+                  <Select value={instanceFilter} onValueChange={setInstanceFilter}>
+                    <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas instâncias</SelectItem>
+                      {Array.isArray(instances) && instances.map((i: any) => (
+                        <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {instanceFilter !== "all" && (
+                    <Button variant="outline" size="sm" onClick={cancelInstance} title="Cancelar pendentes desta instância">
+                      <Ban className="h-4 w-4 mr-1" /> Cancelar pendentes
+                    </Button>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Número (DDD + número)</Label>
-                  <PhoneInput value={phone} onChange={setPhone} placeholder="11 99999-9999" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Mensagem</Label>
-                  <Textarea
-                    id="message"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Digite sua mensagem aqui..."
-                    className="min-h-[100px]"
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={handleSend}
-                  disabled={
-                    sending ||
-                    !instances?.some((i: any) => i.id === selectedInstance && (i.status === 'connected' || i.status === 'open'))
-                  }
-                >
-                  <Send className="mr-2 h-4 w-4" /> {sending ? "Enviando..." : "Enviar Mensagem"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Instância</TableHead>
+                    <TableHead>Envio</TableHead>
+                    <TableHead>Conteúdo</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {queue?.items?.map((m) => {
+                    const meta = STATUS_LABEL[m.status] || { text: m.status, cls: "text-zinc-500", Icon: Clock };
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell>
+                          <span className={`inline-flex items-center gap-1 text-sm ${meta.cls}`} title={m.lastError || undefined}>
+                            <meta.Icon className={`h-4 w-4 ${m.status === "processing" ? "animate-spin" : ""}`} />
+                            {meta.text}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{m.number}</TableCell>
+                        <TableCell>{instanceName(m.instanceId)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {m.status === "sent" && m.sentAt ? relativeTime(m.sentAt) : relativeTime(m.scheduledAt)}
+                        </TableCell>
+                        <TableCell className="max-w-[300px] truncate text-sm">{m.body || m.type}</TableCell>
+                        <TableCell className="text-right">
+                          {m.status === "pending" && (
+                            <Button variant="ghost" size="icon" onClick={() => cancelOne(m.id)} title="Cancelar">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {!queue?.items?.length && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
+                        Nenhuma mensagem nesse filtro.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
+
         <TabsContent value="history">
           <Card>
             <CardHeader>
-              <CardTitle>Histórico de Envios</CardTitle>
-              <CardDescription>
-                Registro das últimas mensagens enviadas.
-              </CardDescription>
+              <CardTitle>Histórico de envios</CardTitle>
+              <CardDescription>Registro de mensagens já processadas (enviadas e falhas).</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -175,15 +272,26 @@ export default function MessagesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {history?.map((m: any) => (
+                  {Array.isArray(history) && history.map((m: any) => (
                     <TableRow key={m.id}>
-                      <TableCell>{new Date(m.createdAt).toLocaleString()}</TableCell>
-                      <TableCell>{m.to}</TableCell>
-                      <TableCell>{m.instanceId}</TableCell>
-                      <TableCell className="max-w-[300px] truncate">{m.body}</TableCell>
-                      <TableCell>{m.status}</TableCell>
+                      <TableCell>{new Date(m.createdAt).toLocaleString("pt-BR")}</TableCell>
+                      <TableCell className="font-mono text-xs">{m.to}</TableCell>
+                      <TableCell>{instanceName(m.instanceId)}</TableCell>
+                      <TableCell className="max-w-[300px] truncate text-sm">{m.body}</TableCell>
+                      <TableCell>
+                        <span className={m.status === "sent" ? "text-green-600" : m.status === "failed" ? "text-red-600" : "text-zinc-500"}>
+                          {m.status}
+                        </span>
+                      </TableCell>
                     </TableRow>
                   ))}
+                  {(!Array.isArray(history) || history.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                        Nenhuma mensagem no histórico ainda.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

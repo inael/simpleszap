@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks } from "lucide-react";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -51,6 +52,19 @@ export default function InstancesPage() {
     },
     { refreshInterval: qrInstanceId ? 0 : 15000 }
   );
+
+  // Stats da fila por instância — pra badge "N na fila"
+  const { data: queueStats } = useSWR(
+    orgId ? ["/messages/queue/stats", orgId, "instances-page"] : null,
+    async ([url, oid]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    },
+    { refreshInterval: 5000 }
+  );
+  const pendingByInstance: Record<string, number> = Array.isArray(queueStats?.perInstance)
+    ? queueStats.perInstance.reduce((acc: Record<string, number>, p: any) => { acc[p.instanceId] = p.pending; return acc; }, {})
+    : {};
 
   const handleCreate = async () => {
     if (!newInstanceName) return;
@@ -287,14 +301,23 @@ export default function InstancesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {instances?.map((inst: any) => (
+              {instances?.map((inst: any) => {
+                const pendingCount = pendingByInstance[inst.id] || 0;
+                return (
                 <TableRow key={inst.id}>
                   <TableCell className="font-medium">{inst.name}</TableCell>
                   <TableCell>
-                    <Badge variant={inst.status === 'open' || inst.status === 'connected' ? "default" : "outline"}
-                           className={inst.status === 'open' || inst.status === 'connected' ? "bg-green-500 hover:bg-green-600" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
-                      {inst.status === 'open' || inst.status === 'connected' ? 'Conectado' : inst.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge variant={inst.status === 'open' || inst.status === 'connected' ? "default" : "outline"}
+                             className={inst.status === 'open' || inst.status === 'connected' ? "bg-green-500 hover:bg-green-600" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
+                        {inst.status === 'open' || inst.status === 'connected' ? 'Conectado' : inst.status}
+                      </Badge>
+                      {pendingCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                          <Clock className="h-3 w-3" /> {pendingCount} na fila
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{inst.id}</TableCell>
                   <TableCell className="text-right space-x-2">
@@ -334,6 +357,26 @@ export default function InstancesPage() {
                           >
                             <Send className="h-4 w-4 mr-1" /> Testar envio
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            title="Ver mensagens enfileiradas e histórico desta instância"
+                          >
+                            <Link href={`/dashboard/messages?instance=${inst.id}`}>
+                              <ListChecks className="h-4 w-4 mr-1" /> Ver fila
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            title="Aquecimento de número: grupos sugeridos e checklist pra reduzir risco de banimento"
+                          >
+                            <Link href={`/dashboard/instances/${inst.id}/aquecimento`}>
+                              <Flame className="h-4 w-4 mr-1 text-orange-500" /> Aquecimento
+                            </Link>
+                          </Button>
                         </>
                       );
                     })()}
@@ -342,7 +385,8 @@ export default function InstancesPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
               {!instances?.length && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground h-24">

@@ -22,6 +22,7 @@ import { AdminCouponController } from '../controllers/admin-coupon.controller';
 import { CouponController } from '../controllers/coupon.controller';
 import { CronController } from '../controllers/cron.controller';
 import { BetaFeaturesController } from '../controllers/beta-features.controller';
+import { MessageQueueController } from '../controllers/message-queue.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -36,6 +37,7 @@ router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
 // Cron — protegido por CRON_SECRET (Vercel Scheduled Function)
 router.post('/cron/process-emails', CronController.processEmails);
+router.post('/cron/process-message-queue', MessageQueueController.processCron);
 
 // Dashboard
 router.get('/dashboard/metrics', orgAuthWithSecurity, DashboardController.metrics);
@@ -81,6 +83,12 @@ router.delete('/api-keys/:id', orgAuthWithSecurity, ApiKeyController.revoke);
 router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendText);
 router.post('/message/sendButtons/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendButtons);
 router.get('/messages', orgAuthWithSecurity, MessagesController.list);
+
+// Fila de saída — visibilidade e cancelamento
+router.get('/messages/queue', orgAuthWithSecurity, MessageQueueController.list);
+router.get('/messages/queue/stats', orgAuthWithSecurity, MessageQueueController.stats);
+router.delete('/messages/queue/:id', orgAuthWithSecurity, MessageQueueController.cancel);
+router.post('/messages/queue/:instanceId/cancel-pending', orgAuthWithSecurity, MessageQueueController.cancelPendingByInstance);
 
 // Beta Features (aceitação de termos)
 router.get('/me/beta-features', orgAuthWithSecurity, BetaFeaturesController.list);

@@ -37,6 +37,46 @@ model User {
   betaFeatureAcceptances BetaFeatureAcceptance[]
 }
 
+/// Fila de saída de mensagens. Todo POST /message/sendText e /sendButtons
+/// enfileira aqui em vez de enviar inline — garante ordem FIFO por instância,
+/// jitter aleatório (configurado em UserSettings) e visibilidade pro user.
+/// Cron /cron/process-message-queue roda a cada 1min e processa rows com
+/// scheduledAt <= now, em ordem cronológica por instância. Sem retry: msg
+/// falhada não tenta de novo (evita enviar fora de contexto numa conversa).
+model OutboundMessageQueue {
+  id            String   @id @default(uuid())
+  orgId         String
+  instanceId    String
+  /// "text" | "buttons" | (futuro: image, audio, document)
+  type          String   @default("text")
+  /// E.164 normalizado (sem '+'). Ex: 5511999999999
+  number        String
+  /// Texto da mensagem (pra type=text)
+  body          String?
+  /// Payload completo enviado pelo cliente (pra type=buttons e outros)
+  payload       Json?
+  /// Quando o worker deve processar (now + jitter cumulativo da fila da instância)
+  scheduledAt   DateTime
+  /// pending | processing | sent | failed | cancelled | skipped_limit
+  status        String   @default("pending")
+  sentAt        DateTime?
+  /// Mensagem de erro do Evolution quando falha (sem retry)
+  lastError     String?
+  attempts      Int      @default(0)
+  /// FK opcional pra campanha (quando enfileirado via run de campanha)
+  campaignId    String?
+  /// FK opcional pra ApiKey (rastrear origem de envios via API)
+  apiKeyId      String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([orgId, status])
+  @@index([instanceId, status, scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("outbound_message_queue")
+}
+
 /// Aceitação de features beta com termos de uso. Cada user aceita por
 /// feature (`featureKey`) uma versão específica do termo. Usado pra liberar
 /// endpoints como POST /message/sendButtons (botões interativos do WhatsApp

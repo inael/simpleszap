@@ -8,6 +8,7 @@ import { respondEnforcementDenied } from '../lib/enforcement-error';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { AuditService } from '../services/audit.service';
 import { BetaFeaturesController } from './beta-features.controller';
+import { MessageQueueController } from './message-queue.controller';
 import { normalizePhoneBR } from '../lib/phone';
 export class InstanceController {
   static async list(req: Request, res: Response) {
@@ -139,44 +140,34 @@ export class InstanceController {
     const { number: rawNumber, text } = req.body;
     const number = normalizePhoneBR(String(rawNumber || ''));
     const orgId = req.headers['x-org-id'] as string;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!number || !text) return res.status(400).json({ error: 'number e text são obrigatórios' });
 
-    try {
-      const check = await EnforcementService.canSendMessage(orgId);
-      if (!check.allowed) return respondEnforcementDenied(res, check);
-      // Lookup do nome Evolution: cliente passa nosso DB id na URL, mas a Evolution
-      // precisa do nome registrado nela (simpleszap_<slug>_<id> ou id legacy).
-      const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
-      const evoName = instance?.evolutionInstanceName || instanceId;
-      const result = await EvolutionService.sendText(evoName, number, text);
-      // Log message in DB
-      await prisma.message.create({
-        data: {
-          orgId,
-          instanceId,
-          to: number,
-          body: text,
-          type: 'text',
-          status: 'sent'
-        }
-      });
-      await EnforcementService.incrementMessageCount(orgId);
-      await WebhookDeliveryService.trigger(orgId, 'message.sent', { instanceId, number, text });
-      res.json(result);
-    } catch (error: any) {
-      await prisma.message.create({
-        data: {
-          orgId,
-          instanceId,
-          to: number,
-          body: text,
-          type: 'text',
-          status: 'failed',
-          error: error.message
-        }
-      });
-      await WebhookDeliveryService.trigger(orgId, 'message.failed', { instanceId, number, text, error: error.message });
-      res.status(500).json({ error: error.message });
+    // Valida limite ANTES de enfileirar (evita encher fila quando já estourou)
+    const check = await EnforcementService.canSendMessage(orgId);
+    if (!check.allowed) return respondEnforcementDenied(res, check);
+
+    // Valida ownership da instância
+    const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
+    if (!instance || instance.orgId !== orgId) {
+      return res.status(404).json({ error: 'Instância não encontrada' });
     }
+
+    // Enfileira — o cron processa em FIFO por instância com jitter aleatório.
+    // Resposta imediata (202 Accepted) com queueId pro cliente acompanhar.
+    const queued = await MessageQueueController.enqueue({
+      orgId,
+      instanceId,
+      type: 'text',
+      number,
+      body: text,
+    });
+    res.status(202).json({
+      queued: true,
+      queueId: queued.queueId,
+      scheduledAt: queued.scheduledAt,
+      position: queued.position,
+    });
   }
 
   /**
@@ -202,40 +193,24 @@ export class InstanceController {
     if (!instance || instance.orgId !== orgId) {
       return res.status(404).json({ error: 'Instance not found' });
     }
-    const evoName = instance.evolutionInstanceName || instanceId;
     const number = normalizePhoneBR(String(req.body?.number || ''));
-    // Repassa pro Evolution com number já normalizado
+    if (!number) return res.status(400).json({ error: 'number é obrigatório' });
     const payload = { ...req.body, number };
 
-    try {
-      const result = await EvolutionService.sendButtons(evoName, payload);
-      await prisma.message.create({
-        data: {
-          orgId,
-          instanceId,
-          to: number,
-          body: JSON.stringify(req.body),
-          type: 'buttons',
-          status: 'sent',
-        },
-      });
-      await EnforcementService.incrementMessageCount(orgId);
-      await WebhookDeliveryService.trigger(orgId, 'message.sent', { instanceId, number, type: 'buttons' });
-      res.json(result);
-    } catch (error: any) {
-      await prisma.message.create({
-        data: {
-          orgId,
-          instanceId,
-          to: number,
-          body: JSON.stringify(req.body),
-          type: 'buttons',
-          status: 'failed',
-          error: error.message,
-        },
-      });
-      res.status(500).json({ error: error.message });
-    }
+    // Enfileira (mesma lógica do sendText). Cron envia via Evolution depois.
+    const queued = await MessageQueueController.enqueue({
+      orgId,
+      instanceId,
+      type: 'buttons',
+      number,
+      payload,
+    });
+    res.status(202).json({
+      queued: true,
+      queueId: queued.queueId,
+      scheduledAt: queued.scheduledAt,
+      position: queued.position,
+    });
   }
 
   /**
