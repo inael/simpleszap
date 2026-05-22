@@ -198,7 +198,7 @@ export class MessageQueueController {
         Array.from(byInstance.entries()).map(async ([instanceId, msgs]) => {
           for (const msg of msgs) {
             // Re-valida limite (pode ter atingido depois do enfileiramento)
-            const check = await EnforcementService.canSendMessage(msg.orgId);
+            const check = await EnforcementService.canSendMessage(msg.orgId, msg.instanceId);
             if (!check.allowed) {
               await prisma.outboundMessageQueue.update({
                 where: { id: msg.id },
@@ -242,7 +242,7 @@ export class MessageQueueController {
                   },
                 }),
               ]);
-              await EnforcementService.incrementMessageCount(msg.orgId);
+              await EnforcementService.incrementMessageCount(msg.orgId, msg.instanceId, !!(check as any).consumesPool);
               await WebhookDeliveryService.trigger(msg.orgId, 'message.sent', {
                 instanceId,
                 number: msg.number,

@@ -23,6 +23,7 @@ import { CouponController } from '../controllers/coupon.controller';
 import { CronController } from '../controllers/cron.controller';
 import { BetaFeaturesController } from '../controllers/beta-features.controller';
 import { MessageQueueController } from '../controllers/message-queue.controller';
+import { BillingController } from '../controllers/billing.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -47,9 +48,16 @@ router.get('/me', orgAuthWithSecurity, MeController.profile);
 router.put('/me', orgAuthWithSecurity, MeController.updateProfile);
 router.get('/me/subscription', orgAuthWithSecurity, MeController.subscription);
 
-// Subscription
+// Subscription (modelo legacy — mantido enquanto migra)
 router.post('/subscription/checkout', orgAuthWithSecurity, SubscriptionController.createCheckout);
 router.post('/subscription/cancel', orgAuthWithSecurity, SubscriptionController.cancel);
+
+// Billing (modelo elástico novo 2026-05)
+router.get('/me/billing', orgAuthWithSecurity, BillingController.summary);
+router.post('/instance/:id/subscribe', orgAuthWithSecurity, BillingController.subscribeInstance);
+router.delete('/instance/:id/subscribe', orgAuthWithSecurity, BillingController.cancelInstanceSubscription);
+router.post('/messages/addon', orgAuthWithSecurity, BillingController.createAddon);
+router.delete('/messages/addon/:id', orgAuthWithSecurity, BillingController.cancelAddon);
 
 // Cupons (público para usuário autenticado validar)
 router.post('/coupons/validate', orgAuthWithSecurity, CouponController.validate);

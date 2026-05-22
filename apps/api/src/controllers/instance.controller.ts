@@ -143,15 +143,15 @@ export class InstanceController {
     if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
     if (!number || !text) return res.status(400).json({ error: 'number e text são obrigatórios' });
 
-    // Valida limite ANTES de enfileirar (evita encher fila quando já estourou)
-    const check = await EnforcementService.canSendMessage(orgId);
-    if (!check.allowed) return respondEnforcementDenied(res, check);
-
-    // Valida ownership da instância
+    // Valida ownership da instância ANTES (precisa do instanceId pro enforcement)
     const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
     if (!instance || instance.orgId !== orgId) {
       return res.status(404).json({ error: 'Instância não encontrada' });
     }
+
+    // Valida limite ANTES de enfileirar (evita encher fila quando já estourou)
+    const check = await EnforcementService.canSendMessage(orgId, instanceId);
+    if (!check.allowed) return respondEnforcementDenied(res, check);
 
     // Enfileira — o cron processa em FIFO por instância com jitter aleatório.
     // Resposta imediata (202 Accepted) com queueId pro cliente acompanhar.
@@ -184,15 +184,15 @@ export class InstanceController {
     const accepted = await BetaFeaturesController.requireAccepted(orgId, 'buttons', res);
     if (!accepted) return;
 
-    // 2. Enforcement de limite de mensagens
-    const check = await EnforcementService.canSendMessage(orgId);
-    if (!check.allowed) return respondEnforcementDenied(res, check);
-
-    // 3. Ownership da instância
+    // 2. Ownership da instância
     const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
     if (!instance || instance.orgId !== orgId) {
       return res.status(404).json({ error: 'Instance not found' });
     }
+
+    // 3. Enforcement de limite de mensagens (precisa do instanceId)
+    const check = await EnforcementService.canSendMessage(orgId, instanceId);
+    if (!check.allowed) return respondEnforcementDenied(res, check);
     const number = normalizePhoneBR(String(req.body?.number || ''));
     if (!number) return res.status(400).json({ error: 'number é obrigatório' });
     const payload = { ...req.body, number };

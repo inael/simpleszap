@@ -98,19 +98,21 @@ export class AsaasService {
     value: number,
     cycle: 'MONTHLY' | 'YEARLY',
     description: string,
-    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'UNDEFINED' = 'UNDEFINED'
+    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'UNDEFINED' = 'UNDEFINED',
+    externalReference?: string,
   ) {
     const { baseUrl, headers } = await this.getConfig();
     try {
-      const response = await axios.post(`${baseUrl}/subscriptions`, {
+      const body: Record<string, unknown> = {
         customer: customerId,
         billingType,
         value,
         nextDueDate: new Date().toISOString().split('T')[0],
         cycle,
         description,
-      }, { headers });
-
+      };
+      if (externalReference) body.externalReference = externalReference;
+      const response = await axios.post(`${baseUrl}/subscriptions`, body, { headers });
       return response.data;
     } catch (error: any) {
       const description =
@@ -119,6 +121,18 @@ export class AsaasService {
         error?.message;
       console.error('Error creating Asaas subscription:', error.response?.data || error.message);
       throw new Error(description || 'Failed to create subscription');
+    }
+  }
+
+  /** Cancela 1 subscription Asaas específica (não todas do customer). */
+  static async cancelSubscription(subscriptionId: string): Promise<boolean> {
+    const { baseUrl, headers } = await this.getConfig();
+    try {
+      await axios.delete(`${baseUrl}/subscriptions/${subscriptionId}`, { headers });
+      return true;
+    } catch (e: any) {
+      console.error('Error cancelling Asaas subscription:', e.response?.data || e.message);
+      return false;
     }
   }
 

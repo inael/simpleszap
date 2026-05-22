@@ -1,499 +1,272 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Sparkles, AlertTriangle, ShieldCheck, Receipt, Gift, Loader2, X } from "lucide-react";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import Link from "next/link";
 import useSWR from "swr";
-import { api, fetcher } from "@/lib/api";
+import { useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
-import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Smartphone, Plus, Trash2, Crown, Sparkles, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 
-type MeSubscription = {
-  plan: { id: string; name: string; priceMonthly: number; priceAnnual: number; instancesLimit: number; messagesPerDay: number } | null;
-  trialEndsAt: string | null;
-  trialActive: boolean;
-  status: 'trial' | 'paid' | 'free' | 'free_after_trial' | 'manual';
-  limits: { instancesLimit: number; messagesPerDay: number };
-  hasPaid: boolean;
-  cpfCnpj: string | null;
-  manualSubscriptionUntil?: string | null;
-  manualPlanReason?: string | null;
+type BillingSummary = {
+  instances: Array<{
+    id: string;
+    name: string;
+    status: string;
+    subscriptionStatus: string | null;
+    pricePerMonthCents: number;
+    messagesIncluded: number;
+    usedToday: number;
+    paidUntil: string | null;
+  }>;
+  addons: Array<{
+    id: string;
+    status: string;
+    messagesPerDay: number;
+    pricePerMonthCents: number;
+    paidUntil: string | null;
+  }>;
+  pool: { limit: number; usage: number; remaining: number };
+  totalMonthlyCents: number;
+  vipUntil: string | null;
+  defaults: {
+    instancePriceCents: number;
+    instanceMessagesIncluded: number;
+    addonPriceCents: number;
+    addonMessagesPerDay: number;
+  };
 };
 
-function formatCpfCnpj(d: string | null) {
-  const digits = (d || '').replace(/\D/g, '');
-  if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  return digits;
-}
-
-function fmtBR(d: Date) {
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+const cents = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 
 export default function SubscriptionPage() {
   const { getToken, user } = useAuth();
   const orgId = user?.sub;
-  const { data: pricingData } = useSWR('/pricing', fetcher);
-  const { data: me, mutate: mutateMe } = useSWR<MeSubscription>(
-    orgId ? ['/me/subscription', orgId] : null,
-    async ([url, oid]: [string, string]) => {
-      const token = await getToken();
-      return api.get(url, { headers: { 'x-org-id': oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then((r) => r.data);
-    }
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const fetcher = async ([url, oid]: [string, string]) => {
+    const token = await getToken();
+    return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(r => r.data);
+  };
+
+  const { data, mutate } = useSWR<BillingSummary>(
+    orgId ? ["/me/billing", orgId as string] : null, fetcher, { refreshInterval: 8000 }
   );
-  const [loading, setLoading] = useState<string | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelStep, setCancelStep] = useState<'offer' | 'confirm'>('offer');
-  const [cancelBusy, setCancelBusy] = useState(false);
-  const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
-  const [couponInput, setCouponInput] = useState('');
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{
-    code: string;
-    planId: string;
-    cycle: 'MONTHLY' | 'YEARLY';
-    originalValue: number;
-    discountValue: number;
-    finalValue: number;
-    percentOff: number | null;
-    amountOff: number | null;
-  } | null>(null);
 
-  const plans = pricingData?.plans || [];
-
-  const trialEndsAtDate = me?.trialEndsAt ? new Date(me.trialEndsAt) : null;
-  const daysLeft = trialEndsAtDate
-    ? Math.max(0, Math.ceil((trialEndsAtDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : 0;
-
-  const handleAcceptDiscount = async () => {
-    setCancelBusy(true);
+  const subscribeInstance = async (instanceId: string) => {
+    if (!orgId) return;
+    setBusyId(instanceId);
     try {
       const token = await getToken();
-      const res = await api.post('/subscription/cancel', { acceptDiscount: true }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      toast.success(res.data?.message || 'Desconto aplicado na próxima fatura!');
-      setCancelOpen(false);
-      setCancelStep('offer');
-      mutateMe();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error || 'Erro ao aplicar desconto');
-    } finally {
-      setCancelBusy(false);
-    }
-  };
-
-  const handleConfirmCancel = async () => {
-    setCancelBusy(true);
-    try {
-      const token = await getToken();
-      await api.post('/subscription/cancel', { acceptDiscount: false }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      toast.success('Assinatura cancelada. Você pode reassinar a qualquer momento.');
-      setCancelOpen(false);
-      setCancelStep('offer');
-      mutateMe();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error || 'Erro ao cancelar assinatura');
-    } finally {
-      setCancelBusy(false);
-    }
-  };
-
-  const handleApplyCoupon = async (planId: string) => {
-    if (!couponInput.trim()) return;
-    setValidatingCoupon(true);
-    try {
-      const token = await getToken();
-      const res = await api.post('/coupons/validate', {
-        code: couponInput.trim().toUpperCase(),
-        planId,
-        cycle,
-      }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
-      if (res.data?.valid) {
-        setAppliedCoupon({
-          code: res.data.code,
-          planId,
-          cycle,
-          originalValue: res.data.originalValue,
-          discountValue: res.data.discountValue,
-          finalValue: res.data.finalValue,
-          percentOff: res.data.percentOff,
-          amountOff: res.data.amountOff,
-        });
-        toast.success(`Cupom ${res.data.code} aplicado!`);
+      const res = await api.post(`/instance/${instanceId}/subscribe`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      mutate();
+      if (res.data?.invoiceUrl) {
+        window.open(res.data.invoiceUrl, "_blank");
+        toast.success("Pagamento aberto em nova aba.");
+      } else {
+        toast.success("Assinatura criada — aguardando pagamento.");
       }
     } catch (e: any) {
-      const reason = e?.response?.data?.reason || 'Cupom inválido';
-      toast.error(reason);
-      setAppliedCoupon(null);
+      const msg = e?.response?.data?.error || "Erro ao assinar.";
+      toast.error(typeof msg === "string" ? msg : "Erro ao assinar.");
     } finally {
-      setValidatingCoupon(false);
+      setBusyId(null);
     }
   };
 
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponInput('');
-  };
-
-  const handleSubscribe = async (planId: string) => {
-    if (!me?.cpfCnpj) {
-      toast.error("Cadastre seu CPF/CNPJ em Configurações antes de assinar.");
-      return;
-    }
-    // Cupom só vale para o plano/ciclo em que foi aplicado
-    const useCoupon = appliedCoupon && appliedCoupon.planId === planId && appliedCoupon.cycle === cycle
-      ? appliedCoupon.code
-      : undefined;
-    setLoading(planId);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+  const cancelInstance = async (instanceId: string) => {
+    if (!orgId || !confirm("Cancelar assinatura desta instância? Você perde o cap de mensagens dela.")) return;
+    setBusyId(instanceId);
     try {
-        const token = await getToken();
-        const res = await api.post('/subscription/checkout', {
-            planId,
-            cycle,
-            couponCode: useCoupon,
-        }, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          signal: controller.signal,
-        });
-
-        if (res.data.paymentLink) {
-            window.open(res.data.paymentLink, '_blank', 'noopener,noreferrer');
-        } else {
-            toast.success("Solicitação processada! Verifique seu email.");
-        }
-    } catch (e: any) {
-        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') {
-            toast.error("A requisição excedeu o tempo limite. Tente novamente.");
-        } else {
-            const code = e?.response?.data?.error;
-            const reason = e?.response?.data?.reason;
-            if (code === 'CPF_CNPJ_REQUIRED') {
-                toast.error("Informe CPF/CNPJ em Configurações antes de assinar.");
-            } else if (code === 'VALUE_BELOW_ASAAS_MINIMUM' || code === 'COUPON_INVALID') {
-                toast.error(reason || code);
-            } else {
-                toast.error(reason || code || "Erro ao iniciar assinatura.");
-            }
-        }
-    } finally {
-        clearTimeout(timeout);
-        setLoading(null);
-    }
+      const token = await getToken();
+      await api.delete(`/instance/${instanceId}/subscribe`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      mutate();
+      toast.success("Assinatura cancelada.");
+    } catch { toast.error("Erro ao cancelar."); }
+    finally { setBusyId(null); }
   };
+
+  const createAddon = async () => {
+    if (!orgId) return;
+    setBusyId("__addon__");
+    try {
+      const token = await getToken();
+      const res = await api.post(`/messages/addon`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      mutate();
+      if (res.data?.invoiceUrl) {
+        window.open(res.data.invoiceUrl, "_blank");
+        toast.success("Pagamento aberto em nova aba.");
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.error || "Erro ao adicionar lote.";
+      toast.error(typeof msg === "string" ? msg : "Erro ao adicionar lote.");
+    } finally { setBusyId(null); }
+  };
+
+  const cancelAddon = async (id: string) => {
+    if (!orgId || !confirm("Cancelar este lote de mensagens?")) return;
+    setBusyId(id);
+    try {
+      const token = await getToken();
+      await api.delete(`/messages/addon/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      mutate();
+      toast.success("Lote cancelado.");
+    } catch { toast.error("Erro ao cancelar."); }
+    finally { setBusyId(null); }
+  };
+
+  const vipActive = !!(data?.vipUntil && new Date(data.vipUntil) > new Date());
+  const defaults = data?.defaults;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">Assinatura</h1>
         <p className="text-muted-foreground">
-          Gerencie seu plano e cobranças.
+          Gerencie suas instâncias pagas e o pool extra de mensagens.
         </p>
       </div>
 
-      {me?.status === 'manual' && me.plan && (
-        <div className="flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 p-4 text-purple-900">
-          <Gift className="mt-0.5 h-5 w-5 flex-shrink-0 text-purple-600" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">
-              Plano cortesia <strong>{me.plan.name}</strong>
-              {me.manualSubscriptionUntil ? <> — válido até <strong>{fmtBR(new Date(me.manualSubscriptionUntil))}</strong></> : null}.
-            </p>
-            {me.manualPlanReason ? (
-              <p className="text-purple-800/80">Motivo: {me.manualPlanReason}</p>
-            ) : null}
-            <p className="text-purple-800/80">
-              Você está usando todos os recursos do plano {me.plan.name} sem cobrança. Após o vencimento, a conta volta ao plano gratuito.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {me?.status === 'trial' && me.plan && (
-        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-          <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">
-              Você está no trial do plano <strong>{me.plan.name}</strong>
-              {trialEndsAtDate ? <> — expira em <strong>{fmtBR(trialEndsAtDate)}</strong> ({daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} restantes)</> : null}.
-            </p>
-            <p className="text-emerald-800/80">
-              Assine antes do fim do trial para continuar com {me.plan.name}. Sem assinatura, sua conta cai automaticamente para o plano gratuito.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {me?.status === 'paid' && me.plan && (
-        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
-          <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-          <div className="flex-1 space-y-1 text-sm">
-            <p className="font-medium">
-              Plano ativo: <strong>{me.plan.name}</strong>
-            </p>
-            <p className="text-blue-800/80">
-              Pagamento confirmado. Você tem acesso a todos os recursos do {me.plan.name}.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-blue-300 text-blue-900 hover:bg-blue-100"
-            onClick={() => { setCancelStep('offer'); setCancelOpen(true); }}
-          >
-            Cancelar plano
-          </Button>
-        </div>
-      )}
-
-      <Dialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelStep('offer'); }}>
-        <DialogContent>
-          {cancelStep === 'offer' ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Gift className="h-5 w-5 text-purple-600" />
-                  Espera um pouco — temos uma oferta
-                </DialogTitle>
-                <DialogDescription>
-                  Antes de cancelar, que tal continuar com <strong>50% de desconto no próximo mês</strong>?
-                  Sua assinatura continua ativa, e a próxima fatura sai pela metade do preço.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="rounded-lg bg-purple-50 border border-purple-200 p-4 my-2">
-                <p className="text-sm text-purple-900 font-medium">Como funciona:</p>
-                <ul className="text-sm text-purple-800/90 mt-2 space-y-1 list-disc pl-5">
-                  <li>Próxima fatura sai com 50% off automaticamente</li>
-                  <li>Faturas seguintes voltam ao valor normal do plano</li>
-                  <li>Você não precisa fazer mais nada</li>
-                </ul>
-              </div>
-              <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  onClick={() => setCancelStep('confirm')}
-                  disabled={cancelBusy}
-                >
-                  Cancelar mesmo assim
-                </Button>
-                <Button onClick={handleAcceptDiscount} disabled={cancelBusy} className="bg-purple-600 hover:bg-purple-700">
-                  {cancelBusy ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Aplicando</> : 'Aceitar 50% off'}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <X className="h-5 w-5 text-red-600" />
-                  Confirmar cancelamento
-                </DialogTitle>
-                <DialogDescription>
-                  Tem certeza que deseja cancelar a assinatura? Suas instâncias e dados ficam preservados, mas:
-                </DialogDescription>
-              </DialogHeader>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5 my-2">
-                <li>Sua conta volta ao plano gratuito (1 instância, 50 mensagens/dia)</li>
-                <li>Cobranças futuras são interrompidas imediatamente</li>
-                <li>Você pode reassinar a qualquer momento</li>
-              </ul>
-              <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCancelStep('offer')} disabled={cancelBusy}>
-                  ← Voltar
-                </Button>
-                <Button variant="destructive" onClick={handleConfirmCancel} disabled={cancelBusy}>
-                  {cancelBusy ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Cancelando</> : 'Sim, cancelar assinatura'}
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-
-      {me?.status === 'free_after_trial' && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
-          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">Seu trial expirou — você está no plano gratuito.</p>
-            <p className="text-amber-800/80">
-              Limites: {me.limits.instancesLimit} instância(s), {me.limits.messagesPerDay} msgs/dia. Assine um plano abaixo para liberar mais capacidade.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {me?.status === 'free' && (
-        <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4 text-sm">
-          <p>
-            Você está no plano gratuito ({me.limits.instancesLimit} instância(s), {me.limits.messagesPerDay} msgs/dia). Assine um plano abaixo para escalar.
-          </p>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2">
-        <Button variant={cycle === 'MONTHLY' ? 'default' : 'outline'} onClick={() => setCycle('MONTHLY')}>Mensal</Button>
-        <Button variant={cycle === 'YEARLY' ? 'default' : 'outline'} onClick={() => setCycle('YEARLY')}>Anual</Button>
-      </div>
-
-      {me && !me.cpfCnpj && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-          <div className="space-y-1">
-            <p className="font-medium">Cadastre seu CPF ou CNPJ antes de assinar.</p>
-            <p className="text-amber-800/80">
-              É exigência da Receita Federal e do Asaas para emitir a cobrança.{' '}
-              <Link href="/dashboard/settings" className="underline font-medium">Cadastrar agora</Link>.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {me?.cpfCnpj && (
-        <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
-          <Receipt className="mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground" />
-          <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
+      {vipActive && (
+        <Card className="border-purple-200 bg-purple-50/50">
+          <CardContent className="pt-6 flex items-center gap-3">
+            <Crown className="h-6 w-6 text-purple-600" />
             <div>
-              <span className="text-muted-foreground">A cobrança será emitida para </span>
-              <span className="font-mono font-medium">{formatCpfCnpj(me.cpfCnpj)}</span>
+              <p className="font-semibold text-purple-900">Cortesia VIP IT Booster ativa</p>
+              <p className="text-sm text-purple-800">
+                Sua conta tem acesso ilimitado até {new Date(data!.vipUntil!).toLocaleDateString("pt-BR")}. Nenhuma cobrança.
+              </p>
             </div>
-            <Link href="/dashboard/settings" className="text-xs text-primary underline">alterar</Link>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="max-w-md">
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Cupom de desconto (opcional)</div>
-          {appliedCoupon ? (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-              <span className="font-mono font-semibold">{appliedCoupon.code}</span>
-              <span className="text-emerald-700">
-                {appliedCoupon.percentOff != null
-                  ? `(-${appliedCoupon.percentOff}%)`
-                  : `(-R$ ${appliedCoupon.amountOff?.toFixed(2)})`}
-              </span>
-              <button
-                type="button"
-                onClick={removeCoupon}
-                className="ml-auto text-xs text-emerald-700 underline hover:text-emerald-900"
-              >
-                remover
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <input
-                value={couponInput}
-                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                placeholder="Ex: TESTE99"
-                className="flex-1 rounded-md border bg-background px-3 py-2 text-sm font-mono uppercase"
-                disabled={validatingCoupon}
-              />
-            </div>
-          )}
-          <div className="text-xs text-muted-foreground">
-            {appliedCoupon
-              ? `Desconto será aplicado ao plano ${appliedCoupon.planId.toUpperCase()} (${appliedCoupon.cycle === 'MONTHLY' ? 'mensal' : 'anual'}).`
-              : "Digite o código e clique em 'Aplicar cupom' no plano desejado."}
+      <Card>
+        <CardContent className="pt-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-muted-foreground">Total mensal</p>
+            <p className="text-3xl font-bold">{cents(data?.totalMonthlyCents || 0)}</p>
           </div>
-        </div>
-      </div>
+          <div className="grid grid-cols-3 gap-4 text-center text-sm">
+            <div>
+              <p className="text-muted-foreground">Instâncias pagas</p>
+              <p className="font-semibold text-lg">
+                {data?.instances.filter(i => i.subscriptionStatus === "active").length || 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Pool extra</p>
+              <p className="font-semibold text-lg">+{data?.pool.limit || 0}/dia</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Disponível hoje</p>
+              <p className="font-semibold text-lg text-green-600">{data?.pool.remaining ?? 0}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {plans.map((plan: any) => {
-          const basePrice = cycle === 'MONTHLY' ? plan.pricing.monthly : plan.pricing.annual;
-          const couponMatches = appliedCoupon?.planId === plan.id && appliedCoupon?.cycle === cycle;
-          const finalPrice = couponMatches ? appliedCoupon!.finalValue : basePrice;
-          const fmtBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-          const canApplyCoupon = couponInput.trim().length > 0 && !appliedCoupon;
-
-          // Upgrade/downgrade/plano atual: comparação por priceMonthly como ranking estável
-          const userHasPaidPlan = me?.status === 'paid' && me.plan;
-          const isCurrentPlan = !!(userHasPaidPlan && me.plan!.id === plan.id);
-          let actionLabel: string;
-          if (basePrice === 0) actionLabel = "Plano Gratuito";
-          else if (isCurrentPlan) actionLabel = "Plano atual";
-          else if (userHasPaidPlan && plan.pricing.monthly > me.plan!.priceMonthly) actionLabel = "Fazer upgrade";
-          else if (userHasPaidPlan && plan.pricing.monthly < me.plan!.priceMonthly) actionLabel = "Fazer downgrade";
-          else actionLabel = "Assinar";
-
-          const isHighlighted = isCurrentPlan || (!userHasPaidPlan && plan.name.includes('Pro'));
-
-          return (
-            <Card key={plan.id} className={`flex flex-col ${isHighlighted ? 'border-primary shadow-md relative' : ''}`}>
-                {isCurrentPlan ? (
-                    <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">Plano atual</div>
-                ) : (!userHasPaidPlan && plan.name.includes('Pro')) ? (
-                    <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">Popular</div>
-                ) : null}
-                <CardHeader>
-                    <CardTitle>{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                    <div className="mb-4">
-                      {couponMatches ? (
-                        <>
-                          <div className="text-sm text-muted-foreground line-through">{fmtBRL(basePrice)}</div>
-                          <div className="text-3xl font-bold text-emerald-600">
-                            {fmtBRL(finalPrice)}
-                            <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
-                          </div>
-                          <div className="text-xs text-emerald-700 font-medium mt-1">Cupom {appliedCoupon!.code}</div>
-                        </>
+      <Card>
+        <CardHeader>
+          <CardTitle>Instâncias</CardTitle>
+          <CardDescription>
+            Free: 1 instância grátis com 100 msgs/dia. A partir da 2ª, ou pra ter cap maior, assine: {cents(defaults?.instancePriceCents || 5900)}/mês por instância (inclui {defaults?.instanceMessagesIncluded || 300} msgs/dia cada).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {data?.instances.map((inst) => {
+            const isActive = inst.subscriptionStatus === "active";
+            const isPending = inst.subscriptionStatus === "pending";
+            return (
+              <div key={inst.id} className="flex items-center justify-between p-3 rounded-md border">
+                <div className="flex items-center gap-3">
+                  <Smartphone className={`h-5 w-5 ${isActive ? "text-green-600" : "text-zinc-400"}`} />
+                  <div>
+                    <p className="font-medium">{inst.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1 text-green-700">
+                          <CheckCircle2 className="h-3 w-3" /> Assinatura ativa · {inst.usedToday}/{inst.messagesIncluded} hoje
+                          {inst.paidUntil && <span className="text-muted-foreground"> · próx. cobrança {new Date(inst.paidUntil).toLocaleDateString("pt-BR")}</span>}
+                        </span>
+                      ) : isPending ? (
+                        <span className="text-amber-600">Aguardando pagamento</span>
                       ) : (
-                        <div className="text-3xl font-bold">
-                          {fmtBRL(basePrice)}
-                          <span className="text-sm font-normal text-muted-foreground">{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
-                        </div>
+                        <span className="text-muted-foreground">Grátis · {inst.usedToday}/100 hoje</span>
                       )}
-                    </div>
-                    <ul className="space-y-2 text-sm">
-                        <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.instancesLimit < 0 ? 'Instâncias ilimitadas' : `${plan.limits.instancesLimit} Instância(s)`}</li>
-                        <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> {plan.limits.messagesPerDay < 0 ? 'Mensagens ilimitadas' : `${plan.limits.messagesPerDay} msgs/dia`}</li>
-                        {plan.features.hasWebhooks && <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> Webhooks</li>}
-                        {plan.features.hasTemplates && <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" /> Templates</li>}
-                    </ul>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-2">
-                    {canApplyCoupon && (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        disabled={validatingCoupon}
-                        onClick={() => handleApplyCoupon(plan.id)}
-                      >
-                        {validatingCoupon ? 'Validando...' : `Aplicar cupom ${couponInput} a este plano`}
-                      </Button>
-                    )}
-                    <Button
-                        className="w-full"
-                        variant={isCurrentPlan ? "secondary" : (basePrice === 0 ? "outline" : "default")}
-                        disabled={isCurrentPlan || basePrice === 0 || loading === plan.id || !me?.cpfCnpj}
-                        onClick={() => handleSubscribe(plan.id)}
-                    >
-                        {loading === plan.id ? "Processando..." : (!me?.cpfCnpj && !isCurrentPlan && basePrice > 0 ? "Cadastre o CPF/CNPJ" : actionLabel)}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  {isActive ? (
+                    <Button variant="outline" size="sm" onClick={() => cancelInstance(inst.id)} disabled={busyId === inst.id}>
+                      {busyId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                      Cancelar
                     </Button>
-                </CardFooter>
-            </Card>
-          );
-        })}
-        {!plans.length && <div className="col-span-3 text-center">Carregando planos...</div>}
-      </div>
+                  ) : (
+                    <Button size="sm" onClick={() => subscribeInstance(inst.id)} disabled={busyId === inst.id || vipActive}>
+                      {busyId === inst.id ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ExternalLink className="h-4 w-4 mr-1" />}
+                      Assinar {cents(defaults?.instancePriceCents || 5900)}/mês
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {!data?.instances.length && (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Nenhuma instância ainda. <Link href="/dashboard/instances" className="text-primary underline">Criar uma</Link>.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Mensagens extras
+              </CardTitle>
+              <CardDescription>
+                Cada lote dá +{defaults?.addonMessagesPerDay || 100} msgs/dia compartilhadas entre todas as instâncias.
+                Quando uma instância estoura o cap próprio, consome desse pool. {cents(defaults?.addonPriceCents || 1500)}/mês por lote.
+              </CardDescription>
+            </div>
+            <Button onClick={createAddon} disabled={busyId === "__addon__" || vipActive}>
+              {busyId === "__addon__" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+              Adicionar lote
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {data?.addons.length === 0 && (
+            <p className="text-sm text-muted-foreground py-2">Nenhum lote ativo.</p>
+          )}
+          {data?.addons.map((a) => (
+            <div key={a.id} className="flex items-center justify-between p-3 rounded-md border">
+              <div>
+                <p className="font-medium">+{a.messagesPerDay} msgs/dia</p>
+                <p className="text-xs text-muted-foreground">
+                  {cents(a.pricePerMonthCents)}/mês
+                  {a.paidUntil && <> · próx. cobrança {new Date(a.paidUntil).toLocaleDateString("pt-BR")}</>}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => cancelAddon(a.id)} disabled={busyId === a.id}>
+                {busyId === a.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                Cancelar
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Pagamentos via Asaas. Você pode cancelar a qualquer momento — a cobrança para no próximo ciclo.
+      </p>
     </div>
   );
 }

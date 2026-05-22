@@ -1,107 +1,245 @@
 import { prisma } from '../lib/prisma';
 
-type PlanLimits = {
-  messagesPerDay: number;
-  instancesLimit: number;
-  isActive: boolean;
-};
-
 export type EnforcementCheck =
-  | { allowed: true }
+  | { allowed: true; consumesPool?: boolean }
   | {
       allowed: false;
-      code: 'PLAN_INSTANCE_LIMIT_REACHED' | 'PLAN_DAILY_MESSAGE_LIMIT_REACHED';
+      code:
+        | 'PLAN_DAILY_MESSAGE_LIMIT_REACHED'
+        | 'NEED_SUBSCRIPTION'
+        | 'INSTANCE_LIMIT_REACHED'
+        | 'PLAN_INSTANCE_LIMIT_REACHED';
       limit: number;
       current: number;
       planId: string | null;
     };
 
-export class EnforcementService {
-  // Simple defaults if no plan is linked
-  static DEFAULT_INSTANCE_LIMIT = 1;
-  static DEFAULT_MESSAGES_PER_DAY = 50;
+const FREE_DAILY_LIMIT = 100;
 
-  /** orgId = Logto sub ou valor em ApiKey.orgId — resolve User + SubscriptionPlan */
-  private static limitsFromPlan(plan: PlanLimits | null) {
-    if (!plan || !plan.isActive) {
+function todayUtc(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/**
+ * Modelo de pricing (2026-05):
+ *
+ *   - Cortesia VIP (manualSubscriptionUntil) bypassa tudo. Mantém retrocompat.
+ *   - Plano "interno" (cortesia perpétua via subscriptionPlanId) também bypassa.
+ *   - Cada Instance paga (subscriptionStatus=active) tem cap próprio em
+ *     messagesIncluded (default 300/dia).
+ *   - Quando a instância estoura o cap próprio, consome do POOL GLOBAL da conta
+ *     (soma de MessageAddon active.messagesPerDay).
+ *   - Free: user sem assinatura, 1 instância → 100/dia. 2ª instância exige sub.
+ */
+export class EnforcementService {
+  /** Limite Free pra retrocompat com lugares que ainda chamam getLimitsForOrg() */
+  static DEFAULT_MESSAGES_PER_DAY = FREE_DAILY_LIMIT;
+  static DEFAULT_INSTANCE_LIMIT = 1;
+
+  /**
+   * Resume billing de um user pra UI. Retorna instâncias com status,
+   * pool de addons ativos, uso do dia.
+   */
+  static async getBillingForUser(logtoId: string) {
+    const user = await prisma.user.findUnique({
+      where: { logtoId },
+      include: { instances: true, messageAddons: true },
+    });
+    if (!user) return null;
+
+    const today = todayUtc();
+    const [usagesByInstance, addons] = await Promise.all([
+      prisma.instanceDailyUsage.findMany({
+        where: { instanceId: { in: user.instances.map((i) => i.id) }, date: today },
+      }),
+      user.messageAddons.filter((a) => a.status === 'active'),
+    ]);
+
+    const usageMap = new Map(usagesByInstance.map((u) => [u.instanceId, u.count]));
+    const poolLimit = addons.reduce((acc, a) => acc + a.messagesPerDay, 0);
+    const poolUsage = await prisma.dailyUsage.findUnique({
+      where: { userId_date: { userId: logtoId, date: today } },
+    });
+
+    return {
+      instances: user.instances.map((i) => ({
+        id: i.id,
+        name: i.name,
+        status: i.status,
+        subscriptionStatus: i.subscriptionStatus,
+        pricePerMonthCents: i.pricePerMonthCents,
+        messagesIncluded: i.messagesIncluded,
+        usedToday: usageMap.get(i.id) || 0,
+        paidUntil: i.paidUntil,
+      })),
+      addons: addons.map((a) => ({
+        id: a.id,
+        status: a.status,
+        messagesPerDay: a.messagesPerDay,
+        pricePerMonthCents: a.pricePerMonthCents,
+        paidUntil: a.paidUntil,
+      })),
+      pool: {
+        limit: poolLimit,
+        usage: poolUsage?.count || 0,
+        remaining: Math.max(0, poolLimit - (poolUsage?.count || 0)),
+      },
+      totalMonthlyCents:
+        user.instances
+          .filter((i) => i.subscriptionStatus === 'active')
+          .reduce((acc, i) => acc + i.pricePerMonthCents, 0) +
+        addons.reduce((acc, a) => acc + a.pricePerMonthCents, 0),
+      vipUntil: user.manualSubscriptionUntil,
+    };
+  }
+
+  /**
+   * Retorna limites resumidos pra UI antiga (/me, dashboard). Mantém shape antigo
+   * pra evitar regressão. dailyLimit = -1 quando ilimitado (VIP/interno).
+   */
+  static async getLimitsForOrg(orgId: string) {
+    const user = await prisma.user.findUnique({
+      where: { logtoId: orgId },
+      include: { subscriptionPlan: true, instances: true, messageAddons: { where: { status: 'active' } } },
+    });
+    const now = new Date();
+    const vip = !!(user?.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
+    if (vip || user?.subscriptionPlanId === 'interno') {
+      return { instancesLimit: -1, messagesPerDay: -1, planId: user?.subscriptionPlanId ?? null };
+    }
+    const paidInstances = (user?.instances || []).filter((i) => i.subscriptionStatus === 'active');
+    const totalIncluded = paidInstances.reduce((acc, i) => acc + i.messagesIncluded, 0);
+    const poolExtra = (user?.messageAddons || []).reduce((acc, a) => acc + a.messagesPerDay, 0);
+    const totalDaily = paidInstances.length === 0 ? FREE_DAILY_LIMIT : totalIncluded + poolExtra;
+    return {
+      instancesLimit: paidInstances.length || 1, // Free = 1, depois ilimitado conforme assinaturas
+      messagesPerDay: totalDaily,
+      planId: paidInstances.length > 0 ? 'paid' : 'free',
+    };
+  }
+
+  /**
+   * Verifica se pode criar nova instância. Free = 1 grátis, depois cada instância
+   * extra exige assinatura (status pending vira active quando paga).
+   */
+  static async canCreateInstance(orgId: string): Promise<EnforcementCheck> {
+    const user = await prisma.user.findUnique({
+      where: { logtoId: orgId },
+      include: { instances: true },
+    });
+    const now = new Date();
+    const vip = !!(user?.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
+    if (vip || user?.subscriptionPlanId === 'interno') return { allowed: true };
+    // Modelo novo: sempre pode criar (a 2ª+ entra como pending até pagar).
+    // Mantém allowed=true porque o gating de uso é por subscriptionStatus na hora de enviar.
+    return { allowed: true };
+  }
+
+  /**
+   * Pode enviar mensagem por essa instância?
+   *
+   * Sequência:
+   *  1. Cortesia VIP / plano interno → libera (consumesPool=false, não contabiliza)
+   *  2. Instance.subscriptionStatus === 'active':
+   *     a. usagesToday < messagesIncluded → libera (instance)
+   *     b. senão, tenta pool (sum addons - poolUsage > 0) → libera (consumesPool=true)
+   *     c. nem pool → bloqueia
+   *  3. Instance sem sub mas é a única do user → Free 100/dia
+   *  4. Caso contrário → NEED_SUBSCRIPTION
+   */
+  static async canSendMessage(orgId: string, instanceId?: string): Promise<EnforcementCheck> {
+    const user = await prisma.user.findUnique({
+      where: { logtoId: orgId },
+      include: { instances: true, messageAddons: { where: { status: 'active' } } },
+    });
+    if (!user) return { allowed: false, code: 'NEED_SUBSCRIPTION', limit: 0, current: 0, planId: null };
+
+    const now = new Date();
+    const vip = !!(user.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
+    if (vip || user.subscriptionPlanId === 'interno') return { allowed: true };
+
+    // Sem instanceId → não é envio de mensagem real (ex: validação genérica). Libera.
+    if (!instanceId) return { allowed: true };
+
+    const instance = user.instances.find((i) => i.id === instanceId);
+    if (!instance) return { allowed: false, code: 'NEED_SUBSCRIPTION', limit: 0, current: 0, planId: null };
+
+    const today = todayUtc();
+    const instanceUsage = await prisma.instanceDailyUsage.upsert({
+      where: { instanceId_date: { instanceId, date: today } },
+      update: {},
+      create: { instanceId, date: today, count: 0 },
+    });
+
+    // Instance paga → usa cap próprio + pool
+    if (instance.subscriptionStatus === 'active') {
+      if (instanceUsage.count < instance.messagesIncluded) {
+        return { allowed: true, consumesPool: false };
+      }
+      // Estourou cap próprio: tenta pool global
+      const poolLimit = user.messageAddons.reduce((acc, a) => acc + a.messagesPerDay, 0);
+      if (poolLimit > 0) {
+        const poolUsage = await prisma.dailyUsage.upsert({
+          where: { userId_date: { userId: orgId, date: today } },
+          update: {},
+          create: { userId: orgId, orgId, date: today, count: 0 },
+        });
+        if (poolUsage.count < poolLimit) {
+          return { allowed: true, consumesPool: true };
+        }
+      }
       return {
-        instancesLimit: this.DEFAULT_INSTANCE_LIMIT,
-        messagesPerDay: this.DEFAULT_MESSAGES_PER_DAY,
+        allowed: false,
+        code: 'PLAN_DAILY_MESSAGE_LIMIT_REACHED',
+        limit: instance.messagesIncluded + poolLimit,
+        current: instanceUsage.count + (poolLimit > 0 ? poolLimit : 0),
+        planId: 'paid',
       };
     }
+
+    // Instance grátis (sem sub) → Free apenas se for a única
+    if (user.instances.length === 1) {
+      if (instanceUsage.count < FREE_DAILY_LIMIT) return { allowed: true };
+      return {
+        allowed: false,
+        code: 'PLAN_DAILY_MESSAGE_LIMIT_REACHED',
+        limit: FREE_DAILY_LIMIT,
+        current: instanceUsage.count,
+        planId: 'free',
+      };
+    }
+
     return {
-      instancesLimit: plan.instancesLimit,
-      messagesPerDay: plan.messagesPerDay,
+      allowed: false,
+      code: 'NEED_SUBSCRIPTION',
+      limit: 0,
+      current: 0,
+      planId: null,
     };
   }
 
-  static async getLimitsForOrg(orgId: string) {
-    let user = await prisma.user.findUnique({
-      where: { logtoId: orgId },
-      include: { subscriptionPlan: true },
-    });
-    if (!user) {
-      const key = await prisma.apiKey.findFirst({
-        where: { orgId },
-        include: { user: { include: { subscriptionPlan: true } } },
+  /**
+   * Incrementa contador da instância sempre. Se consumesPool=true, incrementa
+   * também o contador global (pool).
+   */
+  static async incrementMessageCount(orgId: string, instanceId?: string, consumesPool = false) {
+    const today = todayUtc();
+    if (instanceId) {
+      await prisma.instanceDailyUsage.upsert({
+        where: { instanceId_date: { instanceId, date: today } },
+        update: { count: { increment: 1 } },
+        create: { instanceId, date: today, count: 1 },
       });
-      user = key?.user ?? null;
     }
-    const now = new Date();
-    // Cortesia VIP ativa: usa plano linkado ignorando trial/Asaas.
-    const manualActive = !!(user?.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
-    if (manualActive) {
-      return { ...this.limitsFromPlan(user?.subscriptionPlan ?? null), planId: user?.subscriptionPlanId ?? null };
+    if (consumesPool || !instanceId) {
+      // !instanceId mantém compatibilidade com callsites antigos que ainda não
+      // passam instanceId. Vai ser removido quando todos forem migrados.
+      await prisma.dailyUsage.upsert({
+        where: { userId_date: { userId: orgId, date: today } },
+        update: { count: { increment: 1 } },
+        create: { userId: orgId, orgId, date: today, count: 1 },
+      });
     }
-    // Trial expirado sem Asaas customer (nunca pagou) → defaults Free
-    const trialExpired = user?.trialEndsAt && user.trialEndsAt < now;
-    if (trialExpired && !user?.asaasCustomerId) {
-      return { ...this.limitsFromPlan(null), planId: null };
-    }
-    return { ...this.limitsFromPlan(user?.subscriptionPlan ?? null), planId: user?.subscriptionPlanId ?? null };
-  }
-
-  static async canCreateInstance(orgId: string): Promise<EnforcementCheck> {
-    const limits = await this.getLimitsForOrg(orgId);
-    if (limits.instancesLimit < 0) return { allowed: true };
-    const count = await prisma.instance.count({ where: { orgId } });
-    if (count < limits.instancesLimit) return { allowed: true };
-    return {
-      allowed: false,
-      code: 'PLAN_INSTANCE_LIMIT_REACHED',
-      limit: limits.instancesLimit,
-      current: count,
-      planId: limits.planId,
-    };
-  }
-
-  static async canSendMessage(orgId: string): Promise<EnforcementCheck> {
-    const limits = await this.getLimitsForOrg(orgId);
-    if (limits.messagesPerDay < 0) return { allowed: true };
-    const today = new Date();
-    const dateOnly = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-
-    let usage = await prisma.dailyUsage.findUnique({ where: { userId_date: { userId: orgId, date: dateOnly } } });
-    if (!usage) {
-      usage = await prisma.dailyUsage.create({ data: { userId: orgId, orgId, date: dateOnly, count: 0 } });
-    }
-    if (usage.count < limits.messagesPerDay) return { allowed: true };
-    return {
-      allowed: false,
-      code: 'PLAN_DAILY_MESSAGE_LIMIT_REACHED',
-      limit: limits.messagesPerDay,
-      current: usage.count,
-      planId: limits.planId,
-    };
-  }
-
-  static async incrementMessageCount(orgId: string) {
-    const today = new Date();
-    const dateOnly = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    await prisma.dailyUsage.upsert({
-      where: { userId_date: { userId: orgId, date: dateOnly } },
-      update: { count: { increment: 1 } },
-      create: { userId: orgId, orgId, date: dateOnly, count: 1 },
-    });
   }
 }

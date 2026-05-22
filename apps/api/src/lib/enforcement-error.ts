@@ -12,10 +12,20 @@ const MESSAGES: Record<DeniedCheck['code'], { httpStatus: number; pt: (c: Denied
     pt: (c) => `Limite de instâncias atingido no seu plano (${c.current}/${c.limit}). Faça upgrade para conectar mais números.`,
     en: (c) => `Instance limit reached on your plan (${c.current}/${c.limit}). Upgrade to connect more numbers.`,
   },
+  INSTANCE_LIMIT_REACHED: {
+    httpStatus: 403,
+    pt: (c) => `Limite de instâncias atingido (${c.current}/${c.limit}).`,
+    en: (c) => `Instance limit reached (${c.current}/${c.limit}).`,
+  },
   PLAN_DAILY_MESSAGE_LIMIT_REACHED: {
     httpStatus: 429,
-    pt: (c) => `Limite diário de mensagens atingido (${c.current}/${c.limit}). Faça upgrade ou aguarde até amanhã.`,
-    en: (c) => `Daily message limit reached (${c.current}/${c.limit}). Upgrade your plan or wait until tomorrow.`,
+    pt: (c) => `Limite diário de mensagens atingido (${c.current}/${c.limit}). Compre um lote de +100 msgs/dia (R$15/mês) ou aguarde até amanhã.`,
+    en: (c) => `Daily message limit reached (${c.current}/${c.limit}). Buy a +100 msgs/day add-on (R$15/mo) or wait until tomorrow.`,
+  },
+  NEED_SUBSCRIPTION: {
+    httpStatus: 402,
+    pt: () => `Essa instância precisa de assinatura ativa pra enviar mensagens. R$59/mês por instância, com 300 msgs/dia incluídas. Configure em Assinatura.`,
+    en: () => `This instance needs an active subscription to send messages. R$59/mo per instance, 300 msgs/day included. Set up in Subscription.`,
   },
 };
 

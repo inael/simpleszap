@@ -35,6 +35,7 @@ model User {
   apiKeys           ApiKey[]
   dailyUsages       DailyUsage[]
   betaFeatureAcceptances BetaFeatureAcceptance[]
+  messageAddons          MessageAddon[]
 }
 
 /// Fila de saída de mensagens. Todo POST /message/sendText e /sendButtons
@@ -144,11 +145,65 @@ model Instance {
   publicConnectToken          String?   @unique
   publicConnectTokenExpiresAt DateTime?
 
+  // ===== Pricing por instância (modelo elástico, 2026-05) =====
+  /// Status da assinatura Asaas pra essa instância. active = paga em dia.
+  /// pending = checkout criado mas não confirmou pagamento. canceled = cliente
+  /// cancelou. past_due = inadimplente. null = grátis (Free, 1 instância só).
+  subscriptionStatus    String?
+  /// ID da subscription no Asaas (externalReference no Asaas é "instance:<id>")
+  asaasSubscriptionId   String?   @unique
+  /// Quando o pagamento atual termina (próximo vencimento Asaas).
+  paidUntil             DateTime?
+  /// Preço mensal cobrado por essa instância em centavos. Default 5900 = R$59.
+  pricePerMonthCents    Int       @default(5900)
+  /// Mensagens incluídas por dia nessa instância (cap próprio antes do pool global).
+  messagesIncluded      Int       @default(300)
+
   userId                String
   user                  User     @relation(fields: [userId], references: [id])
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+/// Contador diário de mensagens enviadas POR INSTÂNCIA. Usado pelo enforcement
+/// novo: cada instância tem seu próprio cap (messagesIncluded). Quando estoura,
+/// usa o pool global da conta (somado de todos os MessageAddon active).
+model InstanceDailyUsage {
+  id         String   @id @default(uuid())
+  instanceId String
+  date       DateTime @db.Date
+  count      Int      @default(0)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([instanceId, date])
+  @@map("instance_daily_usage")
+}
+
+/// Add-on de mensagens — cliente compra lotes extras que vão pra um POOL global
+/// da conta. Quando uma instância estoura messagesIncluded, consome desse pool
+/// (somado de todas as instâncias da conta). 1 lote = +100 msgs/dia pelo preço
+/// padrão (1500¢ = R$15). Cliente pode ter quantos lotes quiser.
+model MessageAddon {
+  id                  String   @id @default(uuid())
+  userId              String
+  /// active = pagando, canceled = cancelado, past_due = inadimplente, pending = checkout aberto
+  status              String   @default("pending")
+  asaasSubscriptionId String?  @unique
+  messagesPerDay      Int      @default(100)
+  pricePerMonthCents  Int      @default(1500)
+  paidUntil           DateTime?
+  cancelledAt         DateTime?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("message_addons")
 }
 
 model ApiKey {
