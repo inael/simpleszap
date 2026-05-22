@@ -94,6 +94,12 @@ model Instance {
   token                 String?  // Token da Evolution API
   orgId                 String?
 
+  /// Token único pra link público de pareamento (sem auth). Quando setado e
+  /// não expirado, GET /public/connect/:token retorna o QR sem autenticação.
+  /// Limpo automaticamente quando a instância conecta (status=open) ou ao expirar.
+  publicConnectToken          String?   @unique
+  publicConnectTokenExpiresAt DateTime?
+
   userId                String
   user                  User     @relation(fields: [userId], references: [id])
 

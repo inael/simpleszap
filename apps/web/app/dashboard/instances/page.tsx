@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -31,6 +31,8 @@ export default function InstancesPage() {
   const [qrInstanceId, setQrInstanceId] = useState<string | null>(null);
   const [qrSecondsLeft, setQrSecondsLeft] = useState(60);
   const [qrLoading, setQrLoading] = useState(false);
+  const [shareLink, setShareLink] = useState<{ url: string; expiresAt: string; ttlMinutes: number } | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -116,6 +118,30 @@ export default function InstancesPage() {
 
   const handleConnect = (instanceName: string) => {
     void fetchQr(instanceName);
+  };
+
+  const handleShareLink = async (instanceId: string) => {
+    if (!orgId || sharingId) return;
+    setSharingId(instanceId);
+    try {
+      const token = await getToken();
+      const res = await api.post(
+        `/instance/${instanceId}/connect-link`,
+        {},
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      setShareLink({ url: res.data.url, expiresAt: res.data.expiresAt, ttlMinutes: res.data.ttlMinutes });
+    } catch {
+      toast.error("Erro ao gerar link de conexão.");
+    } finally {
+      setSharingId(null);
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareLink) return;
+    await navigator.clipboard.writeText(shareLink.url).catch(() => {});
+    toast.success("Link copiado!");
   };
 
   // Countdown + connection polling + auto-regen do QR enquanto o modal estiver aberto.
@@ -230,6 +256,20 @@ export default function InstancesPage() {
                     <Button variant="outline" size="sm" onClick={() => handleConnect(inst.id)}>
                         <QrCode className="h-4 w-4 mr-1" /> Conectar
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShareLink(inst.id)}
+                      disabled={sharingId === inst.id || inst.status === 'open' || inst.status === 'connected'}
+                      title={inst.status === 'open' || inst.status === 'connected' ? 'Já conectado' : 'Gerar link público pra alguém escanear remotamente'}
+                    >
+                      {sharingId === inst.id ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Share2 className="h-4 w-4 mr-1" />
+                      )}
+                      Compartilhar
+                    </Button>
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(inst.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
@@ -247,6 +287,31 @@ export default function InstancesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {shareLink && (
+        <Dialog open={!!shareLink} onOpenChange={(o) => !o && setShareLink(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Link de conexão público</DialogTitle>
+              <DialogDescription>
+                Envie esse link pra quem vai escanear o QR. O link funciona sem login e expira em {shareLink.ttlMinutes} minutos
+                (ou assim que a conexão for feita).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 p-2">
+              <div className="flex items-center gap-2">
+                <Input value={shareLink.url} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="icon" onClick={copyShareLink} title="Copiar">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Expira em {new Date(shareLink.expiresAt).toLocaleString("pt-BR")}.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {qrCode && (
           <Dialog open={!!qrCode} onOpenChange={(o) => !o && (setQrCode(null), setQrInstanceId(null))}>

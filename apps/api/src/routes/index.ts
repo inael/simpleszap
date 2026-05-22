@@ -63,7 +63,12 @@ router.get('/admin/coupons/:id/redemptions', requireAdmin, AdminCouponController
 router.get('/instances', orgAuthWithSecurity, InstanceController.list);
 router.post('/instance/create', orgAuthWithSecurity, requireScope('instances:create'), InstanceController.create);
 router.get('/instance/qr/:id', orgAuthWithSecurity, requireScope('instances:read'), InstanceController.getQr);
+router.post('/instance/:id/connect-link', orgAuthWithSecurity, InstanceController.createConnectLink);
+router.delete('/instance/:id/connect-link', orgAuthWithSecurity, InstanceController.revokeConnectLink);
 router.delete('/instance/:id', orgAuthWithSecurity, InstanceController.delete);
+
+// Endpoint PÚBLICO de pareamento (sem auth — protegido só por token único)
+router.get('/public/connect/:token', InstanceController.getPublicConnect);
 
 // API Keys
 router.get('/api-keys', orgAuthWithSecurity, ApiKeyController.list);

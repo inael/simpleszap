@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { EvolutionService } from '../services/evolution.service';
 import { prisma } from '../lib/prisma';
@@ -230,6 +231,118 @@ export class InstanceController {
         },
       });
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Gera (ou regenera) link público temporário pra escanear o QR sem login.
+   * Útil pra enviar pra um terceiro conectar à distância (cliente, assistente).
+   * Token expira em PUBLIC_CONNECT_LINK_TTL_MIN (padrão 30min) e é apagado
+   * automaticamente quando a instância conecta (no sync de list).
+   */
+  static async createConnectLink(req: Request, res: Response) {
+    const { id } = req.params;
+    const orgId = req.headers['x-org-id'] as string | undefined;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const instance = await prisma.instance.findUnique({ where: { id } });
+    if (!instance || instance.orgId !== orgId) {
+      return res.status(404).json({ error: 'Instance not found' });
+    }
+
+    const ttlMin = parseInt(process.env.PUBLIC_CONNECT_LINK_TTL_MIN || '30', 10);
+    const token = crypto.randomBytes(24).toString('base64url');
+    const expiresAt = new Date(Date.now() + ttlMin * 60 * 1000);
+
+    await prisma.instance.update({
+      where: { id },
+      data: { publicConnectToken: token, publicConnectTokenExpiresAt: expiresAt },
+    });
+    await AuditService.log(orgId, 'instance.public_link.created', undefined, { id, expiresAt });
+
+    const baseUrl = process.env.PUBLIC_WEB_URL || 'https://simpleszap.com';
+    res.json({
+      token,
+      url: `${baseUrl}/connect/${token}`,
+      expiresAt,
+      ttlMinutes: ttlMin,
+    });
+  }
+
+  /** Revoga link público manualmente (sem esperar expiração). */
+  static async revokeConnectLink(req: Request, res: Response) {
+    const { id } = req.params;
+    const orgId = req.headers['x-org-id'] as string | undefined;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const instance = await prisma.instance.findUnique({ where: { id } });
+    if (!instance || instance.orgId !== orgId) {
+      return res.status(404).json({ error: 'Instance not found' });
+    }
+    await prisma.instance.update({
+      where: { id },
+      data: { publicConnectToken: null, publicConnectTokenExpiresAt: null },
+    });
+    res.json({ revoked: true });
+  }
+
+  /**
+   * Endpoint PÚBLICO (sem auth). Recebe o token gerado por createConnectLink
+   * e retorna QR + status. Quando a instância conecta, o token é apagado pelo
+   * sync no /instances — chamadas subsequentes retornam 410 Gone.
+   */
+  static async getPublicConnect(req: Request, res: Response) {
+    const { token } = req.params;
+    if (!token || token.length < 16) {
+      return res.status(400).json({ error: 'Invalid token' });
+    }
+
+    const instance = await prisma.instance.findUnique({
+      where: { publicConnectToken: token },
+    });
+    if (!instance) {
+      return res.status(404).json({ error: 'Link inválido ou já utilizado.' });
+    }
+    if (instance.publicConnectTokenExpiresAt && instance.publicConnectTokenExpiresAt < new Date()) {
+      // Expirado — limpa e responde 410
+      await prisma.instance.update({
+        where: { id: instance.id },
+        data: { publicConnectToken: null, publicConnectTokenExpiresAt: null },
+      });
+      return res.status(410).json({ error: 'Link expirado. Peça outro ao remetente.' });
+    }
+
+    // Se já conectado, sinaliza pra UI fechar
+    if (instance.status === 'connected' || instance.status === 'open') {
+      await prisma.instance.update({
+        where: { id: instance.id },
+        data: { publicConnectToken: null, publicConnectTokenExpiresAt: null },
+      });
+      return res.json({ state: 'open', message: 'Já conectado.' });
+    }
+
+    try {
+      const evoName = instance.evolutionInstanceName || instance.id;
+      const result = await EvolutionService.connectInstance(evoName);
+      const base64 = result?.base64 || result?.qrcode?.base64 || null;
+      const state = result?.instance?.state || 'connecting';
+
+      // Se o Evolution já reporta open, limpa o token agora.
+      if (state === 'open') {
+        await prisma.instance.update({
+          where: { id: instance.id },
+          data: { status: 'connected', publicConnectToken: null, publicConnectTokenExpiresAt: null },
+        });
+      }
+
+      res.json({
+        state,
+        base64,
+        instanceName: instance.name,
+        expiresAt: instance.publicConnectTokenExpiresAt,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Erro ao gerar QR.' });
     }
   }
 }
