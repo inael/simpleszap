@@ -30,6 +30,8 @@ import {
   ChevronDown,
   ChevronRight,
   User,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
@@ -46,17 +48,16 @@ const routes: RouteItem[] = [
   { label: "Instâncias", icon: Smartphone, href: "/dashboard/instances", color: "text-violet-500" },
   { label: "Mensagens", icon: MessageSquare, href: "/dashboard/messages", color: "text-pink-700" },
   { label: "Contatos", icon: Users, href: "/dashboard/contacts", color: "text-blue-600" },
-  { label: "Templates", icon: HelpCircle, href: "/dashboard/templates", color: "text-indigo-600" },
   { label: "Webhooks", icon: Siren, href: "/dashboard/webhooks", color: "text-red-600" },
   { label: "Campanhas", icon: HelpCircle, href: "/dashboard/campaigns", color: "text-fuchsia-600" },
   { label: "Assinatura", icon: CreditCard, href: "/dashboard/subscription", color: "text-emerald-500" },
-  { label: "Segurança", icon: Lock, href: "/dashboard/security", color: "text-slate-300" },
 ];
 
 const settingsSubRoutes: RouteItem[] = [
-  { label: "Cadastro (CPF/CNPJ)", icon: User, href: "/dashboard/settings", color: "text-slate-400" },
+  { label: "Perfil", icon: User, href: "/dashboard/settings", color: "text-slate-400" },
   { label: "Chaves de API", icon: Key, href: "/dashboard/api-keys", color: "text-orange-700" },
-  { label: "Envio em massa", icon: SlidersHorizontal, href: "/dashboard/campaigns/settings", color: "text-teal-500" },
+  { label: "Configurações de envio", icon: SlidersHorizontal, href: "/dashboard/campaigns/settings", color: "text-teal-500" },
+  { label: "Segurança", icon: Lock, href: "/dashboard/security", color: "text-slate-300" },
 ];
 
 const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
@@ -79,7 +80,12 @@ const adminRoutes: RouteItem[] = [
   { label: "Config. Sistema", icon: Wrench, href: "/dashboard/admin/settings", color: "text-red-400" },
 ];
 
-export const Sidebar = () => {
+type SidebarProps = {
+  collapsed?: boolean;
+  onToggle?: () => void;
+};
+
+export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
   const showAdmin = isAdmin || pathname.startsWith("/dashboard/admin");
@@ -87,7 +93,8 @@ export const Sidebar = () => {
   const settingsActive =
     pathname === "/dashboard/settings" ||
     pathname.startsWith("/dashboard/api-keys") ||
-    pathname.startsWith("/dashboard/campaigns/settings");
+    pathname.startsWith("/dashboard/campaigns/settings") ||
+    pathname.startsWith("/dashboard/security");
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
 
   const handleSignOut = () => {
@@ -103,60 +110,100 @@ export const Sidebar = () => {
       <Link
         key={route.href}
         href={route.href}
+        title={collapsed ? route.label : undefined}
         className={cn(
-          "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
+          "text-sm group flex w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
+          collapsed ? "p-3 justify-center" : "p-3 justify-start",
           isActive ? "text-white bg-white/10" : "text-zinc-400"
         )}
       >
-        <div className="flex items-center flex-1">
-          <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
-          {route.label}
-        </div>
+        <route.icon className={cn("h-5 w-5 shrink-0", route.color, !collapsed && "mr-3")} />
+        {!collapsed && <span>{route.label}</span>}
       </Link>
     );
   };
 
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
-      <div className="px-3 py-2 flex-1 overflow-y-auto">
-        <Link href="/dashboard" className="flex items-center pl-3 mb-14">
-          <div className="relative w-8 h-8 mr-4 shrink-0">
-            <Image
-              src="/icon-simpleszap.svg"
-              alt="SimplesZap"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-          </div>
-          <h1 className="text-2xl font-bold">SimplesZap</h1>
-        </Link>
+      <div className={cn("flex-1 overflow-y-auto", collapsed ? "px-2" : "px-3 py-2")}>
+        {/* Topo: logo + botão toggle */}
+        <div
+          className={cn(
+            "flex items-center mb-10",
+            collapsed ? "flex-col gap-3" : "justify-between pl-3 pr-1"
+          )}
+        >
+          <Link
+            href="/dashboard"
+            className={cn("flex items-center", collapsed ? "justify-center" : "")}
+            title={collapsed ? "SimplesZap" : undefined}
+          >
+            <div className="relative w-8 h-8 shrink-0">
+              <Image
+                src="/icon-simpleszap.svg"
+                alt="SimplesZap"
+                width={32}
+                height={32}
+                className="rounded-lg"
+              />
+            </div>
+            {!collapsed && <h1 className="text-2xl font-bold ml-3">SimplesZap</h1>}
+          </Link>
+          {onToggle && (
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={collapsed ? "Expandir menu" : "Encolher menu"}
+              title={collapsed ? "Expandir menu" : "Encolher menu"}
+              className="hidden md:inline-flex items-center justify-center p-2 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition"
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          )}
+        </div>
 
         <div className="space-y-1">
           {routes.map(renderRoute)}
 
-          {/* Configurações expansível com sub-itens */}
+          {/* Configurações expansível com sub-itens (vira link direto quando collapsed) */}
           <div>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen((o) => !o)}
-              aria-expanded={settingsOpen}
-              className={cn(
-                "text-sm group flex items-center p-3 w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                settingsActive ? "text-white bg-white/10" : "text-zinc-400"
-              )}
-            >
-              <div className="flex items-center flex-1">
-                <Settings className="h-5 w-5 mr-3" />
-                Configurações
-              </div>
-              {settingsOpen ? (
-                <ChevronDown className="h-4 w-4 opacity-60" />
-              ) : (
-                <ChevronRight className="h-4 w-4 opacity-60" />
-              )}
-            </button>
-            {settingsOpen && (
+            {collapsed ? (
+              <Link
+                href="/dashboard/settings"
+                title="Configurações"
+                className={cn(
+                  "text-sm group flex items-center w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition p-3 justify-center",
+                  settingsActive ? "text-white bg-white/10" : "text-zinc-400"
+                )}
+              >
+                <Settings className="h-5 w-5" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSettingsOpen((o) => !o)}
+                aria-expanded={settingsOpen ? "true" : "false"}
+                className={cn(
+                  "text-sm group flex items-center w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition p-3",
+                  settingsActive ? "text-white bg-white/10" : "text-zinc-400"
+                )}
+              >
+                <div className="flex items-center flex-1">
+                  <Settings className="h-5 w-5 mr-3" />
+                  Configurações
+                </div>
+                {settingsOpen ? (
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 opacity-60" />
+                )}
+              </button>
+            )}
+            {!collapsed && settingsOpen && (
               <div className="ml-6 mt-1 space-y-1 border-l border-zinc-700 pl-2">
                 {settingsSubRoutes.map((sub) => {
                   const isActive =
@@ -181,26 +228,30 @@ export const Sidebar = () => {
           </div>
         </div>
 
-        <Separator className="my-4 bg-zinc-700" />
-        <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
-          Ajuda
-        </p>
-        <div className="space-y-1">
-          {helpLinks.map((item) => (
-            <a
-              key={item.href + item.label}
-              href={item.href}
-              {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              {...(item.download ? { download: true } : {})}
-              className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition text-zinc-400"
-            >
-              <item.icon className="h-5 w-5 mr-3 text-zinc-400 group-hover:text-white" />
-              {item.label}
-            </a>
-          ))}
-        </div>
+        {!collapsed && (
+          <>
+            <Separator className="my-4 bg-zinc-700" />
+            <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
+              Ajuda
+            </p>
+            <div className="space-y-1">
+              {helpLinks.map((item) => (
+                <a
+                  key={item.href + item.label}
+                  href={item.href}
+                  {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  {...(item.download ? { download: true } : {})}
+                  className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition text-zinc-400"
+                >
+                  <item.icon className="h-5 w-5 mr-3 text-zinc-400 group-hover:text-white" />
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
 
-        {showAdmin && (
+        {!collapsed && showAdmin && (
           <>
             <Separator className="my-4 bg-zinc-700" />
             <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
@@ -209,15 +260,26 @@ export const Sidebar = () => {
             <div className="space-y-1">{adminRoutes.map(renderRoute)}</div>
           </>
         )}
+
+        {collapsed && showAdmin && (
+          <>
+            <Separator className="my-4 bg-zinc-700" />
+            <div className="space-y-1">{adminRoutes.map(renderRoute)}</div>
+          </>
+        )}
       </div>
-      <div className="px-3 py-2">
+      <div className={cn(collapsed ? "px-2 py-2" : "px-3 py-2")}>
         <Button
           onClick={handleSignOut}
           variant="ghost"
-          className="w-full justify-start text-zinc-400 hover:text-white hover:bg-white/10"
+          title={collapsed ? "Sair" : undefined}
+          className={cn(
+            "w-full text-zinc-400 hover:text-white hover:bg-white/10",
+            collapsed ? "justify-center px-0" : "justify-start"
+          )}
         >
-          <LogOut className="h-5 w-5 mr-3" />
-          Sair
+          <LogOut className={cn("h-5 w-5", !collapsed && "mr-3")} />
+          {!collapsed && "Sair"}
         </Button>
       </div>
     </div>
