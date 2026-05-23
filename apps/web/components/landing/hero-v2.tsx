@@ -16,10 +16,13 @@ const videoMaskStyle = {
 export function HeroV2({ isSignedIn, docsUrl }: { isSignedIn: boolean; docsUrl: string }) {
   return (
     <section className="relative overflow-hidden bg-[#0e0e0e] text-white pt-24 pb-28 lg:pt-32 lg:pb-40">
-      {/* Backdrop layers */}
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/30 via-[#0e0e0e] to-[#0e0e0e]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(16,185,129,0.18),transparent_55%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_10%_80%,rgba(56,189,248,0.08),transparent_50%)]" />
+      {/* Backdrop: gradients SOMENTE no lado esquerdo (atrás do texto).
+          Antes eu tinha gradient em 70%/30% (direita/topo) e isso ficava
+          atrás do vídeo — o #0e0e0e do vídeo contrastava com o verde do
+          entorno e aparecia uma borda. Agora todo o lado direito é
+          #0e0e0e puro, idêntico ao vídeo. */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_15%_40%,rgba(16,185,129,0.20),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_50%_at_5%_85%,rgba(56,189,248,0.08),transparent_70%)]" />
       {/* Subtle grain */}
       <div
         className="absolute inset-0 opacity-[0.04] mix-blend-overlay pointer-events-none"
@@ -107,10 +110,9 @@ export function HeroV2({ isSignedIn, docsUrl }: { isSignedIn: boolean; docsUrl: 
             transition={{ duration: 1, delay: 0.15, ease: 'easeOut' }}
             className="relative flex justify-center lg:justify-end"
           >
-            {/* Glow emerald atrás */}
-            <div className="absolute inset-0 -z-10 flex items-center justify-center">
-              <div className="w-[420px] h-[420px] rounded-full bg-emerald-500/15 blur-[120px]" />
-            </div>
+            {/* Sem glow atrás do vídeo — qualquer luz aqui criava
+                contraste com o #0e0e0e do fundo do vídeo e marcava a
+                borda. Vídeo se funde direto no bg da section. */}
 
             <div className="relative w-full max-w-[440px] aspect-[9/16] rounded-3xl overflow-hidden">
               <video
