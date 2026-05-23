@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
+import { WhatsAppPreview } from "@/components/dashboard/whatsapp-preview";
 
 const TEMPLATE_VARIABLES = [
   { label: "Nome do contato", value: "{{name}}" },
@@ -203,6 +204,21 @@ export default function TemplatesPage() {
               </div>
             );
           })}
+
+          {/* Previews ao vivo: 1 celular pra cada variante */}
+          <div className="rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-zinc-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-800">Preview no WhatsApp</h3>
+                <p className="text-xs text-zinc-500">Como o cliente vai ver cada variante. Variáveis substituídas por exemplo.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 justify-items-center">
+              <WhatsAppPreview text={variantA} variant="A" />
+              <WhatsAppPreview text={variantB} variant="B" />
+              <WhatsAppPreview text={variantC} variant="C" />
+            </div>
+          </div>
 
           {!validation.ok && (variantA || variantB || variantC || name) && (
             <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
