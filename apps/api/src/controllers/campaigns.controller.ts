@@ -53,12 +53,19 @@ export class CampaignsController {
     try {
       const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
-      const { name, instanceId, templateId, segmentTags, scheduledAt } = req.body;
+      const { name, instanceId, templateId, segmentTags, scheduledAt, contactIds } = req.body;
       if (!name || !instanceId || !templateId) {
         return res.status(400).json({ error: 'name, instanceId e templateId são obrigatórios. Toda campanha precisa de template com 3 variantes (anti-banimento).' });
       }
+      // contactIds tem precedência sobre segmentTags. Se ambos vierem null/vazio, run usa "todos os contatos da org".
+      const contactIdsJson = Array.isArray(contactIds) && contactIds.length > 0 ? JSON.stringify(contactIds) : null;
       const item = await prisma.campaign.create({
-        data: { orgId, name, instanceId, templateId, segmentTags: segmentTags ? JSON.stringify(segmentTags) : null, scheduledAt, status: 'draft' },
+        data: {
+          orgId, name, instanceId, templateId,
+          segmentTags: segmentTags ? JSON.stringify(segmentTags) : null,
+          contactIds: contactIdsJson,
+          scheduledAt, status: 'draft',
+        },
       });
       res.json(item);
     } catch (error: any) {
@@ -96,10 +103,34 @@ export class CampaignsController {
           message: 'Template vinculado não existe mais. Edite a campanha e selecione outro.',
         });
       }
-      const tags = campaign.segmentTags ? (JSON.parse(campaign.segmentTags) as string[]) : [];
-      const contacts = tags.length
-        ? await prisma.contact.findMany({ where: { orgId, tags: { contains: tags[0] } } })
-        : await prisma.contact.findMany({ where: { orgId } });
+      // Prioridade: contactIds (seleção manual) > segmentTags (filtro por tag) > todos
+      type ContactRow = Awaited<ReturnType<typeof prisma.contact.findMany>>[number];
+      let contacts: ContactRow[];
+      if (campaign.contactIds) {
+        try {
+          const ids = JSON.parse(campaign.contactIds) as string[];
+          contacts = ids.length
+            ? await prisma.contact.findMany({ where: { orgId, id: { in: ids } } })
+            : [];
+        } catch {
+          contacts = [];
+        }
+      } else {
+        const tags = campaign.segmentTags ? (JSON.parse(campaign.segmentTags) as string[]) : [];
+        contacts = tags.length
+          ? await prisma.contact.findMany({ where: { orgId, tags: { contains: tags[0] } } })
+          : await prisma.contact.findMany({ where: { orgId } });
+      }
+      if (contacts.length === 0) {
+        return res.status(400).json({
+          error: 'no_contacts',
+          message: 'Nenhum destinatário selecionado. Edite a campanha e escolha contatos antes de executar.',
+        });
+      }
+
+      // Lookup do nome Evolution (campaign.instanceId é UUID do DB; Evolution precisa do nome registrado nela)
+      const inst = await prisma.instance.findUnique({ where: { id: campaign.instanceId } });
+      const evoName = inst?.evolutionInstanceName || campaign.instanceId;
 
       await prisma.campaign.update({ where: { id }, data: { status: 'running' } });
 
@@ -126,7 +157,7 @@ export class CampaignsController {
         });
 
         try {
-          await EvolutionService.sendText(campaign.instanceId, c.phone, body);
+          await EvolutionService.sendText(evoName, c.phone, body);
           await prisma.message.create({
             data: { orgId, instanceId: campaign.instanceId, to: c.phone, body, type: 'text', status: 'sent' },
           });

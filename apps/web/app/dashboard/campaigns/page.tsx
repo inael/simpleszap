@@ -13,8 +13,9 @@ import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Search, Users, UserPlus } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
+import { useMemo } from "react";
 
 export default function CampaignsPage() {
   const { getToken, user } = useAuth();
@@ -40,11 +41,54 @@ export default function CampaignsPage() {
       return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
     }
   );
+  const { data: contacts } = useSWR<Array<{ id: string; name: string | null; phone: string; tags: string | null }>>(
+    orgId ? ["/contacts", orgId, "campaigns"] : null,
+    async ([url, oid]: [string, string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
+  );
 
   const [name, setName] = useState("");
   const [instanceId, setInstanceId] = useState("");
   const [templateId, setTemplateId] = useState("");
-  const [segmentTags, setSegmentTags] = useState("");
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [contactSearch, setContactSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState("all");
+
+  // Tags únicas pra dropdown de filtro
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of contacts || []) {
+      const tags = c.tags ? (() => { try { return JSON.parse(c.tags) as string[]; } catch { return []; } })() : [];
+      for (const t of tags) if (t) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [contacts]);
+
+  // Lista filtrada por search + tag
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.trim().toLowerCase();
+    return (contacts || []).filter((c) => {
+      if (q) {
+        const hay = `${c.name || ""} ${c.phone}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (tagFilter !== "all") {
+        const tags = c.tags ? (() => { try { return JSON.parse(c.tags) as string[]; } catch { return []; } })() : [];
+        if (!tags.includes(tagFilter)) return false;
+      }
+      return true;
+    });
+  }, [contacts, contactSearch, tagFilter]);
+
+  const toggleContact = (id: string) => {
+    setSelectedContactIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+  const selectAllFiltered = () => {
+    setSelectedContactIds((prev) => Array.from(new Set([...prev, ...filteredContacts.map((c) => c.id)])));
+  };
+  const clearSelection = () => setSelectedContactIds([]);
   const [validationError, setValidationError] = useState("");
   const [creating, setCreating] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -53,12 +97,21 @@ export default function CampaignsPage() {
     setValidationError("");
     if (!name) { setValidationError("Informe o nome da campanha"); return; }
     if (!instanceId) { setValidationError("Selecione uma instância para criar a campanha"); return; }
+    if (!templateId) { setValidationError("Selecione um template"); return; }
+    if (selectedContactIds.length === 0) { setValidationError("Selecione pelo menos 1 destinatário"); return; }
     if (creating) return;
     setCreating(true);
     try {
       const token = await getToken();
-      await api.post("/campaigns", { name, instanceId, templateId: templateId || undefined, segmentTags: segmentTags ? segmentTags.split(",") : undefined }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-      setName(""); setInstanceId(""); setTemplateId(""); setSegmentTags("");
+      await api.post("/campaigns", {
+        name,
+        instanceId,
+        templateId,
+        contactIds: selectedContactIds,
+      }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      setName(""); setInstanceId(""); setTemplateId("");
+      setSelectedContactIds([]);
+      setContactSearch(""); setTagFilter("all");
       mutate();
       toast.success("Campanha criada");
     } catch {
@@ -172,10 +225,80 @@ export default function CampaignsPage() {
               </>
             )}
           </div>
-          <div className="space-y-1">
-            <Label>Tags do Segmento</Label>
-            <Input value={segmentTags} onChange={(e) => setSegmentTags(e.target.value)} placeholder="vip,leads" />
+          <div className="md:col-span-4 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> Destinatários
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                <strong>{selectedContactIds.length}</strong> selecionado(s) de {contacts?.length ?? 0} contato(s)
+              </p>
+            </div>
+
+            {Array.isArray(contacts) && contacts.length === 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
+                <p>Você ainda não tem nenhum contato cadastrado. A campanha precisa de pelo menos 1 destinatário.</p>
+                <Link href="/dashboard/contacts" className="inline-flex items-center gap-1 font-semibold underline">
+                  <UserPlus className="h-4 w-4" /> Configurar contatos →
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={contactSearch}
+                      onChange={(e) => setContactSearch(e.target.value)}
+                      placeholder="Buscar por nome ou telefone..."
+                      className="flex-1"
+                    />
+                  </div>
+                  <Select value={tagFilter} onValueChange={setTagFilter}>
+                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as tags</SelectItem>
+                      {availableTags.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" size="sm" onClick={selectAllFiltered}>
+                    Selecionar visíveis ({filteredContacts.length})
+                  </Button>
+                  {selectedContactIds.length > 0 && (
+                    <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+                      Limpar ({selectedContactIds.length})
+                    </Button>
+                  )}
+                </div>
+
+                <div className="border rounded-md max-h-[280px] overflow-y-auto divide-y">
+                  {filteredContacts.length === 0 ? (
+                    <p className="p-4 text-sm text-muted-foreground text-center">Nenhum contato bate com esse filtro.</p>
+                  ) : filteredContacts.map((c) => {
+                    const checked = selectedContactIds.includes(c.id);
+                    const tags = c.tags ? (() => { try { return JSON.parse(c.tags) as string[]; } catch { return []; } })() : [];
+                    return (
+                      <label key={c.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40 text-sm">
+                        <input type="checkbox" checked={checked} onChange={() => toggleContact(c.id)} className="h-4 w-4" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{c.name || "(sem nome)"}</div>
+                          <div className="text-xs text-muted-foreground font-mono">{c.phone}</div>
+                        </div>
+                        {tags.length > 0 && (
+                          <div className="flex gap-1 flex-wrap">
+                            {tags.slice(0, 3).map((t) => (
+                              <span key={t} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t}</span>
+                            ))}
+                          </div>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
+
           <div className="md:col-span-4 flex flex-col gap-2">
             {validationError && <p className="text-sm text-red-600">{validationError}</p>}
             <Button
@@ -183,12 +306,14 @@ export default function CampaignsPage() {
               disabled={
                 creating ||
                 !templateId ||
+                selectedContactIds.length === 0 ||
                 !instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open'))
               }
               title={
                 !templateId ? "Selecione um template (obrigatório)" :
+                selectedContactIds.length === 0 ? "Selecione pelo menos 1 destinatário" :
                 !instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open')) ? "Conecte uma instância antes" :
-                "Criar campanha"
+                `Criar campanha para ${selectedContactIds.length} contato(s)`
               }
             >
               {creating ? (

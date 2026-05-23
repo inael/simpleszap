@@ -268,7 +268,11 @@ model Campaign {
   name        String
   instanceId  String
   templateId  String?
-  segmentTags String?  // JSON array of tags
+  segmentTags String?  // JSON array of tags (filtro alternativo, legacy)
+  /// JSON array de Contact.id selecionados pelo user. Quando preenchido,
+  /// campaign.run usa essa lista exata (ignora segmentTags). Quando null/[],
+  /// cai no comportamento legacy de filtrar Contact por segmentTags.
+  contactIds  String?
   scheduledAt DateTime?
   status      String   @default("draft") // draft, scheduled, running, done
   createdAt   DateTime @default(now())
