@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { TrendingDown } from 'lucide-react';
 
-// Premissas didáticas (preço aproximado do mercado BR pra marketing template).
-// Documentado: https://developers.facebook.com/docs/whatsapp/pricing
-const META_BRL_PER_MSG = 0.09;
+// Tarifa oficial Meta Cloud API — Brasil, categoria Marketing, vigente desde
+// 1º jan/2026 (mudança per-conversation -> per-message).
+// USD $0,0625 ≈ R$ 0,35 (cotação março/2026, BRL nativo previsto pra 2º sem/2026)
+// Fonte: business.whatsapp.com/products/platform-pricing
+const META_BRL_PER_MSG = 0.35;
 const SZ_BASE = 59; // 1 instância
 const SZ_PACK_BRL = 15; // pack de +100 msgs/dia
 const SZ_PACK_DAY = 100;
@@ -75,7 +77,7 @@ export function PricingVsMetaSection() {
             </span>
           </h2>
           <p className="mt-6 text-lg text-neutral-400 max-w-2xl mx-auto">
-            Cloud API oficial cobra ~R$ 0,09 por mensagem de marketing.
+            Cloud API oficial cobra <strong className="text-white">R$ 0,35 por mensagem de marketing</strong> no Brasil (tarifa vigente desde jan/2026).
             No SimplesZap você paga <strong className="text-white">R$ 59/mês por instância</strong> e dispara à vontade.
           </p>
         </motion.div>
@@ -121,7 +123,7 @@ export function PricingVsMetaSection() {
               R$ <AnimatedNumber value={metaCost} decimals={0} />
             </div>
             <p className="text-neutral-500 text-sm mt-2">
-              {volume.toLocaleString('pt-BR')} msgs × R$ 0,09 (preço aproximado)
+              {volume.toLocaleString('pt-BR')} msgs × R$ 0,35 (marketing BR, jan/2026)
             </p>
           </motion.div>
 
@@ -175,9 +177,13 @@ export function PricingVsMetaSection() {
         </motion.div>
 
         <p className="text-xs text-neutral-500 text-center mt-6 max-w-2xl mx-auto">
-          Preço Meta aproximado (tier marketing BR, varia conforme conversation pricing).
-          SimplesZap usa conexão por QR (não-oficial) — sem cobrança por mensagem,
-          com proteções anti-banimento embutidas.
+          Tarifa Meta: R$ 0,35/msg para templates de Marketing no Brasil (vigente desde 1º jan/2026, modelo per-message).
+          Utility/Authentication são mais baratos (~R$ 0,04) e Service (resposta dentro da janela de 24h) é grátis —
+          mas disparo em massa cai sempre em Marketing.{" "}
+          <a href="https://business.whatsapp.com/products/platform-pricing" target="_blank" rel="noopener" className="underline hover:text-emerald-400">
+            Fonte: tabela oficial Meta
+          </a>.
+          SimplesZap usa conexão por QR (não-oficial) — sem cobrança por msg, com proteções anti-banimento embutidas.
         </p>
       </div>
     </section>
