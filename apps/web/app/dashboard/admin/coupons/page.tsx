@@ -13,6 +13,7 @@ import useSWR from "swr";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 interface Plan { id: string; name: string }
 interface Coupon {
@@ -39,7 +40,7 @@ export default function CouponsAdminPage() {
     const token = await getToken();
     return api.get(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined }).then((r) => r.data);
   };
-  const { data: coupons, error, mutate, isLoading } = useSWR<Coupon[]>('/admin/coupons', fetcher);
+  const { data: coupons, error, mutate } = useSWR<Coupon[]>('/admin/coupons', fetcher);
   const { data: pricingData } = useSWR('/pricing', fetcher);
   const plans: Plan[] = (pricingData?.plans || []).map((p: any) => ({ id: p.id, name: p.name }));
 
@@ -227,10 +228,7 @@ export default function CouponsAdminPage() {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <p className="text-center text-sm text-muted-foreground py-8">Carregando...</p>
-          ) : (
-            <Table>
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Código</TableHead>
@@ -244,6 +242,9 @@ export default function CouponsAdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {coupons === undefined && !error && (
+                  <TableLoadingRows colSpan={8} />
+                )}
                 {coupons?.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-mono font-semibold">{c.code}</TableCell>
@@ -268,7 +269,7 @@ export default function CouponsAdminPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!coupons?.length && (
+                {Array.isArray(coupons) && coupons.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       Nenhum cupom criado.
@@ -277,7 +278,6 @@ export default function CouponsAdminPage() {
                 )}
               </TableBody>
             </Table>
-          )}
         </CardContent>
       </Card>
     </div>

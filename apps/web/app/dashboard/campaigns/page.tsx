@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 export default function CampaignsPage() {
   const { getToken, user } = useAuth();
@@ -176,6 +177,9 @@ export default function CampaignsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {campaigns === undefined && !campaignsError && (
+                <TableLoadingRows colSpan={3} />
+              )}
               {campaigns?.map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell>{c.name}</TableCell>
@@ -185,6 +189,11 @@ export default function CampaignsPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {Array.isArray(campaigns) && campaigns.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">Nenhuma campanha</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

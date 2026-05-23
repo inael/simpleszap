@@ -19,6 +19,7 @@ import useSWR from "swr";
 import { useAdminApi } from "@/lib/use-admin-api";
 import { fetcher } from "@/lib/api";
 import { toast } from "sonner";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 type UserRow = {
   id: string;
@@ -40,7 +41,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, mutate } = useSWR(
     `/admin/users?page=${page}&limit=20&search=${search}`,
     adminFetcher
   );
@@ -126,10 +127,7 @@ export default function AdminUsersPage() {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
-          ) : (
-            <>
+          <>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -143,6 +141,9 @@ export default function AdminUsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {data === undefined && !error && (
+                    <TableLoadingRows colSpan={7} />
+                  )}
                   {data?.users?.map((user: UserRow) => {
                     const courtesyActive = !!(user.manualSubscriptionUntil && new Date(user.manualSubscriptionUntil) > new Date());
                     return (
@@ -182,7 +183,7 @@ export default function AdminUsersPage() {
                       </TableRow>
                     );
                   })}
-                  {data?.users?.length === 0 && (
+                  {Array.isArray(data?.users) && data.users.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         Nenhum usuário encontrado.
@@ -217,7 +218,6 @@ export default function AdminUsersPage() {
                 </div>
               )}
             </>
-          )}
         </CardContent>
       </Card>
 

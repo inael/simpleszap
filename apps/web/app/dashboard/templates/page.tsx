@@ -12,6 +12,7 @@ import { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 const TEMPLATE_VARIABLES = [
   { label: "Nome do contato", value: "{{name}}" },
@@ -130,6 +131,9 @@ export default function TemplatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {templates === undefined && !templatesError && (
+                <TableLoadingRows colSpan={3} />
+              )}
               {templates?.map((t: any) => (
                 <TableRow key={t.id}>
                   <TableCell>{t.name}</TableCell>
@@ -139,6 +143,11 @@ export default function TemplatesPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {Array.isArray(templates) && templates.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">Nenhum template</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

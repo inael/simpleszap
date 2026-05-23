@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import useSWR from "swr";
 import { useAdminApi } from "@/lib/use-admin-api";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 export default function AdminAuditLogsPage() {
   const { adminFetcher } = useAdminApi();
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useSWR(
+  const { data, error } = useSWR(
     `/admin/audit-logs?page=${page}&limit=50`,
     adminFetcher
   );
@@ -28,10 +29,7 @@ export default function AdminAuditLogsPage() {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
-          ) : (
-            <>
+          <>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -43,6 +41,9 @@ export default function AdminAuditLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {data === undefined && !error && (
+                    <TableLoadingRows colSpan={5} />
+                  )}
                   {data?.logs?.map((log: any) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-sm whitespace-nowrap">
@@ -60,7 +61,7 @@ export default function AdminAuditLogsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {data?.logs?.length === 0 && (
+                  {Array.isArray(data?.logs) && data.logs.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                         Nenhum log encontrado.
@@ -85,7 +86,6 @@ export default function AdminAuditLogsPage() {
                 </div>
               )}
             </>
-          )}
         </CardContent>
       </Card>
     </div>

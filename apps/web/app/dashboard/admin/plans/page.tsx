@@ -12,6 +12,7 @@ import { Plus, AlertCircle, CloudOff, Cloud, RefreshCw, Loader2 } from "lucide-r
 import useSWR from "swr";
 import { useAdminApi } from "@/lib/use-admin-api";
 import { toast } from "sonner";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 interface Plan {
   id: string;
@@ -30,7 +31,7 @@ interface Plan {
 
 export default function AdminPlansPage() {
   const { adminFetcher, adminPost, adminPut, adminDelete } = useAdminApi();
-  const { data: plans, error: plansError, isLoading, mutate } = useSWR<Plan[]>("/admin/plans", adminFetcher);
+  const { data: plans, error: plansError, mutate } = useSWR<Plan[]>("/admin/plans", adminFetcher);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
   const [syncingPlan, setSyncingPlan] = useState<string | null>(null);
@@ -211,10 +212,7 @@ export default function AdminPlansPage() {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
-          ) : (
-            <Table>
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
@@ -227,6 +225,9 @@ export default function AdminPlansPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {plans === undefined && !plansError && (
+                  <TableLoadingRows colSpan={7} />
+                )}
                 {plans?.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell className="font-mono text-sm">{plan.id}</TableCell>
@@ -246,9 +247,13 @@ export default function AdminPlansPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {Array.isArray(plans) && plans.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum plano cadastrado</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
-          )}
         </CardContent>
       </Card>
     </div>

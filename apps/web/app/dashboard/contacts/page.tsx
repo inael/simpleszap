@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, Download } from "lucide-react";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 export default function ContactsPage() {
   const { getToken, user } = useAuth();
@@ -176,6 +177,9 @@ export default function ContactsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {contacts === undefined && !contactsError && (
+                <TableLoadingRows colSpan={3} />
+              )}
               {contacts?.map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell>{c.name || "-"}</TableCell>
@@ -185,6 +189,11 @@ export default function ContactsPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {Array.isArray(contacts) && contacts.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">Nenhum contato</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
