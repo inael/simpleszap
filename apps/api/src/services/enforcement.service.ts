@@ -167,11 +167,19 @@ export class EnforcementService {
     if (!instance) return { allowed: false, code: 'NEED_SUBSCRIPTION', limit: 0, current: 0, planId: null };
 
     const today = todayUtc();
-    const instanceUsage = await prisma.instanceDailyUsage.upsert({
-      where: { instanceId_date: { instanceId, date: today } },
-      update: {},
-      create: { instanceId, date: today, count: 0 },
-    });
+    let instanceUsage: { count: number };
+    try {
+      instanceUsage = await prisma.instanceDailyUsage.upsert({
+        where: { instanceId_date: { instanceId, date: today } },
+        update: {},
+        create: { instanceId, date: today, count: 0 },
+      });
+    } catch (err: any) {
+      console.error(
+        `[enforcement] canSendMessage: instanceDailyUsage upsert failed (instanceId=${instanceId}): ${err?.message || err}`,
+      );
+      instanceUsage = { count: 0 };
+    }
 
     // Instance paga → usa cap próprio + pool
     if (instance.subscriptionStatus === 'active') {
@@ -182,12 +190,21 @@ export class EnforcementService {
       const poolLimit = user.messageAddons.reduce((acc, a) => acc + a.messagesPerDay, 0);
       if (poolLimit > 0) {
         // FK: DailyUsage.userId referencia User.id (PK UUID), NÃO logtoId
-        const poolUsage = await prisma.dailyUsage.upsert({
-          where: { userId_date: { userId: user.id, date: today } },
-          update: {},
-          create: { userId: user.id, orgId, date: today, count: 0 },
-        });
-        if (poolUsage.count < poolLimit) {
+        try {
+          const poolUsage = await prisma.dailyUsage.upsert({
+            where: { userId_date: { userId: user.id, date: today } },
+            update: {},
+            create: { userId: user.id, orgId, date: today, count: 0 },
+          });
+          if (poolUsage.count < poolLimit) {
+            return { allowed: true, consumesPool: true };
+          }
+        } catch (err: any) {
+          console.error(
+            `[enforcement] canSendMessage: dailyUsage upsert failed (userId=${user.id}, orgId=${orgId}): ${err?.message || err}`,
+          );
+          // Falha defensiva: deixa passar como consumesPool=true. Pior caso
+          // não contabiliza, melhor isso que travar envio.
           return { allowed: true, consumesPool: true };
         }
       }
