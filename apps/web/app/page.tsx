@@ -35,9 +35,9 @@ export default async function Home() {
   const isSignedIn = context.isAuthenticated;
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col min-h-screen bg-[#0f0f0f] text-white">
       {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/60 backdrop-blur-lg">
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#0f0f0f]/60 backdrop-blur-lg">
         <div className="container flex h-20 items-center justify-between mx-auto px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
             <div className="bg-emerald-500/15 p-2 rounded-lg">
@@ -95,7 +95,7 @@ export default async function Home() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-28 bg-black relative overflow-hidden">
+      <section id="features" className="py-28 bg-[#0f0f0f] relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.10),transparent_60%)]" />
         <div className="container px-4 md:px-6 mx-auto relative">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -194,7 +194,7 @@ export default async function Home() {
       </section>
 
       {/* Casos de uso + ilustração */}
-      <section className="py-24 bg-black relative overflow-hidden">
+      <section className="py-24 bg-[#0f0f0f] relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(16,185,129,0.07),transparent_55%)]" />
         <div className="container px-4 md:px-6 mx-auto max-w-6xl relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -269,7 +269,7 @@ export default async function Home() {
       </section>
 
       {/* Como começar em 3 passos */}
-      <section className="py-24 bg-black relative overflow-hidden">
+      <section className="py-24 bg-[#0f0f0f] relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,rgba(16,185,129,0.12),transparent_60%)]" />
         <div className="container relative px-4 md:px-6 mx-auto max-w-4xl">
           <div className="flex items-center gap-2 text-emerald-400 font-medium mb-3">
@@ -345,7 +345,7 @@ export default async function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-28 bg-black text-white relative overflow-hidden">
+      <section id="pricing" className="py-28 bg-[#0f0f0f] text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-25 z-0">
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500 rounded-full blur-[120px]"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500 rounded-full blur-[120px]"></div>
@@ -476,7 +476,7 @@ export default async function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-black text-neutral-400 py-16 border-t border-white/5">
+      <footer className="bg-[#0f0f0f] text-neutral-400 py-16 border-t border-white/5">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="grid md:grid-cols-4 gap-12">
             <div className="col-span-2">
