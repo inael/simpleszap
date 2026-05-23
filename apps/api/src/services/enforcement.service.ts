@@ -230,20 +230,37 @@ export class EnforcementService {
   static async incrementMessageCount(orgId: string, instanceId?: string, consumesPool = false) {
     const today = todayUtc();
     if (instanceId) {
-      await prisma.instanceDailyUsage.upsert({
-        where: { instanceId_date: { instanceId, date: today } },
-        update: { count: { increment: 1 } },
-        create: { instanceId, date: today, count: 1 },
-      });
+      try {
+        await prisma.instanceDailyUsage.upsert({
+          where: { instanceId_date: { instanceId, date: today } },
+          update: { count: { increment: 1 } },
+          create: { instanceId, date: today, count: 1 },
+        });
+      } catch (err: any) {
+        console.error(
+          `[enforcement] instanceDailyUsage upsert failed (instanceId=${instanceId}): ${err?.message || err}`,
+        );
+      }
     }
     if (consumesPool || !instanceId) {
       const user = await prisma.user.findUnique({ where: { logtoId: orgId } });
-      if (!user) return; // user fantasma (não deveria acontecer)
-      await prisma.dailyUsage.upsert({
-        where: { userId_date: { userId: user.id, date: today } },
-        update: { count: { increment: 1 } },
-        create: { userId: user.id, orgId, date: today, count: 1 },
-      });
+      if (!user) {
+        console.error(
+          `[enforcement] dailyUsage skipped: user not found for orgId=${orgId} (lookup by logtoId)`,
+        );
+        return;
+      }
+      try {
+        await prisma.dailyUsage.upsert({
+          where: { userId_date: { userId: user.id, date: today } },
+          update: { count: { increment: 1 } },
+          create: { userId: user.id, orgId, date: today, count: 1 },
+        });
+      } catch (err: any) {
+        console.error(
+          `[enforcement] dailyUsage upsert failed (userId=${user.id}, orgId=${orgId}): ${err?.message || err}`,
+        );
+      }
     }
   }
 }

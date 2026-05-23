@@ -220,15 +220,15 @@ export class MessageQueueController {
             });
             if (claimed.count === 0) continue; // outro tick pegou
 
+            let deliverySucceeded = false;
             try {
               const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
               const evoName = instance?.evolutionInstanceName || instanceId;
 
-              let evoResult: any;
               if (msg.type === 'buttons') {
-                evoResult = await EvolutionService.sendButtons(evoName, msg.payload as any);
+                await EvolutionService.sendButtons(evoName, msg.payload as any);
               } else {
-                evoResult = await EvolutionService.sendText(evoName, msg.number, msg.body || '');
+                await EvolutionService.sendText(evoName, msg.number, msg.body || '');
               }
 
               await prisma.$transaction([
@@ -247,13 +247,7 @@ export class MessageQueueController {
                   },
                 }),
               ]);
-              await EnforcementService.incrementMessageCount(msg.orgId, msg.instanceId, !!(check as any).consumesPool);
-              await WebhookDeliveryService.trigger(msg.orgId, 'message.sent', {
-                instanceId,
-                number: msg.number,
-                type: msg.type,
-                queueId: msg.id,
-              }).catch(() => null);
+              deliverySucceeded = true;
               stats.sent += 1;
             } catch (err: any) {
               await prisma.outboundMessageQueue.update({
@@ -278,6 +272,30 @@ export class MessageQueueController {
                 error: String(err?.message || err).slice(0, 200),
               }).catch(() => null);
               stats.failed += 1;
+            }
+
+            // Side effects do envio bem-sucedido — falhas aqui NÃO devem marcar
+            // a mensagem como failed nem disparar webhook message.failed. A msg
+            // já foi entregue pelo Evolution; o que fica pra fazer é contador
+            // e webhook de sucesso, ambos best-effort.
+            if (deliverySucceeded) {
+              try {
+                await EnforcementService.incrementMessageCount(
+                  msg.orgId,
+                  msg.instanceId,
+                  !!(check as any).consumesPool,
+                );
+              } catch (counterErr: any) {
+                console.error(
+                  `[processCron] incrementMessageCount failed for msg ${msg.id} (orgId=${msg.orgId}, instanceId=${msg.instanceId}): ${counterErr?.message || counterErr}`,
+                );
+              }
+              await WebhookDeliveryService.trigger(msg.orgId, 'message.sent', {
+                instanceId,
+                number: msg.number,
+                type: msg.type,
+                queueId: msg.id,
+              }).catch(() => null);
             }
           }
         })

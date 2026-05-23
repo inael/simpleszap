@@ -20,16 +20,24 @@ export class DashboardController {
       const today = startOfUtcDay(new Date());
       const weekStart = addUtcDays(today, -6);
 
+      // DailyUsage.userId é FK pra User.id (PK), não logtoId — precisa converter.
+      const user = await prisma.user.findUnique({ where: { logtoId: orgId } });
+      const userId = user?.id;
+
       const [totalInstances, messagesToday, weekRows, recentActivity] = await Promise.all([
         prisma.instance.count({ where: { orgId } }),
-        prisma.dailyUsage.aggregate({
-          _sum: { count: true },
-          where: { userId: orgId, date: { gte: today } },
-        }),
-        prisma.dailyUsage.findMany({
-          where: { userId: orgId, date: { gte: weekStart } },
-          orderBy: { date: 'asc' },
-        }),
+        userId
+          ? prisma.dailyUsage.aggregate({
+              _sum: { count: true },
+              where: { userId, date: { gte: today } },
+            })
+          : Promise.resolve({ _sum: { count: 0 } } as any),
+        userId
+          ? prisma.dailyUsage.findMany({
+              where: { userId, date: { gte: weekStart } },
+              orderBy: { date: 'asc' },
+            })
+          : Promise.resolve([] as any[]),
         prisma.auditLog.findMany({
           where: { orgId },
           orderBy: { createdAt: 'desc' },
