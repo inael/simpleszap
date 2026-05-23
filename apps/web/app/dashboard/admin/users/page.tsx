@@ -55,6 +55,7 @@ export default function AdminUsersPage() {
   const [grantMonths, setGrantMonths] = useState<string>("1");
   const [grantReason, setGrantReason] = useState<string>("");
   const [grantBusy, setGrantBusy] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   const openGrantDialog = (u: UserRow) => {
     setGrantUser(u);
@@ -70,6 +71,7 @@ export default function AdminUsersPage() {
     const m = Number(grantMonths);
     if (!Number.isFinite(m) || m <= 0 || m > 60) return toast.error("Meses deve ser entre 1 e 60");
     if (!grantReason.trim() || grantReason.trim().length < 3) return toast.error("Descreva o motivo (mínimo 3 caracteres)");
+    if (grantBusy) return;
 
     setGrantBusy(true);
     try {
@@ -87,13 +89,17 @@ export default function AdminUsersPage() {
   };
 
   const handleRevoke = async (u: UserRow) => {
+    if (revokingId) return;
     if (!confirm(`Revogar cortesia de ${u.email}?`)) return;
+    setRevokingId(u.id);
     try {
       await adminDelete(`/admin/users/${u.id}/grant-plan`);
       toast.success("Cortesia revogada");
       mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.error || "Erro ao revogar cortesia");
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -170,8 +176,12 @@ export default function AdminUsersPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           {courtesyActive ? (
-                            <Button variant="outline" size="sm" onClick={() => handleRevoke(user)}>
-                              Revogar cortesia
+                            <Button variant="outline" size="sm" onClick={() => handleRevoke(user)} disabled={revokingId === user.id}>
+                              {revokingId === user.id ? (
+                                <><Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> Revogando...</>
+                              ) : (
+                                "Revogar cortesia"
+                              )}
                             </Button>
                           ) : (
                             <Button variant="outline" size="sm" onClick={() => openGrantDialog(user)}>

@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
 
 const TEMPLATE_VARIABLES = [
@@ -34,6 +34,8 @@ export default function TemplatesPage() {
 
   const [name, setName] = useState("");
   const [body, setBody] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const insertVariable = (variable: string) => {
     const el = textareaRef.current;
@@ -55,6 +57,8 @@ export default function TemplatesPage() {
   const addTemplate = async () => {
     if (!orgId) return toast.error("Erro de autenticação.");
     if (!name || !body) return toast.error("Informe nome e conteúdo");
+    if (creating) return;
+    setCreating(true);
     try {
       const token = await getToken();
       await api.post("/templates", { name, body }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -63,10 +67,14 @@ export default function TemplatesPage() {
       toast.success("Template criado");
     } catch {
       toast.error("Erro ao criar template");
+    } finally {
+      setCreating(false);
     }
   };
 
   const remove = async (id: string) => {
+    if (deletingId) return;
+    setDeletingId(id);
     try {
       const token = await getToken();
       await api.delete(`/templates/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -74,6 +82,8 @@ export default function TemplatesPage() {
       toast.success("Template removido");
     } catch {
       toast.error("Erro ao remover");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -113,7 +123,16 @@ export default function TemplatesPage() {
               </Button>
             ))}
           </div>
-          <Button onClick={addTemplate} disabled={!orgId}>Adicionar</Button>
+          <Button onClick={addTemplate} disabled={!orgId || creating}>
+            {creating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adicionando...
+              </>
+            ) : (
+              "Adicionar"
+            )}
+          </Button>
         </CardContent>
       </Card>
 
@@ -139,7 +158,13 @@ export default function TemplatesPage() {
                   <TableCell>{t.name}</TableCell>
                   <TableCell className="max-w-[400px] truncate">{t.body}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" onClick={() => remove(t.id)}>Remover</Button>
+                    <Button variant="ghost" onClick={() => remove(t.id)} disabled={deletingId === t.id}>
+                      {deletingId === t.id ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removendo...</>
+                      ) : (
+                        "Remover"
+                      )}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

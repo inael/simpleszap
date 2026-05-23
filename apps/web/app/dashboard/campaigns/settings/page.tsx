@@ -11,7 +11,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 type SettingsPayload = {
   campaignJitterMinMs: number;
@@ -45,6 +45,7 @@ export default function CampaignSafetySettingsPage() {
   const [vc, setVc] = useState("");
   const [useVar, setUseVar] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [acceptingTerms, setAcceptingTerms] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -58,6 +59,7 @@ export default function CampaignSafetySettingsPage() {
 
   const save = async () => {
     if (!orgId) return;
+    if (saving) return;
     setSaving(true);
     try {
       const token = await getToken();
@@ -84,6 +86,8 @@ export default function CampaignSafetySettingsPage() {
 
   const acceptTerms = async () => {
     if (!orgId) return;
+    if (acceptingTerms) return;
+    setAcceptingTerms(true);
     try {
       const token = await getToken();
       await api.post(
@@ -95,6 +99,8 @@ export default function CampaignSafetySettingsPage() {
       mutate();
     } catch {
       toast.error("Erro ao registrar aceite");
+    } finally {
+      setAcceptingTerms(false);
     }
   };
 
@@ -136,8 +142,12 @@ export default function CampaignSafetySettingsPage() {
             </strong>
           </p>
           {!termsOk && (
-            <Button onClick={acceptTerms} className="bg-amber-700 hover:bg-amber-800 w-fit">
-              Li e aceito os termos
+            <Button onClick={acceptTerms} className="bg-amber-700 hover:bg-amber-800 w-fit" disabled={acceptingTerms}>
+              {acceptingTerms ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registrando...</>
+              ) : (
+                "Li e aceito os termos"
+              )}
             </Button>
           )}
         </CardContent>
@@ -196,7 +206,11 @@ export default function CampaignSafetySettingsPage() {
             <Textarea rows={3} value={vc} onChange={(e) => setVc(e.target.value)} />
           </div>
           <Button onClick={save} disabled={saving}>
-            {saving ? "Salvando…" : "Salvar configurações de campanha"}
+            {saving ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…</>
+            ) : (
+              "Salvar configurações de campanha"
+            )}
           </Button>
         </CardContent>
       </Card>

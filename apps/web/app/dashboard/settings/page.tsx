@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import { api } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 function formatCpfCnpj(d: string) {
   const digits = (d || '').replace(/\D/g, '');
@@ -40,6 +41,7 @@ export default function SettingsPage() {
   }, [me?.cpfCnpj]);
 
   const handleSaveCpf = async () => {
+    if (savingCpf) return;
     setSavingCpf(true);
     try {
       const token = await getToken();
@@ -56,6 +58,7 @@ export default function SettingsPage() {
   };
 
   const handleSaveNotifications = async () => {
+    if (savingNotif) return;
     setSavingNotif(true);
     try {
       // Notification preferences would be saved to the backend
@@ -140,7 +143,11 @@ export default function SettingsPage() {
               </p>
             </div>
             <Button onClick={handleSaveCpf} disabled={savingCpf || !cpfCnpj || cpfCnpj === formatCpfCnpj(me?.cpfCnpj || '')}>
-              {savingCpf ? 'Salvando...' : 'Salvar'}
+              {savingCpf ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
+              ) : (
+                'Salvar'
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -182,7 +189,11 @@ export default function SettingsPage() {
             </div>
             <Separator />
             <Button onClick={handleSaveNotifications} disabled={savingNotif}>
-              {savingNotif ? "Salvando..." : "Salvar Preferências"}
+              {savingNotif ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
+              ) : (
+                "Salvar Preferências"
+              )}
             </Button>
           </CardContent>
         </Card>

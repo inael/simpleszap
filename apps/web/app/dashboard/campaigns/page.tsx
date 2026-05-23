@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
 
 export default function CampaignsPage() {
@@ -46,11 +46,15 @@ export default function CampaignsPage() {
   const [templateId, setTemplateId] = useState("");
   const [segmentTags, setSegmentTags] = useState("");
   const [validationError, setValidationError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   const create = async () => {
     setValidationError("");
     if (!name) { setValidationError("Informe o nome da campanha"); return; }
     if (!instanceId) { setValidationError("Selecione uma instância para criar a campanha"); return; }
+    if (creating) return;
+    setCreating(true);
     try {
       const token = await getToken();
       await api.post("/campaigns", { name, instanceId, templateId: templateId || undefined, segmentTags: segmentTags ? segmentTags.split(",") : undefined }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -59,10 +63,14 @@ export default function CampaignsPage() {
       toast.success("Campanha criada");
     } catch {
       toast.error("Erro ao criar campanha");
+    } finally {
+      setCreating(false);
     }
   };
 
   const run = async (id: string) => {
+    if (runningId) return;
+    setRunningId(id);
     try {
       const token = await getToken();
       await api.post(`/campaigns/${id}/run`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -74,6 +82,8 @@ export default function CampaignsPage() {
         return;
       }
       toast.error("Erro na execução");
+    } finally {
+      setRunningId(null);
     }
   };
 
@@ -155,9 +165,13 @@ export default function CampaignsPage() {
             {validationError && <p className="text-sm text-red-600">{validationError}</p>}
             <Button
               onClick={create}
-              disabled={!instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open'))}
+              disabled={creating || !instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open'))}
             >
-              Criar
+              {creating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando...</>
+              ) : (
+                "Criar"
+              )}
             </Button>
           </div>
         </CardContent>
@@ -185,7 +199,13 @@ export default function CampaignsPage() {
                   <TableCell>{c.name}</TableCell>
                   <TableCell>{c.status}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" onClick={() => run(c.id)}>Executar</Button>
+                    <Button variant="outline" onClick={() => run(c.id)} disabled={runningId === c.id}>
+                      {runningId === c.id ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executando...</>
+                      ) : (
+                        "Executar"
+                      )}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

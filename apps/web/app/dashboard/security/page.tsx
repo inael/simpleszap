@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Globe, Key, Smartphone, RefreshCw } from "lucide-react";
+import { Globe, Key, Smartphone, RefreshCw, Loader2 } from "lucide-react";
 import useSWR from "swr";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ export default function SecurityPage() {
   const orgId = user?.sub;
   const [ipLines, setIpLines] = useState("");
   const [savingIp, setSavingIp] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [disabling, setDisabling] = useState(false);
 
   const { data, mutate } = useSWR(
     orgId ? ["/user/settings", orgId, "security"] : null,
@@ -44,6 +46,7 @@ export default function SecurityPage() {
 
   const saveIpList = async () => {
     if (!orgId) return;
+    if (savingIp) return;
     setSavingIp(true);
     try {
       const token = await getToken();
@@ -67,6 +70,8 @@ export default function SecurityPage() {
 
   const regenerateToken = async () => {
     if (!orgId) return;
+    if (regenerating) return;
+    setRegenerating(true);
     try {
       const token = await getToken();
       const res = await api.post(
@@ -86,11 +91,15 @@ export default function SecurityPage() {
       mutate();
     } catch {
       toast.error("Erro ao gerar token");
+    } finally {
+      setRegenerating(false);
     }
   };
 
   const disableToken = async () => {
     if (!orgId) return;
+    if (disabling) return;
+    setDisabling(true);
     try {
       const token = await getToken();
       await api.post(
@@ -103,6 +112,8 @@ export default function SecurityPage() {
       mutate();
     } catch {
       toast.error("Erro ao desativar");
+    } finally {
+      setDisabling(false);
     }
   };
 
@@ -151,7 +162,11 @@ export default function SecurityPage() {
             />
           </div>
           <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={saveIpList} disabled={savingIp}>
-            {savingIp ? "Salvando…" : "Salvar lista de IPs"}
+            {savingIp ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…</>
+            ) : (
+              "Salvar lista de IPs"
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -205,8 +220,8 @@ export default function SecurityPage() {
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input readOnly value={data?.hasClientToken ? "sz_ct•••••••• (oculto)" : "—"} className="max-w-xs font-mono text-sm" />
-            <Button type="button" variant="outline" size="icon" onClick={regenerateToken} title="Gerar novo token">
-              <RefreshCw className="h-4 w-4" />
+            <Button type="button" variant="outline" size="icon" onClick={regenerateToken} title="Gerar novo token" disabled={regenerating}>
+              {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -214,12 +229,20 @@ export default function SecurityPage() {
             ser salvo em <code>localStorage</code> após gerar.
           </p>
           <div className="flex gap-2">
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={regenerateToken}>
-              Gerar / renovar token
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={regenerateToken} disabled={regenerating}>
+              {regenerating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+              ) : (
+                "Gerar / renovar token"
+              )}
             </Button>
             {data?.requireClientToken && (
-              <Button variant="destructive" onClick={disableToken}>
-                Desativar token extra
+              <Button variant="destructive" onClick={disableToken} disabled={disabling}>
+                {disabling ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Desativando...</>
+                ) : (
+                  "Desativar token extra"
+                )}
               </Button>
             )}
           </div>

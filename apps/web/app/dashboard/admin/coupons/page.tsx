@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, AlertCircle, Trash2 } from "lucide-react";
+import { Plus, AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 import { useAuth } from "@/lib/auth-context";
@@ -59,6 +59,8 @@ export default function CouponsAdminPage() {
   };
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const togglePlan = (id: string) => {
     setForm((f) => ({
@@ -82,6 +84,7 @@ export default function CouponsAdminPage() {
       toast.error('Código obrigatório');
       return;
     }
+    if (submitting) return;
     setSubmitting(true);
     try {
       const token = await getToken();
@@ -108,17 +111,23 @@ export default function CouponsAdminPage() {
   };
 
   const toggleActive = async (c: Coupon) => {
+    if (togglingId) return;
+    setTogglingId(c.id);
     try {
       const token = await getToken();
       await api.put(`/admin/coupons/${c.id}`, { isActive: !c.isActive }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
       mutate();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || 'Erro ao atualizar');
+    } finally {
+      setTogglingId(null);
     }
   };
 
   const remove = async (c: Coupon) => {
+    if (deletingId) return;
     if (!confirm(`Remover cupom ${c.code}? ${c.timesUsed > 0 ? '(Ele já foi usado, será desativado em vez de apagado.)' : ''}`)) return;
+    setDeletingId(c.id);
     try {
       const token = await getToken();
       await api.delete(`/admin/coupons/${c.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
@@ -126,6 +135,8 @@ export default function CouponsAdminPage() {
       mutate();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || 'Erro ao remover');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -212,7 +223,11 @@ export default function CouponsAdminPage() {
                 <p className="text-xs text-muted-foreground mt-1">Vazio = ambos.</p>
               </div>
               <Button onClick={handleSubmit} disabled={submitting} className="w-full">
-                {submitting ? 'Criando...' : 'Criar Cupom'}
+                {submitting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando...</>
+                ) : (
+                  'Criar Cupom'
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -256,15 +271,15 @@ export default function CouponsAdminPage() {
                     <TableCell>
                       <Badge
                         variant={c.isActive ? 'default' : 'secondary'}
-                        className={c.isActive ? 'bg-emerald-500 cursor-pointer' : 'cursor-pointer'}
-                        onClick={() => toggleActive(c)}
+                        className={`${c.isActive ? 'bg-emerald-500' : ''} ${togglingId === c.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                        onClick={() => togglingId !== c.id && toggleActive(c)}
                       >
-                        {c.isActive ? 'Ativo' : 'Inativo'}
+                        {togglingId === c.id ? '...' : (c.isActive ? 'Ativo' : 'Inativo')}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => remove(c)} className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" onClick={() => remove(c)} className="text-red-600 hover:text-red-700" disabled={deletingId === c.id}>
+                        {deletingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </TableCell>
                   </TableRow>

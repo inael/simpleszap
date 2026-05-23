@@ -47,6 +47,7 @@ export default function AdminSettingsPage() {
       toast.error("API Key do Asaas é obrigatória");
       return;
     }
+    if (saving) return;
 
     setSaving(true);
     try {
@@ -74,6 +75,7 @@ export default function AdminSettingsPage() {
   };
 
   const handleTestConnection = async () => {
+    if (testing) return;
     setTesting(true);
     setTestResult(null);
     try {
@@ -91,6 +93,7 @@ export default function AdminSettingsPage() {
       toast.error("Informe a URL do webhook");
       return;
     }
+    if (registeringWebhook) return;
 
     setRegisteringWebhook(true);
     try {

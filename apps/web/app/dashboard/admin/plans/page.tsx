@@ -35,6 +35,7 @@ export default function AdminPlansPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
   const [syncingPlan, setSyncingPlan] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     id: "",
@@ -80,6 +81,8 @@ export default function AdminPlansPage() {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (editing) {
         const { id, ...data } = form;
@@ -95,6 +98,8 @@ export default function AdminPlansPage() {
     } catch (err: any) {
       const msg = err?.response?.data?.error || "Erro ao salvar plano";
       toast.error(msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -196,8 +201,12 @@ export default function AdminPlansPage() {
               </div>
 
             </div>
-            <Button onClick={handleSubmit} className="w-full">
-              {editing ? "Salvar Alterações" : "Criar Plano"}
+            <Button onClick={handleSubmit} className="w-full" disabled={submitting}>
+              {submitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {editing ? "Salvando..." : "Criando..."}</>
+              ) : (
+                editing ? "Salvar Alterações" : "Criar Plano"
+              )}
             </Button>
           </DialogContent>
         </Dialog>

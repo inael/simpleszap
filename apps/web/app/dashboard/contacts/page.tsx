@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Download } from "lucide-react";
+import { AlertCircle, Download, Loader2 } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
 
 export default function ContactsPage() {
@@ -40,6 +40,8 @@ export default function ContactsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importInstanceId, setImportInstanceId] = useState("");
   const [importing, setImporting] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const readyInstances = instances?.filter((i) => i.status === "connected" || i.status === "open") ?? [];
 
   const importContacts = async () => {
@@ -67,6 +69,8 @@ export default function ContactsPage() {
   const addContact = async () => {
     if (!orgId) return toast.error("Erro de autenticação.");
     if (!phone) return toast.error("Informe o telefone");
+    if (creating) return;
+    setCreating(true);
     try {
       const token = await getToken();
       await api.post("/contacts", { name, phone }, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -75,10 +79,14 @@ export default function ContactsPage() {
       toast.success("Contato criado");
     } catch {
       toast.error("Erro ao criar contato");
+    } finally {
+      setCreating(false);
     }
   };
 
   const remove = async (id: string) => {
+    if (deletingId) return;
+    setDeletingId(id);
     try {
       const token = await getToken();
       await api.delete(`/contacts/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -86,6 +94,8 @@ export default function ContactsPage() {
       toast.success("Contato removido");
     } catch {
       toast.error("Erro ao remover");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -132,7 +142,11 @@ export default function ContactsPage() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>Cancelar</Button>
               <Button onClick={importContacts} disabled={!importInstanceId || importing}>
-                {importing ? "Importando..." : "Importar agora"}
+                {importing ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importando...</>
+                ) : (
+                  "Importar agora"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -159,7 +173,13 @@ export default function ContactsPage() {
             <Label>Telefone</Label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5511999999999" />
           </div>
-          <Button onClick={addContact} disabled={!orgId}>Adicionar</Button>
+          <Button onClick={addContact} disabled={!orgId || creating}>
+            {creating ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adicionando...</>
+            ) : (
+              "Adicionar"
+            )}
+          </Button>
         </CardContent>
       </Card>
 
@@ -185,7 +205,13 @@ export default function ContactsPage() {
                   <TableCell>{c.name || "-"}</TableCell>
                   <TableCell>{c.phone}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" onClick={() => remove(c.id)}>Remover</Button>
+                    <Button variant="ghost" onClick={() => remove(c.id)} disabled={deletingId === c.id}>
+                      {deletingId === c.id ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removendo...</>
+                      ) : (
+                        "Remover"
+                      )}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
