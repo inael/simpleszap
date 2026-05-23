@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-// Fundo do video é #0f0f0f puro = mesmo bg da pagina => sem mask necessaria
+// Fundo do video é #0e0e0e puro = mesmo bg da pagina => sem mask necessaria
 // (mantenho mask sutil só pra suavizar microvariações de codec/blocking).
 const videoMaskStyle = {
   WebkitMaskImage:
@@ -15,9 +15,9 @@ const videoMaskStyle = {
 
 export function HeroV2({ isSignedIn, docsUrl }: { isSignedIn: boolean; docsUrl: string }) {
   return (
-    <section className="relative overflow-hidden bg-[#0f0f0f] text-white pt-24 pb-28 lg:pt-32 lg:pb-40">
+    <section className="relative overflow-hidden bg-[#0e0e0e] text-white pt-24 pb-28 lg:pt-32 lg:pb-40">
       {/* Backdrop layers */}
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/30 via-[#0f0f0f] to-[#0f0f0f]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/30 via-[#0e0e0e] to-[#0e0e0e]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(16,185,129,0.18),transparent_55%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_10%_80%,rgba(56,189,248,0.08),transparent_50%)]" />
       {/* Subtle grain */}
