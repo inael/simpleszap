@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Globe, Smartphone } from "lucide-react";
+import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText } from "lucide-react";
 
 type EventDef = {
   key: string;
@@ -79,6 +79,7 @@ export default function WebhooksPage() {
   const [secret, setSecret] = useState("");
   const [applyTo, setApplyTo] = useState<string>("global"); // "global" ou instanceId
   const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_SELECTED);
+  const [lastCreated, setLastCreated] = useState<{ url: string; events: number; scope: string } | null>(null);
 
   const groupedEvents = useMemo(() => {
     const groups: Record<string, EventDef[]> = {};
@@ -116,11 +117,17 @@ export default function WebhooksPage() {
         },
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
+      const scopeLabel = applyTo === "global"
+        ? "todas as instâncias"
+        : `instância "${instanceMap.get(applyTo) || applyTo}"`;
+      setLastCreated({ url, events: selectedEvents.length, scope: scopeLabel });
       setUrl(""); setSecret("");
       setApplyTo("global");
       setSelectedEvents(DEFAULT_SELECTED);
       mutate();
       toast.success("Webhook configurado");
+      // Auto-esconde o banner após 8s
+      setTimeout(() => setLastCreated(null), 8000);
     } catch {
       toast.error("Erro ao configurar webhook");
     }
@@ -142,19 +149,41 @@ export default function WebhooksPage() {
         </div>
       )}
 
+      {lastCreated && (
+        <div className="flex items-start gap-3 rounded-md border border-green-200 bg-green-50 p-4 text-green-900">
+          <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5 text-green-600" />
+          <div>
+            <p className="font-semibold">Webhook adicionado!</p>
+            <p className="text-sm">
+              <code className="text-xs">{lastCreated.url}</code> agora vai receber{" "}
+              <strong>{lastCreated.events}</strong> {lastCreated.events === 1 ? "evento" : "eventos"} de{" "}
+              <strong>{lastCreated.scope}</strong>. Veja abaixo em "Configurações" e teste mandando uma mensagem.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Novo Webhook</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Um webhook é uma URL do <strong>seu sistema</strong> (n8n, backend próprio, Zapier, etc) que o SimplesZap vai chamar
+            via <code className="text-xs">POST</code> sempre que algo acontecer no WhatsApp dessa conta — mensagem chegou, foi lida,
+            instância desconectou, etc. Cada POST vem com header <code className="text-xs">x-webhook-signature</code> assinado
+            com HMAC SHA-256 + seu secret pra você validar que veio de nós.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
               <Label>URL</Label>
-              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://n8n.suaempresa.com/webhook/abc" />
+              <p className="text-xs text-muted-foreground">Endpoint público do seu sistema que aceita POST com JSON.</p>
             </div>
             <div className="space-y-1">
               <Label>Secret</Label>
-              <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="secret" />
+              <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="qualquer string aleatória" />
+              <p className="text-xs text-muted-foreground">Usado pra assinar cada POST (header x-webhook-signature). Guarde no seu sistema.</p>
             </div>
             <div className="space-y-1">
               <Label>Aplicar a</Label>
@@ -241,15 +270,45 @@ export default function WebhooksPage() {
             </div>
           </div>
 
-          <div>
-            <Button onClick={add} disabled={!orgId}>Adicionar</Button>
-          </div>
+          {(() => {
+            const missing: string[] = [];
+            if (!url.trim()) missing.push("URL");
+            if (!secret.trim()) missing.push("Secret");
+            if (selectedEvents.length === 0) missing.push("ao menos 1 evento");
+            const ready = missing.length === 0;
+            return (
+              <div className="space-y-2">
+                {!ready && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <div>
+                      Faltando: <strong>{missing.join(", ")}</strong>.
+                      {!url.trim() && (
+                        <> Role para o topo do form e preencha a <strong>URL</strong> do seu sistema externo (ex: <code className="text-xs">https://n8n.suaempresa.com/webhook/abc</code>).</>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <Button
+                  onClick={add}
+                  disabled={!orgId || !ready}
+                  title={ready ? "Salvar webhook" : `Preencha: ${missing.join(", ")}`}
+                >
+                  Adicionar
+                </Button>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Configurações</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Webhooks cadastrados nessa conta. <strong>Global</strong> = recebe eventos de todas as instâncias.
+            Quando vinculado a uma instância específica, sobrescreve o global naquela instância (estilo Stripe).
+          </p>
         </CardHeader>
         <CardContent>
           <Table>
@@ -282,7 +341,12 @@ export default function WebhooksPage() {
                       {(() => {
                         try {
                           const arr = JSON.parse(c.events) as string[];
-                          return arr.length > 3 ? `${arr.slice(0, 3).join(", ")} +${arr.length - 3}` : arr.join(", ");
+                          if (arr.length <= 3) return arr.join(", ");
+                          return (
+                            <span title={arr.join("\n")}>
+                              {arr.slice(0, 3).join(", ")} <span className="font-semibold text-foreground">+{arr.length - 3}</span>
+                            </span>
+                          );
                         } catch {
                           return c.events;
                         }
@@ -305,7 +369,11 @@ export default function WebhooksPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Logs</CardTitle>
+          <CardTitle>Logs de entrega</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Histórico das últimas tentativas de entrega pros seus webhooks. <strong>OK</strong> = seu sistema respondeu HTTP 2xx.
+            <strong> Falha</strong> = seu endpoint retornou erro ou estava fora do ar.
+          </p>
         </CardHeader>
         <CardContent>
           <Table>
@@ -320,10 +388,28 @@ export default function WebhooksPage() {
               {logs?.map((l: any) => (
                 <TableRow key={l.id}>
                   <TableCell>{new Date(l.createdAt).toLocaleString()}</TableCell>
-                  <TableCell>{l.event}</TableCell>
-                  <TableCell>{l.success ? 'OK' : 'Falha'}</TableCell>
+                  <TableCell className="font-mono text-xs">{l.event}</TableCell>
+                  <TableCell>
+                    {l.success ? (
+                      <span className="inline-flex items-center gap-1 text-green-700 text-sm">
+                        <CheckCircle2 className="h-3 w-3" /> OK
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-red-700 text-sm" title={l.error || ''}>
+                        <AlertCircle className="h-3 w-3" /> Falha
+                      </span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
+              {!logs?.length && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                    <FileText className="h-6 w-6 mx-auto mb-2 opacity-40" />
+                    Nenhum log ainda. Os logs aparecem aqui quando algum evento dispara — receba uma mensagem no WhatsApp pra testar.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
