@@ -142,6 +142,24 @@ export default function WebhooksPage() {
         </div>
       </div>
 
+      <div className="flex items-start gap-3 rounded-md border border-sky-200 bg-sky-50 p-4">
+        <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-sky-600" />
+        <div className="text-sm text-sky-900 space-y-2">
+          <p>
+            <strong>Como funciona o roteamento</strong>
+          </p>
+          <p>
+            Por padrão, cada webhook que você adicionar aqui é <strong>Global</strong> — recebe os eventos de <strong>todas as instâncias</strong> dessa conta.
+            Isso cobre 99% dos casos: 1 endpoint do seu sistema (n8n, backend, etc) acumulando tudo num só lugar.
+          </p>
+          <p>
+            Quer comportamento diferente pra uma instância específica? (ex: instância de testes mandando pra outro endpoint,
+            ou um cliente que deve mandar só pra um sistema dele) Você pode criar webhooks com <strong>"Aplicar a" = instância X</strong>.
+            Quando uma instância tem override próprio, o global <strong>deixa de receber</strong> eventos daquela instância — só o override recebe (estilo Stripe).
+          </p>
+        </div>
+      </div>
+
       {configsError && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -209,7 +227,8 @@ export default function WebhooksPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Override por instância sobrescreve o global naquela instância (estilo Stripe).
+                <strong>Global</strong> = recebe de <strong>todas</strong> as instâncias. Escolha uma instância só se quiser
+                comportamento diferente pra ela (override sobrescreve o global naquela instância).
               </p>
             </div>
           </div>
