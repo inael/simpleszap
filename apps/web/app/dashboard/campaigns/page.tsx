@@ -147,15 +147,30 @@ export default function CampaignsPage() {
             )}
           </div>
           <div className="space-y-1">
-            <Label>Template</Label>
-            <Select value={templateId} onValueChange={setTemplateId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Opcional" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates?.map((t: any) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <Label>Template (obrigatório)</Label>
+            {Array.isArray(templates) && templates.length === 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 space-y-2">
+                <p>Você ainda não tem nenhum template. Toda campanha precisa de um template com 3 variantes (anti-banimento WhatsApp).</p>
+                <Link href="/dashboard/templates" className="inline-flex items-center gap-1 font-semibold underline">
+                  Criar template agora →
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Select value={templateId} onValueChange={setTemplateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates?.map((t: any) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Cada mensagem da campanha sorteia entre as 3 variantes do template — protege contra detecção de spam.{" "}
+                  <Link href="/dashboard/templates" className="underline">Gerenciar templates</Link>
+                </p>
+              </>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Tags do Segmento</Label>
@@ -165,7 +180,16 @@ export default function CampaignsPage() {
             {validationError && <p className="text-sm text-red-600">{validationError}</p>}
             <Button
               onClick={create}
-              disabled={creating || !instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open'))}
+              disabled={
+                creating ||
+                !templateId ||
+                !instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open'))
+              }
+              title={
+                !templateId ? "Selecione um template (obrigatório)" :
+                !instances?.some((i: any) => i.id === instanceId && (i.status === 'connected' || i.status === 'open')) ? "Conecte uma instância antes" :
+                "Criar campanha"
+              }
             >
               {creating ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando...</>

@@ -172,48 +172,27 @@ export default function CampaignSafetySettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Variantes de mensagem (A / B / C)</CardTitle>
-          <CardDescription>
-            Com variantes ativas, cada envio sorteia um dos textos preenchidos (com{" "}
-            <code className="text-xs">{"{{name}} {{phone}}"}</code>
-            ). Se nenhuma variante estiver preenchida, usa o template da campanha.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="uv"
-              className="h-4 w-4 rounded border"
-              checked={useVar}
-              onChange={(e) => setUseVar(e.target.checked)}
-              aria-label="Usar variantes A, B e C nas mensagens"
-            />
-            <Label htmlFor="uv">Usar variantes A/B/C no lugar do template da campanha (quando preenchidas)</Label>
-          </div>
-          <div className="space-y-2">
-            <Label>Variante A</Label>
-            <Textarea rows={3} value={va} onChange={(e) => setVa(e.target.value)} placeholder="Olá {{name}}, …" />
-          </div>
-          <div className="space-y-2">
-            <Label>Variante B</Label>
-            <Textarea rows={3} value={vb} onChange={(e) => setVb(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Variante C</Label>
-            <Textarea rows={3} value={vc} onChange={(e) => setVc(e.target.value)} />
-          </div>
-          <Button onClick={save} disabled={saving}>
-            {saving ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…</>
-            ) : (
-              "Salvar configurações de campanha"
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+        <span className="flex-shrink-0 mt-0.5">💡</span>
+        <div>
+          <p className="font-semibold mb-1">Variantes de mensagem foram movidas para os Templates</p>
+          <p>
+            Cada template agora tem <strong>3 variantes obrigatórias (A/B/C)</strong> diferentes entre si.
+            O sistema sorteia automaticamente em cada envio.{" "}
+            <a href="/dashboard/templates" className="underline font-semibold">Gerenciar templates →</a>
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <Button onClick={save} disabled={saving}>
+          {saving ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…</>
+          ) : (
+            "Salvar configurações de envio"
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

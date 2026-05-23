@@ -22,14 +22,14 @@ function jitterDelayMs(min: number, max: number) {
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
-function pickVariantBody(settings: {
-  useMessageVariants: boolean;
-  messageVariantA: string | null;
-  messageVariantB: string | null;
-  messageVariantC: string | null;
-}): string | null {
-  if (!settings.useMessageVariants) return null;
-  const opts = [settings.messageVariantA, settings.messageVariantB, settings.messageVariantC].filter(
+/**
+ * Sorteia entre as 3 variantes do template (A/B/C) — anti-banimento WhatsApp.
+ * Variantes são obrigatórias no cadastro do template e validadas como
+ * diferentes entre si pelo backend.
+ */
+function pickVariantBody(template: { variantA: string; variantB: string; variantC: string } | null): string | null {
+  if (!template) return null;
+  const opts = [template.variantA, template.variantB, template.variantC].filter(
     (s): s is string => typeof s === 'string' && s.trim().length > 0
   );
   if (opts.length === 0) return null;
@@ -54,7 +54,9 @@ export class CampaignsController {
       const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
       const { name, instanceId, templateId, segmentTags, scheduledAt } = req.body;
-      if (!name || !instanceId) return res.status(400).json({ error: 'name and instanceId are required' });
+      if (!name || !instanceId || !templateId) {
+        return res.status(400).json({ error: 'name, instanceId e templateId são obrigatórios. Toda campanha precisa de template com 3 variantes (anti-banimento).' });
+      }
       const item = await prisma.campaign.create({
         data: { orgId, name, instanceId, templateId, segmentTags: segmentTags ? JSON.stringify(segmentTags) : null, scheduledAt, status: 'draft' },
       });
@@ -81,11 +83,23 @@ export class CampaignsController {
 
       const campaign = await prisma.campaign.findUnique({ where: { id } });
       if (!campaign) return res.status(404).json({ error: 'Not found' });
+      if (!campaign.templateId) {
+        return res.status(400).json({
+          error: 'template_required',
+          message: 'Toda campanha precisa de template com 3 variantes (anti-banimento). Edite a campanha e selecione um.',
+        });
+      }
+      const template = await prisma.template.findUnique({ where: { id: campaign.templateId } });
+      if (!template) {
+        return res.status(400).json({
+          error: 'template_not_found',
+          message: 'Template vinculado não existe mais. Edite a campanha e selecione outro.',
+        });
+      }
       const tags = campaign.segmentTags ? (JSON.parse(campaign.segmentTags) as string[]) : [];
       const contacts = tags.length
         ? await prisma.contact.findMany({ where: { orgId, tags: { contains: tags[0] } } })
         : await prisma.contact.findMany({ where: { orgId } });
-      const template = campaign.templateId ? await prisma.template.findUnique({ where: { id: campaign.templateId } }) : null;
 
       await prisma.campaign.update({ where: { id }, data: { status: 'running' } });
 
@@ -104,9 +118,8 @@ export class CampaignsController {
           break;
         }
 
-        const variant = pickVariantBody(settings);
-        const raw =
-          variant !== null ? variant : template ? template.body : 'Olá';
+        const variant = pickVariantBody(template);
+        const raw = variant !== null ? variant : template.body;
         const body = renderTemplate(raw, {
           name: c.name || '',
           phone: c.phone,

@@ -316,8 +316,15 @@ model Template {
   id        String   @id @default(uuid())
   orgId     String
   name      String
+  /// Texto principal (igual variantA, mantido pra leitura legacy e fallback)
   body      String
-  variables String?  // JSON array of variable names
+  /// 3 variantes obrigatórias (anti-banimento WhatsApp/Meta).
+  /// Validação backend: trim() != "" e todas DIFERENTES entre si (case-sensitive).
+  /// Quando uma campanha roda, sistema sorteia entre A/B/C por mensagem.
+  variantA  String
+  variantB  String
+  variantC  String
+  variables String?  // JSON array of variable names (legacy)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
