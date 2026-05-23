@@ -24,7 +24,9 @@ import { getLogtoConfigFromHeaders } from "@/lib/logto";
 import { HeroV2 } from "@/components/landing/hero-v2";
 import { IntegrateSection } from "@/components/landing/integrate-section";
 import { FlowsSection } from "@/components/landing/flows-section";
-import { MetaBusinessSection } from "@/components/landing/meta-business-section";
+import { PricingVsMetaSection } from "@/components/landing/pricing-vs-meta-section";
+import { CompetitorsTableSection } from "@/components/landing/competitors-table-section";
+import { AntiBanSection } from "@/components/landing/anti-ban-section";
 
 const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
 const supportWaDigits = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999").replace(/\D/g, "");
@@ -79,9 +81,11 @@ export default async function Home() {
       </header>
 
       <HeroV2 isSignedIn={isSignedIn} docsUrl={docsUrl} />
+      <PricingVsMetaSection />
+      <AntiBanSection />
+      <CompetitorsTableSection />
       <IntegrateSection />
       <FlowsSection />
-      <MetaBusinessSection isSignedIn={isSignedIn} />
 
       {/* Social proof — texto honesto (sem marcas fictícias) */}
       <section className="py-14 border-y border-white/5 bg-neutral-950">

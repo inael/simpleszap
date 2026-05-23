@@ -42,7 +42,7 @@ export function HeroV2({ isSignedIn, docsUrl }: { isSignedIn: boolean; docsUrl: 
           >
             <div className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 mb-8">
               <span className="flex h-2 w-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-              Cloud API oficial + conexão por QR
+              Sem cobrança por mensagem
             </div>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02]">
               WhatsApp para
