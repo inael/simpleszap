@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText } from "lucide-react";
+import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText, Pencil, Trash2, X } from "lucide-react";
 
 type EventDef = {
   key: string;
@@ -80,6 +80,72 @@ export default function WebhooksPage() {
   const [applyTo, setApplyTo] = useState<string>("global"); // "global" ou instanceId
   const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_SELECTED);
   const [lastCreated, setLastCreated] = useState<{ url: string; events: number; scope: string } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const startEdit = (c: any) => {
+    setEditingId(c.id);
+    setUrl(c.url);
+    setSecret(c.secret || "");
+    setApplyTo(c.instanceId || "global");
+    try {
+      setSelectedEvents(JSON.parse(c.events) as string[]);
+    } catch {
+      setSelectedEvents([]);
+    }
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setUrl(""); setSecret("");
+    setApplyTo("global");
+    setSelectedEvents(DEFAULT_SELECTED);
+  };
+
+  const saveEdit = async () => {
+    if (!orgId || !editingId) return;
+    if (!url || !secret) return toast.error("Informe URL e secret");
+    if (selectedEvents.length === 0) return toast.error("Selecione ao menos um evento");
+    try {
+      const token = await getToken();
+      await api.put(
+        `/webhooks/config/${editingId}`,
+        {
+          url,
+          secret,
+          events: selectedEvents,
+          instanceId: applyTo === "global" ? null : applyTo,
+        },
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      cancelEdit();
+      mutate();
+      toast.success("Webhook atualizado");
+    } catch {
+      toast.error("Erro ao salvar alterações");
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!orgId) return;
+    if (!confirm("Excluir esse webhook? Ele para de receber eventos imediatamente.")) return;
+    setDeletingId(id);
+    try {
+      const token = await getToken();
+      await api.delete(
+        `/webhooks/config/${id}`,
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      if (editingId === id) cancelEdit();
+      mutate();
+      toast.success("Webhook excluído");
+    } catch {
+      toast.error("Erro ao excluir");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const groupedEvents = useMemo(() => {
     const groups: Record<string, EventDef[]> = {};
@@ -183,7 +249,14 @@ export default function WebhooksPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Novo Webhook</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>{editingId ? "Editando webhook" : "Novo Webhook"}</CardTitle>
+            {editingId && (
+              <Button variant="outline" size="sm" onClick={cancelEdit}>
+                <X className="h-4 w-4 mr-1" /> Cancelar edição
+              </Button>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             Um webhook é uma URL do <strong>seu sistema</strong> (n8n, backend próprio, Zapier, etc) que o SimplesZap vai chamar
             via <code className="text-xs">POST</code> sempre que algo acontecer no WhatsApp dessa conta — mensagem chegou, foi lida,
@@ -309,11 +382,11 @@ export default function WebhooksPage() {
                   </div>
                 )}
                 <Button
-                  onClick={add}
+                  onClick={editingId ? saveEdit : add}
                   disabled={!orgId || !ready}
-                  title={ready ? "Salvar webhook" : `Preencha: ${missing.join(", ")}`}
+                  title={ready ? (editingId ? "Salvar alterações" : "Adicionar webhook") : `Preencha: ${missing.join(", ")}`}
                 >
-                  Adicionar
+                  {editingId ? "Salvar alterações" : "Adicionar"}
                 </Button>
               </div>
             );
@@ -336,14 +409,16 @@ export default function WebhooksPage() {
                 <TableHead>Aplica a</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Eventos</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {configs?.map((c: any) => {
                 const isGlobal = !c.instanceId;
                 const instName = c.instanceId ? instanceMap.get(c.instanceId) ?? c.instanceId : null;
+                const isEditing = editingId === c.id;
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} className={isEditing ? "bg-amber-50" : undefined}>
                     <TableCell>
                       {isGlobal ? (
                         <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
@@ -371,12 +446,35 @@ export default function WebhooksPage() {
                         }
                       })()}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => startEdit(c)}
+                          disabled={isEditing}
+                          title={isEditing ? "Editando agora — role pra cima" : "Editar"}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => remove(c.id)}
+                          disabled={deletingId === c.id}
+                          title="Excluir webhook"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
               {!configs?.length && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                     Nenhum webhook configurado.
                   </TableCell>
                 </TableRow>
