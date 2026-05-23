@@ -15,7 +15,7 @@ const videoMaskStyle = {
 
 export function HeroV2({ isSignedIn, docsUrl }: { isSignedIn: boolean; docsUrl: string }) {
   return (
-    <section className="relative overflow-hidden bg-[#0e0e0e] text-white pt-24 pb-28 lg:pt-32 lg:pb-40">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#121212] to-[#0e0e0e] text-white pt-24 pb-28 lg:pt-32 lg:pb-40">
       {/* Backdrop: gradients SOMENTE no lado esquerdo (atrás do texto).
           Antes eu tinha gradient em 70%/30% (direita/topo) e isso ficava
           atrás do vídeo — o #0e0e0e do vídeo contrastava com o verde do
