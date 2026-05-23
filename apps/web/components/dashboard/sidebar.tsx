@@ -51,8 +51,12 @@ const routes: RouteItem[] = [
   { label: "Instâncias", icon: Smartphone, href: "/dashboard/instances", color: "text-violet-500" },
   { label: "Mensagens", icon: MessageSquare, href: "/dashboard/messages", color: "text-pink-700" },
   { label: "Contatos", icon: Users, href: "/dashboard/contacts", color: "text-blue-600" },
-  { label: "Webhooks", icon: Siren, href: "/dashboard/webhooks", color: "text-red-600" },
   { label: "Assinatura", icon: CreditCard, href: "/dashboard/subscription", color: "text-emerald-500" },
+];
+
+const webhooksSubRoutes: RouteItem[] = [
+  { label: "Configurações", icon: Siren, href: "/dashboard/webhooks", color: "text-red-600" },
+  { label: "Logs de entrega", icon: ScrollText, href: "/dashboard/webhooks/logs", color: "text-amber-600" },
 ];
 
 const campaignsSubRoutes: RouteItem[] = [
@@ -109,6 +113,9 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
     pathname.startsWith("/dashboard/campaigns") ||
     pathname.startsWith("/dashboard/templates");
   const [campaignsOpen, setCampaignsOpen] = useState(campaignsActive);
+
+  const webhooksActive = pathname.startsWith("/dashboard/webhooks");
+  const [webhooksOpen, setWebhooksOpen] = useState(webhooksActive);
   const [helpOpen, setHelpOpen] = useState(true);
 
   const handleSignOut = () => {
@@ -182,6 +189,64 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
 
         <div className="space-y-1">
           {routes.map(renderRoute)}
+
+          {/* Webhooks expansível com sub-itens */}
+          <div>
+            {collapsed ? (
+              <Link
+                href="/dashboard/webhooks"
+                title="Webhooks"
+                className={cn(
+                  "text-sm group flex items-center w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition p-3 justify-center",
+                  webhooksActive ? "text-white bg-white/10" : "text-zinc-400"
+                )}
+              >
+                <Siren className="h-5 w-5 text-red-600" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setWebhooksOpen((o) => !o)}
+                aria-expanded={webhooksOpen ? "true" : "false"}
+                className={cn(
+                  "text-sm group flex items-center w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition p-3",
+                  webhooksActive ? "text-white bg-white/10" : "text-zinc-400"
+                )}
+              >
+                <div className="flex items-center flex-1">
+                  <Siren className="h-5 w-5 mr-3 text-red-600" />
+                  Webhooks
+                </div>
+                {webhooksOpen ? (
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 opacity-60" />
+                )}
+              </button>
+            )}
+            {!collapsed && webhooksOpen && (
+              <div className="ml-6 mt-1 space-y-1 border-l border-zinc-700 pl-2">
+                {webhooksSubRoutes.map((sub) => {
+                  const isActive = sub.href === "/dashboard/webhooks"
+                    ? pathname === "/dashboard/webhooks"
+                    : pathname.startsWith(sub.href);
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={cn(
+                        "text-xs group flex items-center p-2 w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-md transition",
+                        isActive ? "text-white bg-white/10" : "text-zinc-400"
+                      )}
+                    >
+                      <sub.icon className={cn("h-4 w-4 mr-2", sub.color)} />
+                      {sub.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Campanhas expansível com sub-itens */}
           <div>

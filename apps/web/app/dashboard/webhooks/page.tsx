@@ -7,26 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText, Pencil, Trash2, X, Zap, Loader2 } from "lucide-react";
+import { AlertCircle, Globe, Smartphone, Info, Pencil, Trash2, Zap, Loader2, Plus, CheckCircle2 } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
 
-type EventDef = {
-  key: string;
-  category: string;
-  label: string;
-  description: string;
-};
+type EventDef = { key: string; category: string; label: string; description: string };
 
 const AVAILABLE_EVENTS: EventDef[] = [
   { key: "message.sent",                category: "Saída",       label: "Mensagem enviada",          description: "Sua API/dashboard enviou uma mensagem com sucesso." },
   { key: "message.failed",              category: "Saída",       label: "Falha de envio",            description: "Tentativa de envio falhou (erro Evolution, sem internet, etc)." },
   { key: "message.received",            category: "Entrada",     label: "Mensagem recebida (texto)", description: "Lead/contato te mandou uma mensagem de texto." },
-  { key: "message.audio.received",      category: "Entrada",     label: "Áudio recebido",            description: "Lead te mandou um áudio. mediaUrl no payload." },
+  { key: "message.audio.received",      category: "Entrada",     label: "Áudio recebido",            description: "Lead te mandou um áudio." },
   { key: "message.image.received",      category: "Entrada",     label: "Imagem recebida",           description: "Lead te mandou uma imagem." },
   { key: "message.video.received",      category: "Entrada",     label: "Vídeo recebido",            description: "Lead te mandou um vídeo." },
   { key: "message.document.received",   category: "Entrada",     label: "Documento recebido",        description: "Lead te mandou um PDF/arquivo." },
@@ -42,211 +38,158 @@ const AVAILABLE_EVENTS: EventDef[] = [
 ];
 
 const CATEGORY_ORDER = ["Saída", "Entrada", "Status", "Instância", "Interação", "Contatos"] as const;
-
-const DEFAULT_SELECTED = ["message.sent", "message.failed"];
+const DEFAULT_SELECTED = ["message.sent", "message.failed", "message.received", "instance.connected"];
 
 export default function WebhooksPage() {
   const { getToken, user } = useAuth();
   const orgId = user?.sub;
-  const { data: configs, error: configsError, mutate } = useSWR(
-    orgId ? ["/webhooks/config", orgId] : null,
-    async ([url, oid]) => {
-      const token = await getToken();
-      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
-    }
-  );
-  const { data: logs } = useSWR(
-    orgId ? ["/webhooks/logs", orgId] : null,
-    async ([url, oid]) => {
-      const token = await getToken();
-      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
-    }
-  );
-  const { data: instances } = useSWR<Array<{ id: string; name: string; status: string }>>(
-    orgId ? ["/instances", orgId, "webhooks"] : null,
-    async ([u, oid]: [string, string]) => {
-      const token = await getToken();
-      return api.get(u, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
-    }
-  );
 
+  const fetcher = async ([url, oid]: [string, string]) => {
+    const token = await getToken();
+    return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+  };
+
+  const { data: configs, error: configsError, mutate } = useSWR(orgId ? ["/webhooks/config", orgId as string] : null, fetcher);
+  const { data: instances } = useSWR<Array<{ id: string; name: string; status: string }>>(
+    orgId ? ["/instances", orgId as string, "webhooks"] : null,
+    async ([u, oid]: [string, string, string]) => {
+      const token = await getToken();
+      return api.get(u, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(r => r.data);
+    }
+  );
   const instanceMap = useMemo(() => {
     const m = new Map<string, string>();
     for (const i of instances || []) m.set(i.id, i.name);
     return m;
   }, [instances]);
 
+  // Dialog state — usado pra Novo e Editar (mesmo dialog)
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
-  const [applyTo, setApplyTo] = useState<string>("global"); // "global" ou instanceId
+  const [applyTo, setApplyTo] = useState<string>("global");
   const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_SELECTED);
-  const [lastCreated, setLastCreated] = useState<{ url: string; events: number; scope: string } | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
 
-  const testWebhook = async (id: string) => {
-    if (!orgId) return;
-    setTestingId(id);
-    try {
-      const token = await getToken();
-      const res = await api.post(
-        `/webhooks/config/${id}/test`,
-        {},
-        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
-      );
-      const { success, statusCode, ms, error } = res.data;
-      if (success) {
-        toast.success(`Ping OK — ${statusCode} em ${ms}ms`);
-      } else {
-        toast.error(`Falhou: ${error || `HTTP ${statusCode}`} (${ms}ms)`);
-      }
-    } catch {
-      toast.error("Erro ao disparar teste.");
-    } finally {
-      setTestingId(null);
-    }
-  };
+  const groupedEvents = useMemo(() => {
+    const groups: Record<string, EventDef[]> = {};
+    for (const ev of AVAILABLE_EVENTS) (groups[ev.category] ||= []).push(ev);
+    return CATEGORY_ORDER.filter((c) => groups[c]?.length).map((c) => ({ category: c, events: groups[c] }));
+  }, []);
 
-  const startEdit = (c: any) => {
-    setEditingId(c.id);
-    setUrl(c.url);
-    setSecret(c.secret || "");
-    setApplyTo(c.instanceId || "global");
-    try {
-      setSelectedEvents(JSON.parse(c.events) as string[]);
-    } catch {
-      setSelectedEvents([]);
-    }
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const toggleEvent = (key: string) =>
+    setSelectedEvents((prev) => prev.includes(key) ? prev.filter((v) => v !== key) : [...prev, key]);
 
-  const cancelEdit = () => {
+  const openNew = () => {
     setEditingId(null);
     setUrl(""); setSecret("");
     setApplyTo("global");
     setSelectedEvents(DEFAULT_SELECTED);
+    setDialogOpen(true);
   };
 
-  const saveEdit = async () => {
-    if (!orgId || !editingId) return;
-    if (!url || !secret) return toast.error("Informe URL e secret");
-    if (selectedEvents.length === 0) return toast.error("Selecione ao menos um evento");
+  const openEdit = (c: any) => {
+    setEditingId(c.id);
+    setUrl(c.url);
+    setSecret(c.secret || "");
+    setApplyTo(c.instanceId || "global");
+    try { setSelectedEvents(JSON.parse(c.events) as string[]); } catch { setSelectedEvents([]); }
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    if (submitting) return;
+    setDialogOpen(false);
+    setEditingId(null);
+  };
+
+  const missing = useMemo(() => {
+    const m: string[] = [];
+    if (!url.trim()) m.push("URL");
+    if (!secret.trim()) m.push("Secret");
+    if (selectedEvents.length === 0) m.push("ao menos 1 evento");
+    return m;
+  }, [url, secret, selectedEvents]);
+
+  const save = async () => {
+    if (submitting) return;
+    if (!orgId) return toast.error("Erro de autenticação");
+    if (missing.length > 0) return toast.error(`Faltando: ${missing.join(", ")}`);
+    setSubmitting(true);
     try {
       const token = await getToken();
-      await api.put(
-        `/webhooks/config/${editingId}`,
-        {
-          url,
-          secret,
-          events: selectedEvents,
-          instanceId: applyTo === "global" ? null : applyTo,
-        },
-        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
-      );
-      cancelEdit();
+      const body = {
+        url: url.trim(),
+        secret: secret.trim(),
+        events: selectedEvents,
+        instanceId: applyTo === "global" ? null : applyTo,
+      };
+      const headers = { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      if (editingId) {
+        await api.put(`/webhooks/config/${editingId}`, body, { headers });
+        toast.success("Webhook atualizado");
+      } else {
+        await api.post("/webhooks/config", body, { headers });
+        toast.success("Webhook criado!");
+      }
+      setDialogOpen(false);
+      setEditingId(null);
       mutate();
-      toast.success("Webhook atualizado");
     } catch {
-      toast.error("Erro ao salvar alterações");
+      toast.error(editingId ? "Erro ao salvar alterações" : "Erro ao criar webhook");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const remove = async (id: string) => {
-    if (!orgId) return;
-    if (!confirm("Excluir esse webhook? Ele para de receber eventos imediatamente.")) return;
+    if (!orgId || deletingId) return;
+    if (!confirm("Excluir esse webhook? Para de receber eventos imediatamente.")) return;
     setDeletingId(id);
     try {
       const token = await getToken();
-      await api.delete(
-        `/webhooks/config/${id}`,
-        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
-      );
-      if (editingId === id) cancelEdit();
+      await api.delete(`/webhooks/config/${id}`, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       mutate();
       toast.success("Webhook excluído");
-    } catch {
-      toast.error("Erro ao excluir");
-    } finally {
-      setDeletingId(null);
-    }
+    } catch { toast.error("Erro ao excluir"); }
+    finally { setDeletingId(null); }
   };
 
-  const groupedEvents = useMemo(() => {
-    const groups: Record<string, EventDef[]> = {};
-    for (const ev of AVAILABLE_EVENTS) {
-      if (!groups[ev.category]) groups[ev.category] = [];
-      groups[ev.category].push(ev);
-    }
-    return CATEGORY_ORDER
-      .filter((cat) => groups[cat] && groups[cat].length > 0)
-      .map((cat) => ({ category: cat, events: groups[cat] }));
-  }, []);
-
-  const toggleEvent = (key: string) => {
-    setSelectedEvents((prev) =>
-      prev.includes(key) ? prev.filter((v) => v !== key) : [...prev, key]
-    );
-  };
-
-  const selectAll = () => setSelectedEvents(AVAILABLE_EVENTS.map((e) => e.key));
-  const clearAll = () => setSelectedEvents([]);
-
-  const add = async () => {
-    if (!orgId) return toast.error("Erro de autenticação.");
-    if (!url || !secret) return toast.error("Informe URL e secret");
-    if (selectedEvents.length === 0) return toast.error("Selecione ao menos um evento");
+  const testWebhook = async (id: string) => {
+    if (!orgId || testingId) return;
+    setTestingId(id);
     try {
       const token = await getToken();
-      await api.post(
-        "/webhooks/config",
-        {
-          url,
-          secret,
-          events: selectedEvents,
-          instanceId: applyTo === "global" ? null : applyTo,
-        },
-        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
-      );
-      const scopeLabel = applyTo === "global"
-        ? "todas as instâncias"
-        : `instância "${instanceMap.get(applyTo) || applyTo}"`;
-      setLastCreated({ url, events: selectedEvents.length, scope: scopeLabel });
-      setUrl(""); setSecret("");
-      setApplyTo("global");
-      setSelectedEvents(DEFAULT_SELECTED);
-      mutate();
-      toast.success("Webhook configurado");
-      // Auto-esconde o banner após 8s
-      setTimeout(() => setLastCreated(null), 8000);
-    } catch {
-      toast.error("Erro ao configurar webhook");
-    }
+      const res = await api.post(`/webhooks/config/${id}/test`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const { success, statusCode, ms, error } = res.data;
+      if (success) toast.success(`Ping OK — ${statusCode} em ${ms}ms`);
+      else toast.error(`Falhou: ${error || `HTTP ${statusCode}`} (${ms}ms)`);
+    } catch { toast.error("Erro ao disparar teste"); }
+    finally { setTestingId(null); }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Webhooks</h1>
-          <p className="text-muted-foreground">Configure endpoints para receber eventos.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Webhooks — Configurações</h1>
+          <p className="text-muted-foreground">URLs externas que recebem eventos do seu WhatsApp.</p>
         </div>
+        <Button onClick={openNew}>
+          <Plus className="h-4 w-4 mr-1" /> Novo webhook
+        </Button>
       </div>
 
       <div className="flex items-start gap-3 rounded-md border border-sky-200 bg-sky-50 p-4">
         <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-sky-600" />
         <div className="text-sm text-sky-900 space-y-2">
+          <p><strong>Como funciona o roteamento</strong></p>
           <p>
-            <strong>Como funciona o roteamento</strong>
-          </p>
-          <p>
-            Por padrão, cada webhook que você adicionar aqui é <strong>Global</strong> — recebe os eventos de <strong>todas as instâncias</strong> dessa conta.
-            Isso cobre 99% dos casos: 1 endpoint do seu sistema (n8n, backend, etc) acumulando tudo num só lugar.
-          </p>
-          <p>
-            Quer comportamento diferente pra uma instância específica? (ex: instância de testes mandando pra outro endpoint,
-            ou um cliente que deve mandar só pra um sistema dele) Você pode criar webhooks com <strong>"Aplicar a" = instância X</strong>.
-            Quando uma instância tem override próprio, o global <strong>deixa de receber</strong> eventos daquela instância — só o override recebe (estilo Stripe).
+            Webhook <strong>Global</strong> recebe eventos de <strong>todas as instâncias</strong>. Você pode ter quantos quiser (todos recebem em paralelo).
+            Quer comportamento diferente pra uma instância específica? Crie um webhook com "Aplicar a = instância X" — ele <strong>sobrescreve</strong> o global naquela instância (estilo Stripe).
           </p>
         </div>
       </div>
@@ -258,174 +201,9 @@ export default function WebhooksPage() {
         </div>
       )}
 
-      {lastCreated && (
-        <div className="flex items-start gap-3 rounded-md border border-green-200 bg-green-50 p-4 text-green-900">
-          <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5 text-green-600" />
-          <div>
-            <p className="font-semibold">Webhook adicionado!</p>
-            <p className="text-sm">
-              <code className="text-xs">{lastCreated.url}</code> agora vai receber{" "}
-              <strong>{lastCreated.events}</strong> {lastCreated.events === 1 ? "evento" : "eventos"} de{" "}
-              <strong>{lastCreated.scope}</strong>. Veja abaixo em "Configurações" e teste mandando uma mensagem.
-            </p>
-          </div>
-        </div>
-      )}
-
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle>{editingId ? "Editando webhook" : "Novo Webhook"}</CardTitle>
-            {editingId && (
-              <Button variant="outline" size="sm" onClick={cancelEdit}>
-                <X className="h-4 w-4 mr-1" /> Cancelar edição
-              </Button>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Um webhook é uma URL do <strong>seu sistema</strong> (n8n, backend próprio, Zapier, etc) que o SimplesZap vai chamar
-            via <code className="text-xs">POST</code> sempre que algo acontecer no WhatsApp dessa conta — mensagem chegou, foi lida,
-            instância desconectou, etc. Cada POST vem com header <code className="text-xs">x-webhook-signature</code> assinado
-            com HMAC SHA-256 + seu secret pra você validar que veio de nós.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label>URL</Label>
-              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://n8n.suaempresa.com/webhook/abc" />
-              <p className="text-xs text-muted-foreground">Endpoint público do seu sistema que aceita POST com JSON.</p>
-            </div>
-            <div className="space-y-1">
-              <Label>Secret</Label>
-              <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="qualquer string aleatória" />
-              <p className="text-xs text-muted-foreground">Usado pra assinar cada POST (header x-webhook-signature). Guarde no seu sistema.</p>
-            </div>
-            <div className="space-y-1">
-              <Label>Aplicar a</Label>
-              <Select value={applyTo} onValueChange={setApplyTo}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="global">
-                    <span className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-sky-600" />
-                      Global (todas as instâncias)
-                    </span>
-                  </SelectItem>
-                  {(instances ?? []).map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      <span className="flex items-center gap-2">
-                        <Smartphone className="h-4 w-4 text-violet-600" />
-                        Apenas {i.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                <strong>Global</strong> = recebe de <strong>todas</strong> as instâncias. Escolha uma instância só se quiser
-                comportamento diferente pra ela (override sobrescreve o global naquela instância).
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <Label>Eventos</Label>
-                <p className="text-xs text-muted-foreground">
-                  {selectedEvents.length} de {AVAILABLE_EVENTS.length} eventos selecionados
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={selectAll}>
-                  Selecionar todos
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={clearAll}>
-                  Limpar todos
-                </Button>
-              </div>
-            </div>
-
-            <div className="rounded-md border bg-background divide-y">
-              {groupedEvents.map(({ category, events }) => (
-                <div key={category} className="p-3 space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {category}
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    {events.map((ev) => {
-                      const checked = selectedEvents.includes(ev.key);
-                      return (
-                        <label
-                          key={ev.key}
-                          className="flex items-start gap-2 text-sm cursor-pointer rounded-md p-2 hover:bg-muted/50 transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-1"
-                            checked={checked}
-                            onChange={() => toggleEvent(ev.key)}
-                          />
-                          <div className="space-y-0.5">
-                            <div className="font-medium leading-tight">{ev.label}</div>
-                            <div className="text-xs text-muted-foreground leading-snug">
-                              {ev.description}
-                            </div>
-                            <div className="text-[10px] font-mono text-muted-foreground/80">
-                              {ev.key}
-                            </div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {(() => {
-            const missing: string[] = [];
-            if (!url.trim()) missing.push("URL");
-            if (!secret.trim()) missing.push("Secret");
-            if (selectedEvents.length === 0) missing.push("ao menos 1 evento");
-            const ready = missing.length === 0;
-            return (
-              <div className="space-y-2">
-                {!ready && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <div>
-                      Faltando: <strong>{missing.join(", ")}</strong>.
-                      {!url.trim() && (
-                        <> Role para o topo do form e preencha a <strong>URL</strong> do seu sistema externo (ex: <code className="text-xs">https://n8n.suaempresa.com/webhook/abc</code>).</>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <Button
-                  onClick={editingId ? saveEdit : add}
-                  disabled={!orgId || !ready}
-                  title={ready ? (editingId ? "Salvar alterações" : "Adicionar webhook") : `Preencha: ${missing.join(", ")}`}
-                >
-                  {editingId ? "Salvar alterações" : "Adicionar"}
-                </Button>
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Webhooks cadastrados nessa conta. <strong>Global</strong> = recebe eventos de todas as instâncias.
-            Quando vinculado a uma instância específica, sobrescreve o global naquela instância (estilo Stripe).
-          </p>
+          <CardTitle>Webhooks cadastrados</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -438,15 +216,12 @@ export default function WebhooksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {configs === undefined && !configsError && (
-                <TableLoadingRows colSpan={4} />
-              )}
+              {configs === undefined && !configsError && <TableLoadingRows colSpan={4} />}
               {configs?.map((c: any) => {
                 const isGlobal = !c.instanceId;
                 const instName = c.instanceId ? instanceMap.get(c.instanceId) ?? c.instanceId : null;
-                const isEditing = editingId === c.id;
                 return (
-                  <TableRow key={c.id} className={isEditing ? "bg-amber-50" : undefined}>
+                  <TableRow key={c.id}>
                     <TableCell>
                       {isGlobal ? (
                         <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
@@ -458,7 +233,7 @@ export default function WebhooksPage() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{c.url}</TableCell>
+                    <TableCell className="font-mono text-xs max-w-md truncate">{c.url}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {(() => {
                         try {
@@ -466,47 +241,21 @@ export default function WebhooksPage() {
                           if (arr.length <= 3) return arr.join(", ");
                           return (
                             <span title={arr.join("\n")}>
-                              {arr.slice(0, 3).join(", ")} <span className="font-semibold text-foreground">+{arr.length - 3}</span>
+                              {arr.slice(0, 3).join(", ")}{" "}
+                              <span className="font-semibold text-foreground">+{arr.length - 3}</span>
                             </span>
                           );
-                        } catch {
-                          return c.events;
-                        }
+                        } catch { return c.events; }
                       })()}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => testWebhook(c.id)}
-                          disabled={testingId === c.id}
-                          title="Disparar ping de teste (event=webhook.test)"
-                        >
-                          {testingId === c.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Zap className="h-4 w-4 text-amber-500" />
-                          )}
+                        <Button variant="ghost" size="icon" onClick={() => testWebhook(c.id)} disabled={testingId === c.id} title="Disparar ping de teste">
+                          {testingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 text-amber-500" />}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => startEdit(c)}
-                          disabled={isEditing}
-                          title={isEditing ? "Editando agora — role pra cima" : "Editar"}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => remove(c.id)}
-                          disabled={deletingId === c.id}
-                          title="Excluir webhook"
-                        >
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => remove(c.id)} disabled={deletingId === c.id} title="Excluir">
+                          {deletingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </div>
                     </TableCell>
@@ -515,8 +264,8 @@ export default function WebhooksPage() {
               })}
               {Array.isArray(configs) && configs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                    Nenhum webhook configurado.
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    Nenhum webhook configurado. Clique em <strong>"Novo webhook"</strong> pra criar o primeiro.
                   </TableCell>
                 </TableRow>
               )}
@@ -525,56 +274,105 @@ export default function WebhooksPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Logs de entrega</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Histórico das últimas tentativas de entrega pros seus webhooks. <strong>OK</strong> = seu sistema respondeu HTTP 2xx.
-            <strong> Falha</strong> = seu endpoint retornou erro ou estava fora do ar.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Evento</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs === undefined && (
-                <TableLoadingRows colSpan={3} />
+      {/* Dialog Novo/Editar */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeDialog(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar webhook" : "Novo webhook"}</DialogTitle>
+            <DialogDescription>
+              URL do <strong>seu sistema</strong> (n8n, backend próprio, Zapier, etc) que o SimplesZap vai chamar via <code className="text-xs">POST</code> sempre
+              que um evento do WhatsApp acontecer. Cada POST vem com <code className="text-xs">x-webhook-signature</code> HMAC SHA-256 + seu secret pra validação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1 md:col-span-2">
+                <Label>URL</Label>
+                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://n8n.suaempresa.com/webhook/abc" />
+                <p className="text-xs text-muted-foreground">Endpoint público do seu sistema que aceita POST com JSON.</p>
+              </div>
+              <div className="space-y-1">
+                <Label>Secret</Label>
+                <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="string aleatória" />
+                <p className="text-xs text-muted-foreground">Pra validar assinatura. Guarde no seu sistema.</p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Aplicar a</Label>
+              <Select value={applyTo} onValueChange={setApplyTo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">
+                    <span className="flex items-center gap-2"><Globe className="h-4 w-4 text-sky-600" /> Global (todas as instâncias)</span>
+                  </SelectItem>
+                  {(instances ?? []).map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      <span className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-violet-600" /> Apenas {i.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                <strong>Global</strong> = recebe de <strong>todas</strong>. Escolha uma instância só se quiser comportamento diferente pra ela.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <Label>Eventos <span className="text-xs text-muted-foreground">({selectedEvents.length} de {AVAILABLE_EVENTS.length})</span></Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setSelectedEvents(AVAILABLE_EVENTS.map((e) => e.key))}>Selecionar todos</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setSelectedEvents([])}>Limpar</Button>
+                </div>
+              </div>
+              <div className="rounded-md border bg-background divide-y max-h-[260px] overflow-y-auto">
+                {groupedEvents.map(({ category, events }) => (
+                  <div key={category} className="p-3 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {events.map((ev) => {
+                        const checked = selectedEvents.includes(ev.key);
+                        return (
+                          <label key={ev.key} className="flex items-start gap-2 text-sm cursor-pointer rounded-md p-2 hover:bg-muted/50 transition-colors">
+                            <input type="checkbox" className="mt-1" checked={checked} onChange={() => toggleEvent(ev.key)} />
+                            <div className="space-y-0.5">
+                              <div className="font-medium leading-tight">{ev.label}</div>
+                              <div className="text-xs text-muted-foreground leading-snug">{ev.description}</div>
+                              <div className="text-[10px] font-mono text-muted-foreground/80">{ev.key}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {missing.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div>Faltando: <strong>{missing.join(", ")}</strong></div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog} disabled={submitting}>Cancelar</Button>
+            <Button onClick={save} disabled={submitting || missing.length > 0}>
+              {submitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
+              ) : editingId ? (
+                <><CheckCircle2 className="mr-2 h-4 w-4" /> Salvar alterações</>
+              ) : (
+                <><Plus className="mr-2 h-4 w-4" /> Criar webhook</>
               )}
-              {logs?.map((l: any) => (
-                <TableRow key={l.id}>
-                  <TableCell>{new Date(l.createdAt).toLocaleString()}</TableCell>
-                  <TableCell className="font-mono text-xs">{l.event}</TableCell>
-                  <TableCell>
-                    {l.success ? (
-                      <span className="inline-flex items-center gap-1 text-green-700 text-sm">
-                        <CheckCircle2 className="h-3 w-3" /> OK
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-red-700 text-sm" title={l.error || ''}>
-                        <AlertCircle className="h-3 w-3" /> Falha
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {Array.isArray(logs) && logs.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
-                    <FileText className="h-6 w-6 mx-auto mb-2 opacity-40" />
-                    Nenhum log ainda. Os logs aparecem aqui quando algum evento dispara — receba uma mensagem no WhatsApp pra testar.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
