@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText, Pencil, Trash2, X, Zap, Loader2 } from "lucide-react";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 type EventDef = {
   key: string;
@@ -437,6 +438,9 @@ export default function WebhooksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {configs === undefined && !configsError && (
+                <TableLoadingRows colSpan={4} />
+              )}
               {configs?.map((c: any) => {
                 const isGlobal = !c.instanceId;
                 const instName = c.instanceId ? instanceMap.get(c.instanceId) ?? c.instanceId : null;
@@ -509,7 +513,7 @@ export default function WebhooksPage() {
                   </TableRow>
                 );
               })}
-              {!configs?.length && (
+              {Array.isArray(configs) && configs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                     Nenhum webhook configurado.
@@ -539,6 +543,9 @@ export default function WebhooksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {logs === undefined && (
+                <TableLoadingRows colSpan={3} />
+              )}
               {logs?.map((l: any) => (
                 <TableRow key={l.id}>
                   <TableCell>{new Date(l.createdAt).toLocaleString()}</TableCell>
@@ -556,7 +563,7 @@ export default function WebhooksPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!logs?.length && (
+              {Array.isArray(logs) && logs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
                     <FileText className="h-6 w-6 mx-auto mb-2 opacity-40" />

@@ -33,6 +33,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Beaker,
+  Megaphone,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Separator } from "@/components/ui/separator";
@@ -50,14 +52,18 @@ const routes: RouteItem[] = [
   { label: "Mensagens", icon: MessageSquare, href: "/dashboard/messages", color: "text-pink-700" },
   { label: "Contatos", icon: Users, href: "/dashboard/contacts", color: "text-blue-600" },
   { label: "Webhooks", icon: Siren, href: "/dashboard/webhooks", color: "text-red-600" },
-  { label: "Campanhas", icon: HelpCircle, href: "/dashboard/campaigns", color: "text-fuchsia-600" },
   { label: "Assinatura", icon: CreditCard, href: "/dashboard/subscription", color: "text-emerald-500" },
+];
+
+const campaignsSubRoutes: RouteItem[] = [
+  { label: "Campanhas", icon: Megaphone, href: "/dashboard/campaigns", color: "text-fuchsia-600" },
+  { label: "Templates", icon: FileText, href: "/dashboard/templates", color: "text-indigo-600" },
+  { label: "Configurações de envio", icon: SlidersHorizontal, href: "/dashboard/campaigns/settings", color: "text-teal-500" },
 ];
 
 const settingsSubRoutes: RouteItem[] = [
   { label: "Perfil", icon: User, href: "/dashboard/settings", color: "text-slate-400" },
   { label: "Chaves de API", icon: Key, href: "/dashboard/api-keys", color: "text-orange-700" },
-  { label: "Configurações de envio", icon: SlidersHorizontal, href: "/dashboard/campaigns/settings", color: "text-teal-500" },
   { label: "Segurança", icon: Lock, href: "/dashboard/security", color: "text-slate-300" },
   { label: "Beta", icon: Beaker, href: "/dashboard/settings/beta", color: "text-amber-500" },
 ];
@@ -96,9 +102,13 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
     pathname === "/dashboard/settings" ||
     pathname.startsWith("/dashboard/settings/") ||
     pathname.startsWith("/dashboard/api-keys") ||
-    pathname.startsWith("/dashboard/campaigns/settings") ||
     pathname.startsWith("/dashboard/security");
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
+
+  const campaignsActive =
+    pathname.startsWith("/dashboard/campaigns") ||
+    pathname.startsWith("/dashboard/templates");
+  const [campaignsOpen, setCampaignsOpen] = useState(campaignsActive);
   const [helpOpen, setHelpOpen] = useState(true);
 
   const handleSignOut = () => {
@@ -172,6 +182,65 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
 
         <div className="space-y-1">
           {routes.map(renderRoute)}
+
+          {/* Campanhas expansível com sub-itens */}
+          <div>
+            {collapsed ? (
+              <Link
+                href="/dashboard/campaigns"
+                title="Campanhas"
+                className={cn(
+                  "text-sm group flex items-center w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition p-3 justify-center",
+                  campaignsActive ? "text-white bg-white/10" : "text-zinc-400"
+                )}
+              >
+                <Megaphone className="h-5 w-5 text-fuchsia-600" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCampaignsOpen((o) => !o)}
+                aria-expanded={campaignsOpen ? "true" : "false"}
+                className={cn(
+                  "text-sm group flex items-center w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition p-3",
+                  campaignsActive ? "text-white bg-white/10" : "text-zinc-400"
+                )}
+              >
+                <div className="flex items-center flex-1">
+                  <Megaphone className="h-5 w-5 mr-3 text-fuchsia-600" />
+                  Campanhas
+                </div>
+                {campaignsOpen ? (
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 opacity-60" />
+                )}
+              </button>
+            )}
+            {!collapsed && campaignsOpen && (
+              <div className="ml-6 mt-1 space-y-1 border-l border-zinc-700 pl-2">
+                {campaignsSubRoutes.map((sub) => {
+                  const isActive = pathname === sub.href || (sub.href !== "/dashboard/campaigns" && pathname.startsWith(sub.href));
+                  // /dashboard/campaigns deve ser ativo só em match exato pra não conflitar com /campaigns/settings
+                  const exactCampaigns = sub.href === "/dashboard/campaigns" && (pathname === "/dashboard/campaigns" || (pathname.startsWith("/dashboard/campaigns/") && !pathname.startsWith("/dashboard/campaigns/settings")));
+                  const active = sub.href === "/dashboard/campaigns" ? exactCampaigns : isActive;
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={cn(
+                        "text-xs group flex items-center p-2 w-full font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-md transition",
+                        active ? "text-white bg-white/10" : "text-zinc-400"
+                      )}
+                    >
+                      <sub.icon className={cn("h-4 w-4 mr-2", sub.color)} />
+                      {sub.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Configurações expansível com sub-itens (vira link direto quando collapsed) */}
           <div>

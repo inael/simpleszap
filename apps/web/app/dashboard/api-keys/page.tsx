@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import { useState } from "react";
 import { toast } from "sonner";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 export default function ApiKeysPage() {
   const { getToken, user } = useAuth();
@@ -139,6 +140,9 @@ export default function ApiKeysPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {keys === undefined && (
+                <TableLoadingRows colSpan={4} />
+              )}
               {keys?.map((k: any) => (
                 <TableRow key={k.id}>
                   <TableCell className="font-medium">{k.name || "Chave"}</TableCell>
@@ -164,7 +168,7 @@ export default function ApiKeysPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!keys?.length && (
+              {Array.isArray(keys) && keys.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
                     Nenhuma chave encontrada.

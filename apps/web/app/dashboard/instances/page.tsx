@@ -7,6 +7,7 @@ import { WebhookOverrideDialog } from "@/components/dashboard/webhook-override-d
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 import {
   Table,
   TableBody,
@@ -303,6 +304,9 @@ export default function InstancesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {instances === undefined && !error && (
+                <TableLoadingRows colSpan={4} />
+              )}
               {instances?.map((inst: any) => {
                 const pendingCount = pendingByInstance[inst.id] || 0;
                 return (
@@ -397,10 +401,10 @@ export default function InstancesPage() {
                 </TableRow>
                 );
               })}
-              {!instances?.length && (
+              {Array.isArray(instances) && instances.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
-                    Nenhuma instância encontrada.
+                    Nenhuma instância encontrada. Clique em "Nova Instância" pra começar.
                   </TableCell>
                 </TableRow>
               )}

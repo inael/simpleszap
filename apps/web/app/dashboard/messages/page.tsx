@@ -13,6 +13,7 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSearchParams } from "next/navigation";
+import { TableLoadingRows } from "@/components/ui/table-loading";
 
 type QueueItem = {
   id: string;
@@ -216,6 +217,9 @@ function MessagesPageInner() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {queue === undefined && (
+                    <TableLoadingRows colSpan={6} />
+                  )}
                   {queue?.items?.map((m) => {
                     const meta = STATUS_LABEL[m.status] || { text: m.status, cls: "text-zinc-500", Icon: Clock };
                     return (
@@ -242,7 +246,7 @@ function MessagesPageInner() {
                       </TableRow>
                     );
                   })}
-                  {!queue?.items?.length && (
+                  {queue?.items && queue.items.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
                         Nenhuma mensagem nesse filtro.
@@ -273,6 +277,9 @@ function MessagesPageInner() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {history === undefined && (
+                    <TableLoadingRows colSpan={5} />
+                  )}
                   {Array.isArray(history) && history.map((m: any) => (
                     <TableRow key={m.id}>
                       <TableCell>{new Date(m.createdAt).toLocaleString("pt-BR")}</TableCell>
