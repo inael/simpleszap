@@ -42,6 +42,7 @@ export default function ContactsPage() {
   const [importing, setImporting] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const loadingInstances = instances === undefined;
   const readyInstances = instances?.filter((i) => i.status === "connected" || i.status === "open") ?? [];
 
   const importContacts = async () => {
@@ -108,8 +109,12 @@ export default function ContactsPage() {
         </div>
         <Dialog open={importOpen} onOpenChange={setImportOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" disabled={readyInstances.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
+            <Button variant="outline" disabled={loadingInstances || readyInstances.length === 0}>
+              {loadingInstances ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
               Importar do WhatsApp
             </Button>
           </DialogTrigger>
@@ -122,19 +127,33 @@ export default function ContactsPage() {
             </DialogHeader>
             <div className="space-y-3 py-2">
               <Label>Instância</Label>
-              <Select value={importInstanceId} onValueChange={setImportInstanceId}>
+              <Select value={importInstanceId} onValueChange={setImportInstanceId} disabled={loadingInstances || readyInstances.length === 0}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma instância conectada" />
+                  <SelectValue placeholder={
+                    loadingInstances ? "Carregando instâncias..." :
+                    readyInstances.length === 0 ? "Nenhuma instância conectada" :
+                    "Selecione uma instância conectada"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {readyInstances.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                  ))}
-                  {readyInstances.length === 0 && (
+                  {loadingInstances ? (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Carregando...
+                    </div>
+                  ) : readyInstances.length === 0 ? (
                     <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância conectada</div>
+                  ) : (
+                    readyInstances.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>
+              {!loadingInstances && readyInstances.length === 0 && (instances?.length ?? 0) > 0 && (
+                <p className="text-xs text-amber-700">
+                  Você tem {instances!.length} instância(s), mas nenhuma está conectada. Conecte uma instância em <strong>Instâncias → Conectar</strong> antes de importar.
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 A importação pode demorar alguns segundos dependendo do tamanho da agenda.
               </p>

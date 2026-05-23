@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ListLoadingSkeleton } from "@/components/ui/list-loading";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 type BetaFeature = {
@@ -91,7 +92,13 @@ export default function BetaSettingsPage() {
       </div>
 
       <div className="grid gap-4">
-        {(data?.features || []).map((f) => (
+        {data === undefined ? (
+          <ListLoadingSkeleton rows={3} lines={2} />
+        ) : data.features.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Nenhum recurso beta disponível no momento.
+          </p>
+        ) : data.features.map((f) => (
           <Card key={f.key} className={!f.available ? "opacity-60" : ""}>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">

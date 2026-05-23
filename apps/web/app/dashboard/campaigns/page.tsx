@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Search, Users, UserPlus } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
+import { ListLoadingSkeleton } from "@/components/ui/list-loading";
 import { useMemo } from "react";
 
 export default function CampaignsPage() {
@@ -272,7 +273,9 @@ export default function CampaignsPage() {
                 </div>
 
                 <div className="border rounded-md max-h-[280px] overflow-y-auto divide-y">
-                  {filteredContacts.length === 0 ? (
+                  {contacts === undefined ? (
+                    <div className="p-3"><ListLoadingSkeleton rows={3} lines={2} /></div>
+                  ) : filteredContacts.length === 0 ? (
                     <p className="p-4 text-sm text-muted-foreground text-center">Nenhum contato bate com esse filtro.</p>
                   ) : filteredContacts.map((c) => {
                     const checked = selectedContactIds.includes(c.id);

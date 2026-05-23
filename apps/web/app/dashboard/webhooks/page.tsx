@@ -1,19 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Globe, Smartphone, Info, Pencil, Trash2, Zap, Loader2, Plus, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Globe, Smartphone, Info, Pencil, Trash2, Zap, Loader2, Plus, CheckCircle2, ArrowLeft } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
 
 type EventDef = { key: string; category: string; label: string; description: string };
@@ -63,8 +62,7 @@ export default function WebhooksPage() {
     return m;
   }, [instances]);
 
-  // Dialog state — usado pra Novo e Editar (mesmo dialog)
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mode, setMode] = useState<"list" | "form">("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
@@ -88,7 +86,7 @@ export default function WebhooksPage() {
     setUrl(""); setSecret("");
     setApplyTo("global");
     setSelectedEvents(DEFAULT_SELECTED);
-    setDialogOpen(true);
+    setMode("form");
   };
 
   const openEdit = (c: any) => {
@@ -97,12 +95,12 @@ export default function WebhooksPage() {
     setSecret(c.secret || "");
     setApplyTo(c.instanceId || "global");
     try { setSelectedEvents(JSON.parse(c.events) as string[]); } catch { setSelectedEvents([]); }
-    setDialogOpen(true);
+    setMode("form");
   };
 
-  const closeDialog = () => {
+  const cancelForm = () => {
     if (submitting) return;
-    setDialogOpen(false);
+    setMode("list");
     setEditingId(null);
   };
 
@@ -135,7 +133,7 @@ export default function WebhooksPage() {
         await api.post("/webhooks/config", body, { headers });
         toast.success("Webhook criado!");
       }
-      setDialogOpen(false);
+      setMode("list");
       setEditingId(null);
       mutate();
     } catch {
@@ -171,6 +169,8 @@ export default function WebhooksPage() {
     finally { setTestingId(null); }
   };
 
+  const isForm = mode === "form";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -178,114 +178,123 @@ export default function WebhooksPage() {
           <h1 className="text-3xl font-bold tracking-tight">Webhooks — Configurações</h1>
           <p className="text-muted-foreground">URLs externas que recebem eventos do seu WhatsApp.</p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" /> Novo webhook
-        </Button>
+        {!isForm && (
+          <Button onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" /> Novo webhook
+          </Button>
+        )}
       </div>
 
-      <div className="flex items-start gap-3 rounded-md border border-sky-200 bg-sky-50 p-4">
-        <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-sky-600" />
-        <div className="text-sm text-sky-900 space-y-2">
-          <p><strong>Como funciona o roteamento</strong></p>
-          <p>
-            Webhook <strong>Global</strong> recebe eventos de <strong>todas as instâncias</strong>. Você pode ter quantos quiser (todos recebem em paralelo).
-            Quer comportamento diferente pra uma instância específica? Crie um webhook com "Aplicar a = instância X" — ele <strong>sobrescreve</strong> o global naquela instância (estilo Stripe).
-          </p>
+      {!isForm && (
+        <div className="flex items-start gap-3 rounded-md border border-sky-200 bg-sky-50 p-4">
+          <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-sky-600" />
+          <div className="text-sm text-sky-900 space-y-2">
+            <p><strong>Como funciona o roteamento</strong></p>
+            <p>
+              Webhook <strong>Global</strong> recebe eventos de <strong>todas as instâncias</strong>. Você pode ter quantos quiser (todos recebem em paralelo).
+              Quer comportamento diferente pra uma instância específica? Crie um webhook com "Aplicar a = instância X" — ele <strong>sobrescreve</strong> o global naquela instância (estilo Stripe).
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {configsError && (
+      {configsError && !isForm && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           <p>Erro ao carregar webhooks. Verifique sua conexão e tente novamente.</p>
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Webhooks cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Aplica a</TableHead>
-                <TableHead>URL</TableHead>
-                <TableHead>Eventos</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {configs === undefined && !configsError && <TableLoadingRows colSpan={4} />}
-              {configs?.map((c: any) => {
-                const isGlobal = !c.instanceId;
-                const instName = c.instanceId ? instanceMap.get(c.instanceId) ?? c.instanceId : null;
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      {isGlobal ? (
-                        <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
-                          <Globe className="h-3 w-3 mr-1" /> Global
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200">
-                          <Smartphone className="h-3 w-3 mr-1" /> {instName}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs max-w-md truncate">{c.url}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {(() => {
-                        try {
-                          const arr = JSON.parse(c.events) as string[];
-                          if (arr.length <= 3) return arr.join(", ");
-                          return (
-                            <span title={arr.join("\n")}>
-                              {arr.slice(0, 3).join(", ")}{" "}
-                              <span className="font-semibold text-foreground">+{arr.length - 3}</span>
-                            </span>
-                          );
-                        } catch { return c.events; }
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => testWebhook(c.id)} disabled={testingId === c.id} title="Disparar ping de teste">
-                          {testingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 text-amber-500" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => remove(c.id)} disabled={deletingId === c.id} title="Excluir">
-                          {deletingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </Button>
-                      </div>
+      {!isForm ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Webhooks cadastrados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Aplica a</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Eventos</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {configs === undefined && !configsError && <TableLoadingRows colSpan={4} />}
+                {configs?.map((c: any) => {
+                  const isGlobal = !c.instanceId;
+                  const instName = c.instanceId ? instanceMap.get(c.instanceId) ?? c.instanceId : null;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell>
+                        {isGlobal ? (
+                          <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
+                            <Globe className="h-3 w-3 mr-1" /> Global
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200">
+                            <Smartphone className="h-3 w-3 mr-1" /> {instName}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs max-w-md truncate">{c.url}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {(() => {
+                          try {
+                            const arr = JSON.parse(c.events) as string[];
+                            if (arr.length <= 3) return arr.join(", ");
+                            return (
+                              <span title={arr.join("\n")}>
+                                {arr.slice(0, 3).join(", ")}{" "}
+                                <span className="font-semibold text-foreground">+{arr.length - 3}</span>
+                              </span>
+                            );
+                          } catch { return c.events; }
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => testWebhook(c.id)} disabled={testingId === c.id} title="Disparar ping de teste">
+                            {testingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 text-amber-500" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => remove(c.id)} disabled={deletingId === c.id} title="Excluir">
+                            {deletingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {Array.isArray(configs) && configs.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      Nenhum webhook configurado. Clique em <strong>"Novo webhook"</strong> pra criar o primeiro.
                     </TableCell>
                   </TableRow>
-                );
-              })}
-              {Array.isArray(configs) && configs.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhum webhook configurado. Clique em <strong>"Novo webhook"</strong> pra criar o primeiro.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Dialog Novo/Editar */}
-      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeDialog(); }}>
-        <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Editar webhook" : "Novo webhook"}</DialogTitle>
-            <DialogDescription>
-              URL do <strong>seu sistema</strong> (n8n, backend próprio, Zapier, etc) que o SimplesZap vai chamar via <code className="text-xs">POST</code> sempre
-              que um evento do WhatsApp acontecer. Cada POST vem com <code className="text-xs">x-webhook-signature</code> HMAC SHA-256 + seu secret pra validação.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5">
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <CardTitle>{editingId ? "Editar webhook" : "Novo webhook"}</CardTitle>
+                <CardDescription className="mt-1 max-w-3xl">
+                  URL do <strong>seu sistema</strong> (n8n, backend próprio, Zapier, etc) que o SimplesZap vai chamar via <code className="text-xs">POST</code> sempre
+                  que um evento do WhatsApp acontecer. Cada POST vem com <code className="text-xs">x-webhook-signature</code> HMAC SHA-256 + seu secret pra validação.
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={cancelForm} disabled={submitting}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
             <div className="grid md:grid-cols-12 gap-4">
               <div className="space-y-1 md:col-span-5">
                 <Label>URL</Label>
@@ -326,7 +335,7 @@ export default function WebhooksPage() {
                   <Button type="button" variant="outline" size="sm" onClick={() => setSelectedEvents([])}>Limpar</Button>
                 </div>
               </div>
-              <div className="rounded-md border bg-background divide-y max-h-[440px] overflow-y-auto">
+              <div className="rounded-md border bg-background divide-y">
                 {groupedEvents.map(({ category, events }) => (
                   <div key={category} className="p-3 space-y-2">
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</div>
@@ -356,22 +365,22 @@ export default function WebhooksPage() {
                 <div>Faltando: <strong>{missing.join(", ")}</strong></div>
               </div>
             )}
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog} disabled={submitting}>Cancelar</Button>
-            <Button onClick={save} disabled={submitting || missing.length > 0}>
-              {submitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
-              ) : editingId ? (
-                <><CheckCircle2 className="mr-2 h-4 w-4" /> Salvar alterações</>
-              ) : (
-                <><Plus className="mr-2 h-4 w-4" /> Criar webhook</>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={cancelForm} disabled={submitting}>Cancelar</Button>
+              <Button onClick={save} disabled={submitting || missing.length > 0}>
+                {submitting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
+                ) : editingId ? (
+                  <><CheckCircle2 className="mr-2 h-4 w-4" /> Salvar alterações</>
+                ) : (
+                  <><Plus className="mr-2 h-4 w-4" /> Criar webhook</>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
