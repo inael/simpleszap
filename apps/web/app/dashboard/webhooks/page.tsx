@@ -276,7 +276,7 @@ export default function WebhooksPage() {
 
       {/* Dialog Novo/Editar */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeDialog(); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar webhook" : "Novo webhook"}</DialogTitle>
             <DialogDescription>
@@ -285,38 +285,37 @@ export default function WebhooksPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-1 md:col-span-2">
+          <div className="space-y-5">
+            <div className="grid md:grid-cols-12 gap-4">
+              <div className="space-y-1 md:col-span-5">
                 <Label>URL</Label>
                 <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://n8n.suaempresa.com/webhook/abc" />
                 <p className="text-xs text-muted-foreground">Endpoint público do seu sistema que aceita POST com JSON.</p>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 md:col-span-3">
                 <Label>Secret</Label>
                 <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="string aleatória" />
-                <p className="text-xs text-muted-foreground">Pra validar assinatura. Guarde no seu sistema.</p>
+                <p className="text-xs text-muted-foreground">Pra validar assinatura.</p>
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label>Aplicar a</Label>
-              <Select value={applyTo} onValueChange={setApplyTo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="global">
-                    <span className="flex items-center gap-2"><Globe className="h-4 w-4 text-sky-600" /> Global (todas as instâncias)</span>
-                  </SelectItem>
-                  {(instances ?? []).map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      <span className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-violet-600" /> Apenas {i.name}</span>
+              <div className="space-y-1 md:col-span-4">
+                <Label>Aplicar a</Label>
+                <Select value={applyTo} onValueChange={setApplyTo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">
+                      <span className="flex items-center gap-2"><Globe className="h-4 w-4 text-sky-600" /> Global (todas)</span>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                <strong>Global</strong> = recebe de <strong>todas</strong>. Escolha uma instância só se quiser comportamento diferente pra ela.
-              </p>
+                    {(instances ?? []).map((i) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        <span className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-violet-600" /> Apenas {i.name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Global</strong> = todas as instâncias. Override = só a escolhida (estilo Stripe).
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -327,11 +326,11 @@ export default function WebhooksPage() {
                   <Button type="button" variant="outline" size="sm" onClick={() => setSelectedEvents([])}>Limpar</Button>
                 </div>
               </div>
-              <div className="rounded-md border bg-background divide-y max-h-[260px] overflow-y-auto">
+              <div className="rounded-md border bg-background divide-y max-h-[440px] overflow-y-auto">
                 {groupedEvents.map(({ category, events }) => (
                   <div key={category} className="p-3 space-y-2">
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</div>
-                    <div className="grid sm:grid-cols-2 gap-2">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {events.map((ev) => {
                         const checked = selectedEvents.includes(ev.key);
                         return (
