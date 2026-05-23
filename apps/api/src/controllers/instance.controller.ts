@@ -214,6 +214,56 @@ export class InstanceController {
   }
 
   /**
+   * Envia mídia (imagem, vídeo, áudio, documento) via Evolution.
+   * Body:
+   *   {
+   *     number: "5511999999999",          // E.164 BR (sem +)
+   *     mediatype: "image|video|audio|document",
+   *     media:    "https://... | data:..." // URL pública OU base64 data URI
+   *     caption?: "legenda opcional",       // ignorado pra audio
+   *     fileName?: "arquivo.pdf",           // usado pra document
+   *     ptt?: true                          // só pra audio: push-to-talk
+   *   }
+   * Enfileira igual ao sendText — cron processa via Evolution depois.
+   */
+  static async sendMedia(req: Request, res: Response) {
+    const { instanceId } = req.params;
+    const { number: rawNumber, mediatype, media, caption, fileName, ptt } = req.body || {};
+    const number = normalizePhoneBR(String(rawNumber || ''));
+    const orgId = req.headers['x-org-id'] as string;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!number || !media || !mediatype) {
+      return res.status(400).json({ error: 'number, mediatype e media são obrigatórios' });
+    }
+    if (!['image', 'video', 'audio', 'document'].includes(mediatype)) {
+      return res.status(400).json({ error: 'mediatype deve ser image, video, audio ou document' });
+    }
+
+    const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
+    if (!instance || instance.orgId !== orgId) {
+      return res.status(404).json({ error: 'Instância não encontrada' });
+    }
+
+    const check = await EnforcementService.canSendMessage(orgId, instanceId);
+    if (!check.allowed) return respondEnforcementDenied(res, check);
+
+    const queued = await MessageQueueController.enqueue({
+      orgId,
+      instanceId,
+      type: mediatype as 'image' | 'video' | 'audio' | 'document',
+      number,
+      body: caption || undefined,
+      payload: { media, mediatype, caption, fileName, ptt: !!ptt },
+    });
+    res.status(202).json({
+      queued: true,
+      queueId: queued.queueId,
+      scheduledAt: queued.scheduledAt,
+      position: queued.position,
+    });
+  }
+
+  /**
    * Gera (ou regenera) link público temporário pra escanear o QR sem login.
    * Útil pra enviar pra um terceiro conectar à distância (cliente, assistente).
    * Token expira em PUBLIC_CONNECT_LINK_TTL_MIN (padrão 30min) e é apagado

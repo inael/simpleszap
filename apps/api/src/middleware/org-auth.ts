@@ -81,10 +81,18 @@ export async function orgAuth(req: Request, res: Response, next: NextFunction) {
   if (!orgId && apiKey) {
     try {
       const keyValue = apiKey.startsWith('Bearer ') ? apiKey.slice(7) : apiKey;
-      const key = await prisma.apiKey.findUnique({ where: { key: keyValue } });
+      const key = await prisma.apiKey.findUnique({
+        where: { key: keyValue },
+        include: { user: true },
+      });
       if (key?.orgId) {
         orgId = key.orgId;
         req.headers['x-org-id'] = orgId;
+        // x-user-id também precisa ser o logtoId pra controllers que usam
+        // (MeController, BetaFeaturesController, etc) funcionarem via API key.
+        if (key.user?.logtoId) {
+          req.headers['x-user-id'] = key.user.logtoId;
+        }
       }
     } catch (err) {
       console.error('orgAuth: API key lookup failed:', err);

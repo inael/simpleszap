@@ -191,4 +191,56 @@ export class EvolutionService {
       throw new Error(error.response?.data?.message || 'Failed to send buttons message');
     }
   }
+
+  /**
+   * Envia mídia (imagem, vídeo, documento) ou áudio via Evolution API v2.
+   * Para áudio PTT (push-to-talk / voice message), usa o endpoint dedicado
+   * /message/sendWhatsAppAudio. Para imagem/vídeo/documento, usa /message/sendMedia.
+   *
+   * `media` aceita URL pública OU base64 (data URI). Evolution baixa e envia.
+   */
+  static async sendMedia(
+    instanceName: string,
+    params: {
+      number: string;
+      mediatype: 'image' | 'video' | 'document' | 'audio';
+      media: string;
+      caption?: string;
+      fileName?: string;
+      ptt?: boolean;
+    },
+  ) {
+    const { number, mediatype, media, caption, fileName, ptt } = params;
+    try {
+      // Áudio (especialmente PTT) usa endpoint dedicado — sendMedia genérico
+      // não suporta a flag ptt na Evolution v2.
+      if (mediatype === 'audio') {
+        const response = await client.post(
+          `/message/sendWhatsAppAudio/${instanceName}`,
+          { number, audio: media, delay: 1200, encoding: !!ptt },
+          { headers: this.headers },
+        );
+        return response.data;
+      }
+
+      const response = await client.post(
+        `/message/sendMedia/${instanceName}`,
+        {
+          number,
+          mediatype,
+          media,
+          caption,
+          fileName: fileName || (mediatype === 'document' ? 'file' : undefined),
+          delay: 1200,
+        },
+        { headers: this.headers },
+      );
+      return response.data;
+    } catch (error: any) {
+      const detail = error.response?.data;
+      console.error('Error sending media:', detail || error.message);
+      const msg = detail?.message || detail?.response?.message || error.message || 'Failed to send media';
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+  }
 }

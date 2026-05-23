@@ -87,6 +87,58 @@ export class MeController {
     }
   }
 
+  /**
+   * GET /usage — histórico recente de envio (últimos N dias). Útil pra
+   * integradores monitorarem consumo via API key sem precisar do dashboard.
+   */
+  static async usage(req: Request, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string | undefined;
+      const orgId = req.headers['x-org-id'] as string | undefined;
+      if (!userId && !orgId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const user = await prisma.user.findUnique({
+        where: { logtoId: (userId || orgId) as string },
+        include: { instances: true },
+      });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const daysParam = parseInt(String(req.query.days || '7'), 10);
+      const days = Math.min(Math.max(daysParam, 1), 90);
+
+      const now = new Date();
+      const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (days - 1)));
+
+      const [poolRows, instanceRows] = await Promise.all([
+        prisma.dailyUsage.findMany({
+          where: { userId: user.id, date: { gte: startDate } },
+          orderBy: { date: 'asc' },
+        }),
+        prisma.instanceDailyUsage.findMany({
+          where: { instanceId: { in: user.instances.map((i) => i.id) }, date: { gte: startDate } },
+          orderBy: { date: 'asc' },
+        }),
+      ]);
+
+      const instanceNameMap = new Map(user.instances.map((i) => [i.id, i.name]));
+
+      res.json({
+        days,
+        startDate: startDate.toISOString().slice(0, 10),
+        pool: poolRows.map((r) => ({ date: r.date.toISOString().slice(0, 10), count: r.count })),
+        perInstance: instanceRows.map((r) => ({
+          date: r.date.toISOString().slice(0, 10),
+          instanceId: r.instanceId,
+          instance: instanceNameMap.get(r.instanceId) || r.instanceId,
+          count: r.count,
+        })),
+      });
+    } catch (e: any) {
+      console.error('me.usage error:', e);
+      res.status(500).json({ error: e?.message || 'Internal error' });
+    }
+  }
+
   static async subscription(req: Request, res: Response) {
     try {
       const userId = req.headers['x-user-id'] as string | undefined;

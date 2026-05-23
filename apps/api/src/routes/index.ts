@@ -58,6 +58,8 @@ router.post('/subscription/cancel', orgAuthWithSecurity, SubscriptionController.
 
 // Billing (modelo elástico novo 2026-05)
 router.get('/me/billing', orgAuthWithSecurity, BillingController.summary);
+router.get('/billing', orgAuthWithSecurity, BillingController.summary); // alias pra integradores
+router.get('/usage', orgAuthWithSecurity, MeController.usage);            // histórico de uso
 router.post('/instance/:id/subscribe', orgAuthWithSecurity, BillingController.subscribeInstance);
 router.delete('/instance/:id/subscribe', orgAuthWithSecurity, BillingController.cancelInstanceSubscription);
 router.post('/messages/addon', orgAuthWithSecurity, BillingController.createAddon);
@@ -94,6 +96,7 @@ router.delete('/api-keys/:id', orgAuthWithSecurity, ApiKeyController.revoke);
 // O middleware rateLimit antigo exigia x-api-key e quebrava o dashboard com 401.
 router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendText);
 router.post('/message/sendButtons/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendButtons);
+router.post('/message/sendMedia/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendMedia);
 router.get('/messages', orgAuthWithSecurity, MessagesController.list);
 
 // Fila de saída — visibilidade e cancelamento

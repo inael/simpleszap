@@ -88,7 +88,11 @@ export class BetaFeaturesController {
   static async requireAccepted(orgId: string, featureKey: string, res: Response): Promise<boolean> {
     const feature = getBetaFeature(featureKey);
     if (!feature || !feature.available) {
-      res.status(404).json({ error: { code: 'BETA_FEATURE_NOT_AVAILABLE', message: 'Feature beta indisponível.' } });
+      res.status(404).json({
+        error: 'Feature beta indisponível.',
+        code: 'BETA_FEATURE_NOT_AVAILABLE',
+        featureKey,
+      });
       return false;
     }
     const user = await prisma.user.findUnique({ where: { logtoId: orgId } });
@@ -102,12 +106,10 @@ export class BetaFeaturesController {
     const ok = !!acc && !acc.revokedAt && acc.termsVersion === feature.termsVersion;
     if (!ok) {
       res.status(403).json({
-        error: {
-          code: 'BETA_FEATURE_NOT_ACCEPTED',
-          message: `Aceite os termos de "${feature.label}" em Configurações → Beta antes de usar este recurso.`,
-          featureKey,
-          termsVersion: feature.termsVersion,
-        },
+        error: `Aceite os termos de "${feature.label}" em Configurações → Beta antes de usar este recurso.`,
+        code: 'BETA_FEATURE_NOT_ACCEPTED',
+        featureKey,
+        termsVersion: feature.termsVersion,
       });
       return false;
     }

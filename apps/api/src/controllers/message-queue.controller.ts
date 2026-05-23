@@ -15,7 +15,7 @@ function randomInRange(min: number, max: number): number {
 type EnqueueParams = {
   orgId: string;
   instanceId: string;
-  type: 'text' | 'buttons';
+  type: 'text' | 'buttons' | 'image' | 'video' | 'audio' | 'document';
   number: string; // já normalizado (E.164 BR)
   body?: string;
   payload?: any;
@@ -227,6 +227,21 @@ export class MessageQueueController {
 
               if (msg.type === 'buttons') {
                 await EvolutionService.sendButtons(evoName, msg.payload as any);
+              } else if (
+                msg.type === 'image' ||
+                msg.type === 'video' ||
+                msg.type === 'audio' ||
+                msg.type === 'document'
+              ) {
+                const p = (msg.payload as any) || {};
+                await EvolutionService.sendMedia(evoName, {
+                  number: msg.number,
+                  mediatype: msg.type,
+                  media: p.media,
+                  caption: p.caption,
+                  fileName: p.fileName,
+                  ptt: !!p.ptt,
+                });
               } else {
                 await EvolutionService.sendText(evoName, msg.number, msg.body || '');
               }
