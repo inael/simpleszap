@@ -83,6 +83,64 @@ export class WebhookConfigController {
       res.status(500).json({ error: error.message || 'Failed to remove webhook' });
     }
   }
+  /**
+   * Dispara um ping de teste pra essa config específica (não passa pelo
+   * filtro de eventos assinados — força entrega). Retorna status code e
+   * latência. Útil pro user validar conexão antes de esperar evento real.
+   */
+  static async test(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const orgId = req.headers['x-org-id'] as string;
+      if (!orgId) return res.status(400).json({ error: 'orgId required' });
+
+      const cfg = await prisma.webhookConfig.findUnique({ where: { id } });
+      if (!cfg || cfg.orgId !== orgId) {
+        return res.status(404).json({ error: 'Webhook não encontrado' });
+      }
+
+      const crypto = await import('crypto');
+      const axios = (await import('axios')).default;
+      const payload = {
+        event: 'webhook.test',
+        instanceId: cfg.instanceId,
+        occurredAt: new Date().toISOString(),
+        data: {
+          message: 'Esse é um ping de teste do SimplesZap. Se você recebeu, seu webhook está funcionando.',
+          configId: cfg.id,
+        },
+      };
+      const body = JSON.stringify(payload);
+      const signature = crypto.createHmac('sha256', cfg.secret).update(body).digest('hex');
+
+      const startedAt = Date.now();
+      try {
+        const r = await axios.post(cfg.url, payload, {
+          headers: { 'x-webhook-signature': signature, 'content-type': 'application/json' },
+          timeout: 10000,
+        });
+        const ms = Date.now() - startedAt;
+        await prisma.webhookLog.create({
+          data: { orgId, webhookId: cfg.id, event: 'webhook.test', payload: body, success: true, statusCode: r.status },
+        }).catch(() => null);
+        return res.json({ success: true, statusCode: r.status, ms });
+      } catch (e: any) {
+        const ms = Date.now() - startedAt;
+        const status = e?.response?.status;
+        const errorMsg = e?.code === 'ECONNABORTED' ? 'Timeout (10s) — seu sistema demorou demais pra responder'
+          : e?.code === 'ENOTFOUND' ? 'Domínio não resolveu (DNS) — confira a URL'
+          : e?.message || 'Erro de conexão';
+        await prisma.webhookLog.create({
+          data: { orgId, webhookId: cfg.id, event: 'webhook.test', payload: body, success: false, statusCode: status, error: errorMsg },
+        }).catch(() => null);
+        return res.json({ success: false, statusCode: status, ms, error: errorMsg });
+      }
+    } catch (error: any) {
+      console.error('webhookConfig.test error:', error);
+      res.status(500).json({ error: error.message || 'Failed to test webhook' });
+    }
+  }
+
   static async logs(req: Request, res: Response) {
     try {
       const orgId = req.headers['x-org-id'] as string;

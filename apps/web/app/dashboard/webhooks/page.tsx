@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText, Pencil, Trash2, X } from "lucide-react";
+import { AlertCircle, Globe, Smartphone, Info, CheckCircle2, FileText, Pencil, Trash2, X, Zap, Loader2 } from "lucide-react";
 
 type EventDef = {
   key: string;
@@ -82,6 +82,30 @@ export default function WebhooksPage() {
   const [lastCreated, setLastCreated] = useState<{ url: string; events: number; scope: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const testWebhook = async (id: string) => {
+    if (!orgId) return;
+    setTestingId(id);
+    try {
+      const token = await getToken();
+      const res = await api.post(
+        `/webhooks/config/${id}/test`,
+        {},
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      const { success, statusCode, ms, error } = res.data;
+      if (success) {
+        toast.success(`Ping OK — ${statusCode} em ${ms}ms`);
+      } else {
+        toast.error(`Falhou: ${error || `HTTP ${statusCode}`} (${ms}ms)`);
+      }
+    } catch {
+      toast.error("Erro ao disparar teste.");
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   const startEdit = (c: any) => {
     setEditingId(c.id);
@@ -448,6 +472,19 @@ export default function WebhooksPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => testWebhook(c.id)}
+                          disabled={testingId === c.id}
+                          title="Disparar ping de teste (event=webhook.test)"
+                        >
+                          {testingId === c.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Zap className="h-4 w-4 text-amber-500" />
+                          )}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

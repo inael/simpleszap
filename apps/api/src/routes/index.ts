@@ -125,6 +125,7 @@ router.get('/webhooks/config', orgAuthWithSecurity, WebhookConfigController.list
 router.post('/webhooks/config', orgAuthWithSecurity, WebhookConfigController.create);
 router.put('/webhooks/config/:id', orgAuthWithSecurity, WebhookConfigController.update);
 router.delete('/webhooks/config/:id', orgAuthWithSecurity, WebhookConfigController.remove);
+router.post('/webhooks/config/:id/test', orgAuthWithSecurity, WebhookConfigController.test);
 router.get('/webhooks/logs', orgAuthWithSecurity, WebhookConfigController.logs);
 
 // Preferências (envio em massa, segurança)
