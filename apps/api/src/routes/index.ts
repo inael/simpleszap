@@ -40,8 +40,12 @@ router.post('/webhooks/asaas', AsaasWebhookController.handle);
 // Webhook PÚBLICO recebendo eventos da Evolution API (sem auth — Evolution chama direto)
 router.post('/webhooks/evolution/:instanceName', EvolutionWebhookController.handle);
 
-// Cron — protegido por CRON_SECRET (Vercel Scheduled Function)
+// Cron — protegido por CRON_SECRET (Vercel Scheduled Function).
+// Vercel cron sempre invoca via GET — registrar GET e POST pra suportar
+// ambos (POST mantido como fallback pra triggers externos / cron-job.org).
+router.get('/cron/process-emails', CronController.processEmails);
 router.post('/cron/process-emails', CronController.processEmails);
+router.get('/cron/process-message-queue', MessageQueueController.processCron);
 router.post('/cron/process-message-queue', MessageQueueController.processCron);
 
 // Dashboard
