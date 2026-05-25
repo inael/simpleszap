@@ -25,11 +25,15 @@ const WEBHOOK_EVENTS = [
 ];
 
 function buildWebhookConfig(instanceName: string) {
+  // Evolution v2.3.7 espera "base64" no body do POST (não "webhookBase64").
+  // A API armazena como webhookBase64 no schema mas só lê do payload com chave base64.
+  // Com base64=true a Evolution entrega mídia (áudio/imagem/vídeo) já decodificada
+  // no payload do webhook, evitando download separado + descriptografia com mediaKey.
   return {
     enabled: true,
     url: `${WEBHOOK_BASE_URL}/${instanceName}`,
     webhookByEvents: false,
-    webhookBase64: true,
+    base64: true,
     events: WEBHOOK_EVENTS,
   };
 }
