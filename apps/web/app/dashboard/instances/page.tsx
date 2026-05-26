@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren } from "lucide-react";
 import { WebhookOverrideDialog } from "@/components/dashboard/webhook-override-dialog";
+import { InstanceUpsellFlow } from "@/components/dashboard/instance-upsell-flow";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
@@ -42,6 +43,7 @@ export default function InstancesPage() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareConnected, setShareConnected] = useState(false);
   const [testInstanceId, setTestInstanceId] = useState<string | null>(null);
+  const [upsell, setUpsell] = useState<{ open: boolean; limit: number; current: number }>({ open: false, limit: 1, current: 0 });
   const [webhookFor, setWebhookFor] = useState<{ id: string; name: string } | null>(null);
   const [testPhone, setTestPhone] = useState("");
   const [testText, setTestText] = useState("✅ Teste de envio SimplesZap. Se você recebeu, está tudo OK!");
@@ -93,8 +95,22 @@ export default function InstancesPage() {
         // sem isso a 1ª chamada às vezes volta vazia e mostra toast "sem QR".
         setTimeout(() => { void fetchQr(instanceId); }, 1200);
       }
-    } catch (e) {
-      toast.error("Erro ao criar instância.");
+    } catch (e: any) {
+      const err = e?.response?.data?.error;
+      const code = typeof err === "object" ? err?.code : undefined;
+      if (code === "PLAN_INSTANCE_LIMIT_REACHED") {
+        // Fecha o dialog de criar e abre o fluxo de upsell (3 telas).
+        setIsCreateOpen(false);
+        setNewInstanceName("");
+        setUpsell({
+          open: true,
+          limit: typeof err === "object" ? Number(err?.limit) || 1 : 1,
+          current: typeof err === "object" ? Number(err?.current) || 1 : 1,
+        });
+      } else {
+        const msg = (typeof err === "object" ? err?.message : err) || "Erro ao criar instância.";
+        toast.error(typeof msg === "string" ? msg : "Erro ao criar instância.");
+      }
     } finally {
       setIsCreating(false);
     }
@@ -467,6 +483,13 @@ export default function InstancesPage() {
           instanceName={webhookFor.name}
         />
       )}
+
+      <InstanceUpsellFlow
+        open={upsell.open}
+        onOpenChange={(o) => setUpsell((s) => ({ ...s, open: o }))}
+        limit={upsell.limit}
+        current={upsell.current}
+      />
 
       {testInstanceId && (
         <Dialog open={!!testInstanceId} onOpenChange={(o) => { if (!o && !testSending) setTestInstanceId(null); }}>

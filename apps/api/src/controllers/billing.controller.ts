@@ -55,6 +55,8 @@ export class BillingController {
     const userId = req.headers['x-user-id'] as string | undefined;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const couponCode = typeof req.body?.coupon === 'string' ? req.body.coupon.trim() : null;
+
     const user = await prisma.user.findUnique({ where: { logtoId: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
     const instance = await prisma.instance.findUnique({ where: { id } });
@@ -71,13 +73,35 @@ export class BillingController {
       });
     }
 
+    // Validação e aplicação do cupom (opcional). Desconto entra direto no
+    // value da subscription Asaas — recorrente (todas as cobranças). Pra
+    // descontos "só 1º mês" precisaria de Payment avulso + Subscription
+    // começando no mês 2, que não vale a complexidade aqui.
+    let finalPriceCents = INSTANCE_PRICE_CENTS;
+    let coupon: { id: string; percentOff: number | null; amountOff: any } | null = null;
+    if (couponCode) {
+      const c = await prisma.coupon.findUnique({ where: { code: couponCode } });
+      const now = new Date();
+      const valid = c
+        && (c.validUntil == null || c.validUntil > now)
+        && (c.maxUses == null || c.timesUsed < c.maxUses);
+      if (valid) {
+        coupon = { id: c!.id, percentOff: c!.percentOff, amountOff: c!.amountOff };
+        if (c!.percentOff) {
+          finalPriceCents = Math.round(INSTANCE_PRICE_CENTS * (1 - c!.percentOff / 100));
+        } else if (c!.amountOff) {
+          finalPriceCents = Math.max(0, INSTANCE_PRICE_CENTS - Math.round(Number(c!.amountOff) * 100));
+        }
+      }
+    }
+
     try {
       const customerId = await ensureAsaasCustomer(user);
       const sub = await AsaasService.createSubscription(
         customerId,
-        INSTANCE_PRICE_CENTS / 100,
+        finalPriceCents / 100,
         'MONTHLY',
-        `SimplesZap — Instância "${instance.name}"`,
+        `SimplesZap — Instância "${instance.name}"${coupon ? ` (cupom ${couponCode})` : ''}`,
         'UNDEFINED',
         `instance:${instance.id}`,
       );
@@ -85,18 +109,41 @@ export class BillingController {
       await prisma.instance.update({
         where: { id },
         data: {
-          subscriptionStatus: 'pending', // vira active quando webhook confirma pagamento
+          subscriptionStatus: 'pending',
           asaasSubscriptionId: sub?.id ?? null,
-          pricePerMonthCents: INSTANCE_PRICE_CENTS,
+          pricePerMonthCents: finalPriceCents,
           messagesIncluded: INSTANCE_MESSAGES_INCLUDED,
         },
       });
+
+      // Registra redemption (best-effort) + incrementa timesUsed
+      if (coupon) {
+        await prisma.couponRedemption.create({
+          data: {
+            couponId: coupon.id,
+            userId,
+            userEmail: user.email,
+            planId: 'paid',
+            cycle: 'MONTHLY',
+            originalValue: INSTANCE_PRICE_CENTS / 100,
+            discountValue: (INSTANCE_PRICE_CENTS - finalPriceCents) / 100,
+            finalValue: finalPriceCents / 100,
+            asaasSubscriptionId: sub?.id ?? null,
+          },
+        }).catch((e) => console.error('[billing] couponRedemption create failed:', e?.message));
+        await prisma.coupon.update({
+          where: { id: coupon.id },
+          data: { timesUsed: { increment: 1 } },
+        }).catch(() => null);
+      }
 
       res.json({
         subscriptionId: sub?.id,
         invoiceUrl: sub?.invoiceUrl,
         bankSlipUrl: sub?.bankSlipUrl,
-        pricePerMonthCents: INSTANCE_PRICE_CENTS,
+        pricePerMonthCents: finalPriceCents,
+        originalPriceCents: INSTANCE_PRICE_CENTS,
+        couponApplied: coupon ? couponCode : null,
         messagesIncluded: INSTANCE_MESSAGES_INCLUDED,
       });
     } catch (e: any) {

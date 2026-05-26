@@ -3,14 +3,14 @@
 import useSWR from "swr";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListLoadingSkeleton } from "@/components/ui/list-loading";
-import { Smartphone, Plus, Trash2, Crown, Sparkles, ExternalLink, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Smartphone, Plus, Trash2, Crown, Sparkles, ExternalLink, Loader2, CheckCircle2, AlertTriangle, Gift } from "lucide-react";
 
 type BillingSummary = {
   instances: Array<{
@@ -48,6 +48,9 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const orgId = user?.sub;
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const searchParams = useSearchParams();
+  const couponFromUrl = searchParams.get("coupon");
 
   const handleBillingError = (e: any, fallback: string) => {
     const code = e?.response?.data?.code;
@@ -89,7 +92,11 @@ export default function SubscriptionPage() {
     setBusyId(instanceId);
     try {
       const token = await getToken();
-      const res = await api.post(`/instance/${instanceId}/subscribe`, {}, { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const res = await api.post(
+        `/instance/${instanceId}/subscribe`,
+        couponFromUrl ? { coupon: couponFromUrl } : {},
+        { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
       mutate();
       if (res.data?.invoiceUrl) {
         window.open(res.data.invoiceUrl, "_blank");
@@ -155,6 +162,24 @@ export default function SubscriptionPage() {
           Gerencie suas instâncias pagas e o pool extra de mensagens.
         </p>
       </div>
+
+      {couponFromUrl && !vipActive && (
+        <Card className="border-pink-300 bg-gradient-to-r from-pink-50 to-amber-50">
+          <CardContent className="pt-6 flex items-center gap-3">
+            <Gift className="h-6 w-6 text-pink-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-pink-900">
+                Cupom <span className="font-mono">{couponFromUrl}</span> pronto pra usar
+              </p>
+              <p className="text-sm text-pink-800">
+                {couponFromUrl === "WELCOME20"
+                  ? "20% off enquanto durar a assinatura — aplicado automaticamente ao clicar em Assinar."
+                  : "Desconto aplicado automaticamente ao clicar em Assinar."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {missingCpf && !vipActive && (
         <Card className="border-amber-300 bg-amber-50">

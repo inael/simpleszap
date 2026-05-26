@@ -132,8 +132,23 @@ export class EnforcementService {
     const now = new Date();
     const vip = !!(user?.manualSubscriptionUntil && user.manualSubscriptionUntil > now);
     if (vip || user?.subscriptionPlanId === 'interno') return { allowed: true };
-    // Modelo novo: sempre pode criar (a 2ª+ entra como pending até pagar).
-    // Mantém allowed=true porque o gating de uso é por subscriptionStatus na hora de enviar.
+
+    const total = user?.instances.length ?? 0;
+    const paid = (user?.instances || []).filter((i) => i.subscriptionStatus === 'active').length;
+
+    // Free: 1 instância. Pra criar a 2ª+ precisa ter pelo menos 1 paga.
+    // Modelo: cada instância paga "libera" uma 2ª livre? Não — cada Instance.subscription
+    // cobre a própria. Então a regra é: numTotal pode ser até (1 free + numPaid).
+    const allowedTotal = 1 + paid;
+    if (total >= allowedTotal) {
+      return {
+        allowed: false,
+        code: 'PLAN_INSTANCE_LIMIT_REACHED',
+        limit: allowedTotal,
+        current: total,
+        planId: paid > 0 ? 'paid' : 'free',
+      };
+    }
     return { allowed: true };
   }
 
