@@ -127,7 +127,18 @@ export class EvolutionWebhookController {
         const fromMe = !!key.fromMe;
         const messageId = key.id as string | undefined;
         const remoteJid = key.remoteJid as string | undefined;
-        const number = normalizeJidNumber(remoteJid);
+        const remoteJidAlt = key.remoteJidAlt as string | undefined;
+        // Evolution v2 dispara MESSAGES_UPSERT duas vezes pra mesma msg:
+        // uma com remoteJid em formato @lid (Linked Identifier baileys, ex:
+        // "201154877239484@lid") e outra com @s.whatsapp.net (número phone real).
+        // Se a versão LID chegar primeiro, o dedup por messageId bloqueia a
+        // versão phone — resultado: `to` fica com LID-string (não-numérico) e o
+        // lead some do funil. Solução: quando o jid principal é @lid, preferir
+        // remoteJidAlt (que costuma trazer o phone real).
+        const effectiveJid = remoteJid?.includes('@lid') && remoteJidAlt?.includes('@s.whatsapp.net')
+          ? remoteJidAlt
+          : remoteJid;
+        const number = normalizeJidNumber(effectiveJid);
         const fromName = raw?.pushName || null;
         const message = raw?.message || {};
 
