@@ -247,4 +247,32 @@ export class EvolutionService {
       throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
   }
+
+  /**
+   * Dispara indicador de presença ("composing"/"recording"/"available") no chat.
+   * Não enfileirado: presence é leve e tem que aparecer rápido pro lead ver
+   * "digitando..." enquanto o LLM/agente processa a resposta real.
+   *
+   * Evolution v2 aceita: composing, recording, paused, available, unavailable.
+   * O `delay` (ms) controla quanto tempo o estado dura antes de cair sozinho.
+   */
+  static async sendPresence(
+    instanceName: string,
+    number: string,
+    presence: 'composing' | 'recording' | 'paused' | 'available' | 'unavailable',
+    delayMs?: number,
+  ) {
+    try {
+      const response = await client.post(
+        `/chat/sendPresence/${instanceName}`,
+        { number, presence, delay: delayMs ?? 3000 },
+        { headers: this.headers },
+      );
+      return response.data;
+    } catch (error: any) {
+      const detail = error.response?.data;
+      console.error('Error sending presence:', detail || error.message);
+      throw new Error(detail?.message || error.message || 'Failed to send presence');
+    }
+  }
 }

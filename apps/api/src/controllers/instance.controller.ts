@@ -398,4 +398,39 @@ export class InstanceController {
       res.status(500).json({ error: error.message || 'Failed to sync webhooks' });
     }
   }
+
+  /**
+   * Dispara indicador de presença ("composing"/"recording"/"available") direto
+   * pra Evolution, sem passar pela fila. Usado por agentes IA pra mostrar
+   * "digitando..."/"gravando áudio..." enquanto o LLM processa a resposta.
+   * Não conta no limite diário de mensagens.
+   */
+  static async sendPresence(req: Request, res: Response) {
+    const { instanceId } = req.params;
+    const { number: rawNumber, presence, delayMs } = req.body;
+    const number = normalizePhoneBR(String(rawNumber || ''));
+    const orgId = req.headers['x-org-id'] as string;
+    if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!number || !presence) {
+      return res.status(400).json({ error: 'number e presence são obrigatórios' });
+    }
+    const allowedStates = ['composing', 'recording', 'paused', 'available', 'unavailable'];
+    if (!allowedStates.includes(presence)) {
+      return res.status(400).json({ error: `presence deve ser um de: ${allowedStates.join(', ')}` });
+    }
+
+    const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
+    if (!instance || instance.orgId !== orgId) {
+      return res.status(404).json({ error: 'Instância não encontrada' });
+    }
+
+    try {
+      const evoName = instance.evolutionInstanceName || instance.id;
+      const result = await EvolutionService.sendPresence(evoName, number, presence, delayMs);
+      res.status(200).json({ ok: true, presence, result });
+    } catch (error: any) {
+      console.error('instance.sendPresence error:', error);
+      res.status(500).json({ error: error.message || 'Failed to send presence' });
+    }
+  }
 }

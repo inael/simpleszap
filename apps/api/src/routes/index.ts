@@ -101,6 +101,7 @@ router.delete('/api-keys/:id', orgAuthWithSecurity, ApiKeyController.revoke);
 router.post('/message/sendText/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendText);
 router.post('/message/sendButtons/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendButtons);
 router.post('/message/sendMedia/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendMedia);
+router.post('/chat/sendPresence/:instanceId', orgAuthWithSecurity, requireScope('messages:send'), InstanceController.sendPresence);
 router.get('/messages', orgAuthWithSecurity, MessagesController.list);
 
 // Fila de saída — visibilidade e cancelamento
