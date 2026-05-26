@@ -40,7 +40,9 @@ export class WebhookDeliveryService {
         'content-type': 'application/json',
       };
       try {
-        const res = await axios.post(cfg.url, payload, { headers });
+        // Envia a MESMA string que foi assinada (axios.post com objeto re-serializa
+        // e quebra o HMAC do consumidor). transformRequest=[] desliga o serializer.
+        const res = await axios.post(cfg.url, body, { headers, transformRequest: [(d) => d] });
         await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: true, statusCode: res.status } });
       } catch (e: any) {
         await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: false, error: e.message, statusCode: e.response?.status } });
