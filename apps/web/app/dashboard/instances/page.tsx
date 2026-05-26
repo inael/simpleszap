@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -28,6 +29,7 @@ import { toast } from "sonner";
 
 export default function InstancesPage() {
   const { getToken, user } = useAuth();
+  const router = useRouter();
   const orgId = user?.sub;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -183,8 +185,20 @@ export default function InstancesPage() {
       toast.success("Mensagem de teste enviada! Confira no celular destinatário.");
       setTestInstanceId(null);
     } catch (e: any) {
-      const msg = e?.response?.data?.error?.message || e?.response?.data?.error || "Falha ao enviar.";
-      toast.error(typeof msg === "string" ? msg : "Falha ao enviar.");
+      const err = e?.response?.data?.error;
+      const msg = (typeof err === "object" ? err?.message : err) || "Falha ao enviar.";
+      const code = typeof err === "object" ? err?.code : undefined;
+      if (code === "NEED_SUBSCRIPTION" || code === "PLAN_DAILY_MESSAGE_LIMIT_REACHED") {
+        toast.error(typeof msg === "string" ? msg : "Falha ao enviar.", {
+          action: {
+            label: "Ir pra Assinatura",
+            onClick: () => router.push("/dashboard/subscription"),
+          },
+          duration: 10000,
+        });
+      } else {
+        toast.error(typeof msg === "string" ? msg : "Falha ao enviar.");
+      }
     } finally {
       setTestSending(false);
     }
@@ -288,6 +302,38 @@ export default function InstancesPage() {
           <p>Erro ao carregar instâncias. Verifique sua conexão e tente novamente.</p>
         </div>
       )}
+
+      {(() => {
+        const list: any[] = Array.isArray(instances) ? instances : [];
+        if (list.length < 2) return null;
+        const unpaid = list.filter((i) => i.subscriptionStatus !== "active");
+        if (unpaid.length < 2) return null;
+        // Mais antiga ainda usa o Free (100/dia). As demais sem subscription
+        // ficam bloqueadas com NEED_SUBSCRIPTION (402).
+        const sortedByCreated = [...unpaid].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const free = sortedByCreated[0];
+        const blocked = sortedByCreated.slice(1);
+        return (
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-4">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
+            <div className="flex-1 text-sm text-amber-900">
+              <p className="font-semibold mb-1">{blocked.length} instância(s) sem assinatura ativa</p>
+              <p>
+                Só a instância mais antiga (<strong>{free?.name}</strong>) usa o plano Free (100 msgs/dia).
+                Pra liberar envio nas demais ({blocked.map((b) => b.name).join(", ")}),
+                assine R$ 59/mês cada (inclui 300 msgs/dia por instância).
+              </p>
+            </div>
+            <Link href="/dashboard/subscription">
+              <Button size="sm" variant="outline" className="border-amber-400 text-amber-900 hover:bg-amber-100">
+                Ir pra Assinatura
+              </Button>
+            </Link>
+          </div>
+        );
+      })()}
 
       <Card>
         <CardHeader>

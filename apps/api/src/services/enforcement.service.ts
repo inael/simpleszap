@@ -217,8 +217,15 @@ export class EnforcementService {
       };
     }
 
-    // Instance grátis (sem sub) → Free apenas se for a única
-    if (user.instances.length === 1) {
+    // Instance grátis (sem sub) → a MAIS ANTIGA do tenant entra como Free
+    // (100 msgs/dia). As demais sem subscription retornam NEED_SUBSCRIPTION.
+    // Antes era `length === 1` — quebrava o Free quando user criava instância
+    // extra (todas as 2+ ficavam bloqueadas, inclusive a original).
+    const oldestFreeCandidate = [...user.instances]
+      .filter((i) => i.subscriptionStatus !== 'active')
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+    const isOldestFree = oldestFreeCandidate?.id === instance.id;
+    if (isOldestFree) {
       if (instanceUsage.count < FREE_DAILY_LIMIT) return { allowed: true };
       return {
         allowed: false,
