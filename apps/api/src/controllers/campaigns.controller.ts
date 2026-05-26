@@ -159,7 +159,7 @@ export class CampaignsController {
         try {
           await EvolutionService.sendText(evoName, c.phone, body);
           await prisma.message.create({
-            data: { orgId, instanceId: campaign.instanceId, to: c.phone, body, type: 'text', status: 'sent' },
+            data: { orgId, instanceId: campaign.instanceId, to: c.phone, toNumber: c.phone, body, type: 'text', status: 'sent' },
           });
           await EnforcementService.incrementMessageCount(orgId);
           await WebhookDeliveryService.trigger(orgId, 'message.sent', { instanceId: campaign.instanceId, number: c.phone, text: body });
@@ -170,6 +170,7 @@ export class CampaignsController {
               orgId,
               instanceId: campaign.instanceId,
               to: c.phone,
+              toNumber: c.phone,
               body,
               type: 'text',
               status: 'failed',

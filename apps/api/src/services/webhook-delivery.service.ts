@@ -28,8 +28,19 @@ export class WebhookDeliveryService {
       if (!events.includes(event)) continue;
       const body = JSON.stringify(payload);
       const signature = crypto.createHmac('sha256', cfg.secret).update(body).digest('hex');
+      // Headers: signature, event type, timestamp (Stripe-style). Consumidor
+      // externo identifica o tipo de evento pelo header x-webhook-event sem
+      // precisar parsear o body (que pode variar de shape entre eventos).
+      const ts = Math.floor(Date.now() / 1000).toString();
+      const headers = {
+        'x-webhook-signature': signature,
+        'x-webhook-event': event,
+        'x-webhook-timestamp': ts,
+        'x-webhook-id': cfg.id,
+        'content-type': 'application/json',
+      };
       try {
-        const res = await axios.post(cfg.url, payload, { headers: { 'x-webhook-signature': signature, 'content-type': 'application/json' } });
+        const res = await axios.post(cfg.url, payload, { headers });
         await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: true, statusCode: res.status } });
       } catch (e: any) {
         await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: false, error: e.message, statusCode: e.response?.status } });

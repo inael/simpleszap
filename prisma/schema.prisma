@@ -291,8 +291,15 @@ model Message {
   id          String   @id @default(uuid())
   orgId       String
   instanceId  String
-  /// Número do "outro lado" — se direction=sent, é o destinatário; se direction=received, é o remetente.
+  /// DEPRECATED — mantido por backward-compat. Era ambíguo (significava
+  /// "destinatário" em sent e "remetente" em received). Bots novos devem
+  /// usar `toNumber` e `fromNumber` (que são explícitos por direção).
+  /// Preenchimento atual: igual ao "outro lado" (mesmo que sempre foi).
   to          String
+  /// Destinatário da mensagem. Preenchido em direction=sent; NULL em received.
+  toNumber    String?
+  /// Remetente da mensagem. Preenchido em direction=received; NULL em sent.
+  fromNumber  String?
   body        String
   /// text | image | audio | video | document | location | buttons | reaction
   type        String   @default("text")
