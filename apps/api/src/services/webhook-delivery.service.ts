@@ -1,4 +1,3 @@
-import axios from 'axios';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma';
 
@@ -40,12 +39,12 @@ export class WebhookDeliveryService {
         'content-type': 'application/json',
       };
       try {
-        // Envia a MESMA string que foi assinada (axios.post com objeto re-serializa
-        // e quebra o HMAC do consumidor). transformRequest=[] desliga o serializer.
-        const res = await axios.post(cfg.url, body, { headers, transformRequest: [(d) => d] });
-        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: true, statusCode: res.status } });
+        // fetch nativo envia bytes verbatim (axios mexe encoding). HMAC do consumidor
+        // calcula sha256(rawBody) com a mesma string que assinamos aqui.
+        const res = await fetch(cfg.url, { method: 'POST', headers, body });
+        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: res.ok, statusCode: res.status } });
       } catch (e: any) {
-        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: false, error: e.message, statusCode: e.response?.status } });
+        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: false, error: e.message } });
       }
     }
   }
