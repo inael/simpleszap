@@ -407,7 +407,8 @@ export class InstanceController {
    */
   static async sendPresence(req: Request, res: Response) {
     const { instanceId } = req.params;
-    const { number: rawNumber, presence, delayMs } = req.body;
+    const { number: rawNumber, presence, delayMs, delay } = req.body;
+    const effectiveDelay = typeof delayMs === 'number' ? delayMs : typeof delay === 'number' ? delay : undefined;
     const number = normalizePhoneBR(String(rawNumber || ''));
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) return res.status(401).json({ error: 'Unauthorized' });
@@ -426,7 +427,7 @@ export class InstanceController {
 
     try {
       const evoName = instance.evolutionInstanceName || instance.id;
-      const result = await EvolutionService.sendPresence(evoName, number, presence, delayMs);
+      const result = await EvolutionService.sendPresence(evoName, number, presence, effectiveDelay);
       res.status(200).json({ ok: true, presence, result });
     } catch (error: any) {
       console.error('instance.sendPresence error:', error);
