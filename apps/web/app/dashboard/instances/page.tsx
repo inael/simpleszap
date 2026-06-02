@@ -73,6 +73,18 @@ export default function InstancesPage() {
     ? queueStats.perInstance.reduce((acc: Record<string, number>, p: any) => { acc[p.instanceId] = p.pending; return acc; }, {})
     : {};
 
+  // Subscription do usuário — usamos só pra saber se tem cortesia VIP ativa
+  // (manualSubscriptionUntil). Sem isso, o banner "X sem assinatura" aparecia
+  // mesmo pra contas com cortesia válida (ex: piloto Editora Sorian).
+  const { data: subData } = useSWR<{ vipUntil: string | null }>(
+    orgId ? ["/me/subscription", orgId, "instances-page-vip"] : null,
+    async ([url, oid]: [string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then(res => res.data);
+    }
+  );
+  const vipActive = !!(subData?.vipUntil && new Date(subData.vipUntil) > new Date());
+
   const creatingRef = useRef(false);
 
   const handleCreate = async () => {
@@ -335,6 +347,10 @@ export default function InstancesPage() {
       )}
 
       {(() => {
+        // Cortesia VIP (manualSubscriptionUntil) bypassa toda a regra de
+        // assinatura — o backend permite enviar de qualquer instância. Não
+        // mostra o banner amarelo nesse caso.
+        if (vipActive) return null;
         const list: any[] = Array.isArray(instances) ? instances : [];
         if (list.length < 2) return null;
         const unpaid = list.filter((i) => i.subscriptionStatus !== "active");
