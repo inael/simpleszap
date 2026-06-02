@@ -117,6 +117,7 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
   const webhooksActive = pathname.startsWith("/dashboard/webhooks");
   const [webhooksOpen, setWebhooksOpen] = useState(webhooksActive);
   const [helpOpen, setHelpOpen] = useState(true);
+  const [adminOpen, setAdminOpen] = useState(true);
 
   const handleSignOut = () => {
     window.location.href = "/api/logto/sign-out";
@@ -404,10 +405,22 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
         {!collapsed && showAdmin && (
           <>
             <Separator className="my-4 bg-zinc-700" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wider px-3 mb-2">
-              Administração
-            </p>
-            <div className="space-y-1">{adminRoutes.map(renderRoute)}</div>
+            <button
+              type="button"
+              onClick={() => setAdminOpen((o) => !o)}
+              aria-expanded={adminOpen}
+              className="flex items-center justify-between w-full px-3 mb-2 text-xs text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition"
+            >
+              <span>Administração</span>
+              {adminOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+              )}
+            </button>
+            {adminOpen && (
+              <div className="space-y-1">{adminRoutes.map(renderRoute)}</div>
+            )}
           </>
         )}
 

@@ -9,13 +9,33 @@ export const SETTING_KEYS = {
   ASAAS_WEBHOOK_URL: 'asaas_webhook_url',
 } as const;
 
-// Mapping from DB key to env var fallback
+// Mapping from DB key to env var fallback. Tentamos múltiplos nomes pra cobrir
+// histórico do projeto: nomes "ASAAS_*" puros + prefixo "SIMPLESZAP_ASAAS_*"
+// (padrão IT Booster pra envs compartilhadas com outros produtos do tenant) +
+// legacy typo "ASAS_APT_*" do env antigo.
 const ENV_FALLBACKS: Record<string, string[]> = {
-  [SETTING_KEYS.ASAAS_API_KEY]: ['ASAAS_API_KEY', 'ASAS_APT_KEY'],
-  [SETTING_KEYS.ASAAS_API_URL]: ['ASAAS_API_URL', 'ASAS_APT_URL'],
-  [SETTING_KEYS.ASAAS_ENVIRONMENT]: ['ASAAS_ENVIRONMENT'],
-  [SETTING_KEYS.ASAAS_WEBHOOK_TOKEN]: ['ASAAS_WEBHOOK_TOKEN', 'ASAAS_WEBHOOK_ACCESS_TOKEN'],
-  [SETTING_KEYS.ASAAS_WEBHOOK_URL]: [],
+  [SETTING_KEYS.ASAAS_API_KEY]: [
+    'SIMPLESZAP_ASAAS_API_KEY',
+    'ASAAS_API_KEY',
+    'ASAS_APT_KEY',
+  ],
+  [SETTING_KEYS.ASAAS_API_URL]: [
+    'SIMPLESZAP_ASAAS_API_URL',
+    'ASAAS_API_URL',
+    'ASAS_APT_URL',
+  ],
+  [SETTING_KEYS.ASAAS_ENVIRONMENT]: [
+    'SIMPLESZAP_ASAAS_ENVIRONMENT',
+    'ASAAS_ENVIRONMENT',
+  ],
+  [SETTING_KEYS.ASAAS_WEBHOOK_TOKEN]: [
+    'SIMPLESZAP_ASAAS_WEBHOOK_TOKEN',
+    'ASAAS_WEBHOOK_TOKEN',
+    'ASAAS_WEBHOOK_ACCESS_TOKEN',
+  ],
+  [SETTING_KEYS.ASAAS_WEBHOOK_URL]: [
+    'SIMPLESZAP_ASAAS_WEBHOOK_URL',
+  ],
 };
 
 // In-memory cache to avoid DB hits on every request
