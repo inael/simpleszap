@@ -64,10 +64,23 @@ export class InstanceController {
 
       const check = await EnforcementService.canCreateInstance(orgId);
       if (!check.allowed) return respondEnforcementDenied(res, check);
+
+      // Bloqueia duplicata por nome dentro da mesma org. Sem isso,
+      // double-click no botão "Criar" gerava 2 instâncias com mesmo nome.
+      const trimmedName = name.trim();
+      const existing = await prisma.instance.findFirst({
+        where: { orgId, name: trimmedName },
+      });
+      if (existing) {
+        return res.status(409).json({
+          error: `Já existe uma instância chamada "${trimmedName}" nesta conta. Escolha outro nome.`,
+        });
+      }
+
       // 1. Create in DB first (pending)
       const instance = await prisma.instance.create({
         data: {
-          name,
+          name: trimmedName,
           orgId,
           userId: user.id,
           status: 'created'

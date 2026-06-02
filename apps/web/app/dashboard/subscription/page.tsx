@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -43,7 +43,9 @@ type BillingSummary = {
 
 const cents = (c: number) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
 
-export default function SubscriptionPage() {
+// useSearchParams() exige Suspense boundary no Next 16 Turbopack senão
+// quebra o prerender. Wrapper default abaixo resolve.
+function SubscriptionPageInner() {
   const { getToken, user } = useAuth();
   const router = useRouter();
   const orgId = user?.sub;
@@ -350,5 +352,13 @@ export default function SubscriptionPage() {
         Pagamentos via Asaas. Você pode cancelar a qualquer momento — a cobrança para no próximo ciclo.
       </p>
     </div>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense fallback={null}>
+      <SubscriptionPageInner />
+    </Suspense>
   );
 }

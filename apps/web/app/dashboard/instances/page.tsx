@@ -73,9 +73,15 @@ export default function InstancesPage() {
     ? queueStats.perInstance.reduce((acc: Record<string, number>, p: any) => { acc[p.instanceId] = p.pending; return acc; }, {})
     : {};
 
+  const creatingRef = useRef(false);
+
   const handleCreate = async () => {
-    if (!newInstanceName) return;
+    // Guard sync contra double-click: setState do React é assíncrono,
+    // o usuário consegue clicar 2x antes do botão re-renderizar como disabled.
+    if (creatingRef.current) return;
+    if (!newInstanceName.trim()) return;
     if (!orgId) return toast.error("Erro de autenticação.");
+    creatingRef.current = true;
     setIsCreating(true);
     try {
       const token = await getToken();
@@ -112,6 +118,7 @@ export default function InstancesPage() {
         toast.error(typeof msg === "string" ? msg : "Erro ao criar instância.");
       }
     } finally {
+      creatingRef.current = false;
       setIsCreating(false);
     }
   };
@@ -286,7 +293,15 @@ export default function InstancesPage() {
             Gerencie suas conexões do WhatsApp.
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog
+          open={isCreateOpen}
+          onOpenChange={(o) => {
+            // Bloqueia fechar (clique fora, ESC) enquanto cria —
+            // evita estado fantasma se o user abrir/fechar rápido.
+            if (isCreating) return;
+            setIsCreateOpen(o);
+          }}
+        >
           <DialogTrigger asChild>
             <Button disabled={!orgId}>
               <Plus className="mr-2 h-4 w-4" />
