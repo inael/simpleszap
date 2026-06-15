@@ -70,7 +70,17 @@ export default function BlogIndexPage() {
               <Link href={`/blog/${post.slug}`} className="block group">
                 <Card className="border-gray-200 shadow-sm transition-shadow group-hover:shadow-md group-hover:border-primary/30">
                   <CardHeader>
-                    <div className="text-sm text-gray-500 mb-1">{formatDate(post.publishedAt)}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+                      <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+                      {post.tags.slice(0, 2).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                     <CardTitle className="text-xl text-green-950 group-hover:text-primary transition-colors">
                       {post.title}
                     </CardTitle>
