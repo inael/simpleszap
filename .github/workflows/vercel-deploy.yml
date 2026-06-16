@@ -1,0 +1,72 @@
+name: Deploy Vercel
+
+# Monorepo com 3 projetos Vercel (back, front, docs) a partir deste mesmo repo.
+# Deploy via CI com VERCEL_TOKEN, em vez do deploy nativo por push do Git.
+#
+# POR QUE: a Vercel bloqueia deploy quando o AUTOR do commit não é membro do
+# team "IT Booster" ("Deployment Blocked"). Com mais de um dev, os commits dele
+# travariam o deploy. Aqui a autorização vem do TOKEN (de um membro do team),
+# não do autor do commit — qualquer colaborador dá push e os 3 projetos sobem,
+# sem precisar de seat novo na Vercel.
+#
+# Cada projeto tem seu rootDirectory configurado na Vercel; `vercel pull` baixa
+# essas settings por projeto, então a matriz abaixo deploya os 3 corretamente.
+#
+# Secrets necessários (Settings → Secrets → Actions):
+#   VERCEL_TOKEN, VERCEL_ORG_ID   (os PROJECT_IDs ficam na matriz, não são secret)
+# Runbook: docs/runbooks/vercel-deploy-multi-dev.md no monorepo ItBooster.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: back
+            project_id: prj_8MJi3k6YG5lV6ra5k2VxqlePUjFN
+          - name: front
+            project_id: prj_XemImWWe1oRHq4RjVDXCbgicbDYu
+          - name: docs
+            project_id: prj_P2kJYxcvtWLfropw9XSu7s9klO3w
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ matrix.project_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Resolver alvo (produção na branch default, preview no resto)
+        id: tgt
+        run: |
+          if [ "${{ github.ref_name }}" = "${{ github.event.repository.default_branch }}" ] && [ "${{ github.event_name }}" = "push" ]; then
+            echo "flag=--prod"     >> "$GITHUB_OUTPUT"
+            echo "env=production"  >> "$GITHUB_OUTPUT"
+          else
+            echo "flag="           >> "$GITHUB_OUTPUT"
+            echo "env=preview"     >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Vercel pull (${{ matrix.name }})
+        run: vercel pull --yes --environment=${{ steps.tgt.outputs.env }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Vercel build (${{ matrix.name }})
+        run: vercel build ${{ steps.tgt.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Vercel deploy (${{ matrix.name }})
+        run: vercel deploy --prebuilt ${{ steps.tgt.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
