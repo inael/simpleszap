@@ -1,6 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../apps/api/node_modules/.prisma/client"
+  provider      = "prisma-client-js"
+  output        = "../apps/api/node_modules/.prisma/client"
+  // native = OS do dev (Windows/macOS/Linux local). rhel-openssl-3.0.x = AWS Lambda
+  // do Vercel. Sem o RHEL aqui, `vercel deploy --prebuilt` empacotava so o engine
+  // do Windows -> PrismaClientInitializationError em prod (jun/2026).
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
