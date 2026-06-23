@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren, MessageSquare, Megaphone } from "lucide-react";
 import { InstanceWebhookOverrideExpansion } from "@/components/dashboard/instance-webhook-override-expansion";
 import { InstanceUpsellFlow } from "@/components/dashboard/instance-upsell-flow";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -460,7 +460,28 @@ export default function InstancesPage() {
                 return (
                 <Fragment key={inst.id}>
                 <TableRow>
-                  <TableCell className="font-medium">{inst.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="space-y-0.5">
+                      <div>{inst.name}</div>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-normal">
+                        <Link
+                          href={`/dashboard/messages?instanceId=${inst.id}`}
+                          className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+                          title="Ver mensagens enviadas/recebidas por esta instância"
+                        >
+                          <MessageSquare className="h-3 w-3" /> mensagens
+                        </Link>
+                        <span className="text-muted-foreground/40">·</span>
+                        <Link
+                          href={`/dashboard/campaigns?prefillInstance=${inst.id}`}
+                          className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+                          title="Criar nova campanha já com esta instância pré-selecionada"
+                        >
+                          <Megaphone className="h-3 w-3" /> nova campanha
+                        </Link>
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 items-start">
                       {inst.status === 'blocked_phone_conflict' ? (

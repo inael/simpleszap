@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import axios from "axios";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Search, Users, UserPlus } from "lucide-react";
@@ -52,6 +52,14 @@ export default function CampaignsPage() {
 
   const [name, setName] = useState("");
   const [instanceId, setInstanceId] = useState("");
+
+  // Pre-seleciona instancia via ?prefillInstance=<id> (vindo de /dashboard/instances
+  // pelo atalho 'Nova campanha'). Evita useSearchParams pra não exigir Suspense.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = new URLSearchParams(window.location.search).get("prefillInstance");
+    if (id) setInstanceId(id);
+  }, []);
   const [templateId, setTemplateId] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [contactSearch, setContactSearch] = useState("");
@@ -338,17 +346,21 @@ export default function CampaignsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead>Instância</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {campaigns === undefined && !campaignsError && (
-                <TableLoadingRows colSpan={3} />
+                <TableLoadingRows colSpan={4} />
               )}
               {campaigns?.map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell>{c.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {c.instance?.name || <span className="italic">—</span>}
+                  </TableCell>
                   <TableCell>{c.status}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" onClick={() => run(c.id)} disabled={runningId === c.id}>

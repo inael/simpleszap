@@ -41,8 +41,16 @@ export class CampaignsController {
     try {
       const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
-      const items = await prisma.campaign.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } });
-      res.json(items);
+      // Enriquece com instance.name pra UI mostrar coluna 'Instância usada' sem
+      // 2º roundtrip do front. Campaign.instanceId é String simples (sem relation
+      // Prisma) — Map em memoria evita N+1.
+      const [items, instances] = await Promise.all([
+        prisma.campaign.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } }),
+        prisma.instance.findMany({ where: { orgId }, select: { id: true, name: true, status: true } }),
+      ]);
+      const instMap = new Map(instances.map((i) => [i.id, i]));
+      const enriched = items.map((c) => ({ ...c, instance: instMap.get(c.instanceId) || null }));
+      res.json(enriched);
     } catch (error: any) {
       console.error('campaigns.list error:', error);
       res.status(500).json({ error: error.message || 'Failed to list campaigns' });
