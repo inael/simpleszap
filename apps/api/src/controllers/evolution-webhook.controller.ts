@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
+import { EvolutionService } from '../services/evolution.service';
 
 /**
  * Recebe webhooks da Evolution API e traduz pro modelo SimplesZap.
