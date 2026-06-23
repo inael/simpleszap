@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, CheckCircle2, FileText } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Smartphone, Globe } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
@@ -13,6 +13,8 @@ import { TableLoadingRows } from "@/components/ui/table-loading";
 type WebhookLog = {
   id: string;
   webhookId: string;
+  instanceId: string | null;
+  instanceName: string | null;
   event: string;
   success: boolean;
   statusCode: number | null;
@@ -98,15 +100,28 @@ export default function WebhookLogsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
+                <TableHead>Instância</TableHead>
                 <TableHead>Evento</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs === undefined && !logsError && <TableLoadingRows colSpan={3} />}
+              {logs === undefined && !logsError && <TableLoadingRows colSpan={4} />}
               {filtered.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell className="text-xs text-muted-foreground">{new Date(l.createdAt).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className="text-sm">
+                    {l.instanceId ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Smartphone className="h-3 w-3 text-violet-500 shrink-0" />
+                        {l.instanceName || <span className="text-muted-foreground italic">instância removida</span>}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground" title="Evento sem instância específica">
+                        <Globe className="h-3 w-3 shrink-0" /> Todas
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{l.event}</TableCell>
                   <TableCell>
                     {l.success ? (
@@ -125,7 +140,7 @@ export default function WebhookLogsPage() {
               ))}
               {Array.isArray(logs) && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                     <FileText className="h-6 w-6 mx-auto mb-2 opacity-40" />
                     {logs.length === 0
                       ? "Nenhum log ainda. Os logs aparecem aqui quando algum evento dispara — receba uma mensagem no WhatsApp pra testar."

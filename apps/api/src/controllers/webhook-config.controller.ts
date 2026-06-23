@@ -121,7 +121,7 @@ export class WebhookConfigController {
         });
         const ms = Date.now() - startedAt;
         await prisma.webhookLog.create({
-          data: { orgId, webhookId: cfg.id, event: 'webhook.test', payload: body, success: true, statusCode: r.status },
+          data: { orgId, webhookId: cfg.id, instanceId: cfg.instanceId, event: 'webhook.test', payload: body, success: true, statusCode: r.status },
         }).catch(() => null);
         return res.json({ success: true, statusCode: r.status, ms });
       } catch (e: any) {
@@ -131,7 +131,7 @@ export class WebhookConfigController {
           : e?.code === 'ENOTFOUND' ? 'Domínio não resolveu (DNS) — confira a URL'
           : e?.message || 'Erro de conexão';
         await prisma.webhookLog.create({
-          data: { orgId, webhookId: cfg.id, event: 'webhook.test', payload: body, success: false, statusCode: status, error: errorMsg },
+          data: { orgId, webhookId: cfg.id, instanceId: cfg.instanceId, event: 'webhook.test', payload: body, success: false, statusCode: status, error: errorMsg },
         }).catch(() => null);
         return res.json({ success: false, statusCode: status, ms, error: errorMsg });
       }
@@ -146,7 +146,15 @@ export class WebhookConfigController {
       const orgId = req.headers['x-org-id'] as string;
       if (!orgId) return res.status(400).json({ error: 'orgId required' });
       const items = await prisma.webhookLog.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' }, take: 200 });
-      res.json(items);
+
+      // Resolve nome da instância de origem (1 query batched, não N+1).
+      const instanceIds = Array.from(new Set(items.map((i) => i.instanceId).filter((x): x is string => !!x)));
+      const instances = instanceIds.length
+        ? await prisma.instance.findMany({ where: { id: { in: instanceIds }, orgId }, select: { id: true, name: true } })
+        : [];
+      const nameById = new Map(instances.map((i) => [i.id, i.name]));
+
+      res.json(items.map((i) => ({ ...i, instanceName: i.instanceId ? nameById.get(i.instanceId) ?? null : null })));
     } catch (error: any) {
       console.error('webhookConfig.logs error:', error);
       res.status(500).json({ error: error.message || 'Failed to list webhook logs' });

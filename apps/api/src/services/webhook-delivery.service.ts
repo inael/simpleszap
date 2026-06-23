@@ -42,9 +42,9 @@ export class WebhookDeliveryService {
         // fetch nativo envia bytes verbatim (axios mexe encoding). HMAC do consumidor
         // calcula sha256(rawBody) com a mesma string que assinamos aqui.
         const res = await fetch(cfg.url, { method: 'POST', headers, body });
-        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: res.ok, statusCode: res.status } });
+        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: res.ok, statusCode: res.status } });
       } catch (e: any) {
-        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, event, payload: body, success: false, error: e.message } });
+        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: false, error: e.message } });
       }
     }
   }

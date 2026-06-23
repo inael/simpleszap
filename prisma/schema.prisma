@@ -263,12 +263,18 @@ model WebhookLog {
   id         String   @id @default(uuid())
   orgId      String
   webhookId  String
+  /// Instância de ORIGEM do evento (payload.instanceId), não do config.
+  /// Mesmo no webhook global (WebhookConfig.instanceId IS NULL) cada entrega
+  /// guarda de qual instância o evento veio. null = evento sem instância (raro).
+  instanceId String?
   event      String
   payload    String
   success    Boolean
   statusCode Int?
   error      String?
   createdAt  DateTime @default(now())
+
+  @@index([orgId, createdAt])
 }
 
 model Campaign {
