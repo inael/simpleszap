@@ -34,6 +34,7 @@ export default function InstancesPage() {
   const orgId = user?.sub;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
+  const [newInstancePhone, setNewInstancePhone] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrInstanceId, setQrInstanceId] = useState<string | null>(null);
@@ -95,6 +96,9 @@ export default function InstancesPage() {
     // o usuário consegue clicar 2x antes do botão re-renderizar como disabled.
     if (creatingRef.current) return;
     if (!newInstanceName.trim()) return;
+    if (!newInstancePhone.trim() || newInstancePhone.replace(/\D/g, "").length < 10) {
+      return toast.error("Informe o número WhatsApp que vai parear (com DDD).");
+    }
     if (!orgId) return toast.error("Erro de autenticação.");
     creatingRef.current = true;
     setIsCreating(true);
@@ -102,13 +106,14 @@ export default function InstancesPage() {
       const token = await getToken();
       const res = await api.post(
         "/instance/create",
-        { name: newInstanceName },
+        { name: newInstanceName, phoneNumber: newInstancePhone },
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
       const instanceId = res.data?.instance?.id;
       toast.success("Instância criada! Escaneie o QR Code para conectar.");
       setIsCreateOpen(false);
       setNewInstanceName("");
+      setNewInstancePhone("");
       await mutate();
       if (instanceId) {
         // Abre o QR direto — user não precisa clicar em "Conectar" depois.
@@ -123,10 +128,18 @@ export default function InstancesPage() {
         // Fecha o dialog de criar e abre o fluxo de upsell (3 telas).
         setIsCreateOpen(false);
         setNewInstanceName("");
+        setNewInstancePhone("");
         setUpsell({
           open: true,
           limit: typeof err === "object" ? Number(err?.limit) || 1 : 1,
           current: typeof err === "object" ? Number(err?.current) || 1 : 1,
+        });
+      } else if (code === "PHONE_ALREADY_IN_USE") {
+        const msg = (typeof err === "object" ? err?.message : err) || "Número já está em uso.";
+        const supportUrl = typeof err === "object" ? err?.supportUrl : "https://simpleszap.com/contato";
+        toast.error(typeof msg === "string" ? msg : "Número já está em uso.", {
+          action: { label: "Contatar suporte", onClick: () => window.open(supportUrl, "_blank") },
+          duration: 12000,
         });
       } else {
         const msg = (typeof err === "object" ? err?.message : err) || "Erro ao criar instância.";
@@ -331,6 +344,11 @@ export default function InstancesPage() {
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
+              <Label className="mt-3">Número WhatsApp</Label>
+              <PhoneInput value={newInstancePhone} onChange={setNewInstancePhone} placeholder="(61) 99999-9999" />
+              <p className="text-xs text-muted-foreground">
+                Informe o número que vai parear. Bloqueamos duplicatas entre contas pra evitar pareamento conflitante.
+              </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>

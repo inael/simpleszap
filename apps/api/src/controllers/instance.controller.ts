@@ -51,12 +51,23 @@ export class InstanceController {
     const userId = req.headers['x-user-id'] as string | undefined;
     const orgId = (req.body?.orgId as string | undefined) || (req.headers['x-org-id'] as string | undefined);
     const name = req.body?.name as string | undefined;
+    const rawPhone = req.body?.phoneNumber as string | undefined;
 
     if (!name || !orgId) {
       return res.status(400).json({ error: 'Name and orgId are required' });
     }
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Numero WhatsApp obrigatorio. Normaliza pra E.164 BR (sem +) e bloqueia
+    // duplicata cross-tenant antes de criar inst no DB/Evolution.
+    const phoneNumber = normalizePhoneBR(String(rawPhone || ''));
+    if (!phoneNumber) {
+      return res.status(400).json({
+        error: 'Número do WhatsApp é obrigatório. Informe o número que vai parear (com DDD).',
+        code: 'PHONE_REQUIRED',
+      });
+    }
 
     try {
       const user = await prisma.user.findUnique({ where: { logtoId: userId } });
@@ -77,10 +88,35 @@ export class InstanceController {
         });
       }
 
+      // Bloqueia duplicata de numero entre tenants. Se outra conta SimplesZap
+      // ja tem inst com esse mesmo numero (status != disconnected = ativa ou
+      // tentando conectar), nao deixa criar. User precisa contatar suporte.
+      const phoneInUse = await prisma.instance.findFirst({
+        where: {
+          phoneNumber,
+          status: { not: 'disconnected' },
+          NOT: { orgId },
+        },
+        select: { id: true, orgId: true },
+      });
+      if (phoneInUse) {
+        await AuditService.log(orgId, 'instance.create.blocked_phone_dup', undefined, {
+          phoneNumber,
+          conflictInstanceId: phoneInUse.id,
+          conflictOrgId: phoneInUse.orgId,
+        });
+        return res.status(409).json({
+          error: 'Este número WhatsApp já está sendo usado por outra conta no SimplesZap. Se acredita que isso é um engano, entre em contato com o suporte.',
+          code: 'PHONE_ALREADY_IN_USE',
+          supportUrl: 'https://simpleszap.com/contato',
+        });
+      }
+
       // 1. Create in DB first (pending)
       const instance = await prisma.instance.create({
         data: {
           name: trimmedName,
+          phoneNumber,
           orgId,
           userId: user.id,
           status: 'created'

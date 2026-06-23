@@ -138,6 +138,11 @@ model Instance {
   id                    String   @id @default(uuid())
   name                  String   // nome exibido ao usuário (livre, pode ter espaços/acentos)
   evolutionInstanceName String?  // nome enviado à Evolution API: simpleszap_<slug>_<8chars>
+  /// Numero WhatsApp em E.164 BR (sem +). Informado pelo user no form Nova
+  /// Instancia e usado pra bloquear duplicata entre tenants (mesmo numero em
+  /// 2 contas SimplesZap). Sobrescrito pelo numero real (ownerJid) quando o
+  /// webhook CONNECTION_UPDATE da Evolution chega pareando.
+  phoneNumber           String?
   status                String   @default("disconnected") // disconnected, connecting, connected
   serverUrl             String?  // URL da Evolution API para esta instancia (se multi-server)
   token                 String?  // Token da Evolution API
