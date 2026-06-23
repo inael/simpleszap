@@ -60,6 +60,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0' });
 });
 
+// Redirect /docs/* -> docs.simpleszap.com. back.simpleszap.com e um host
+// de API, sem doc; redireciona pra evitar 'Cannot GET /docs' quando alguem
+// digita errado ou tem bookmark antigo.
+app.get(/^\/docs(\/.*)?$/, (req, res) => {
+  const path = req.path.replace(/^\/docs/, '') || '';
+  res.redirect(302, `https://docs.simpleszap.com${path}`);
+});
+
 let routes: any | undefined;
 try {
   routes = require('./routes').default;
