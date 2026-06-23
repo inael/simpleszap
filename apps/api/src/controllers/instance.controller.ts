@@ -112,6 +112,42 @@ export class InstanceController {
         });
       }
 
+      // Check #2: instancia ORFA na Evolution com mesmo numero (criada fora do
+      // SimplesZap, sem registro no nosso DB). Sem isso, user consegue criar
+      // mesmo havendo conflito real no gateway. Best-effort: se Evolution
+      // estiver fora do ar, ignora e segue (degrada UX, nao bloqueia o create).
+      try {
+        const evoInstances = await EvolutionService.fetchInstances();
+        const list = Array.isArray(evoInstances) ? evoInstances : [];
+        const conflictEvo = list.find((i: any) => {
+          const jid = String(i?.ownerJid || '');
+          return jid.startsWith(phoneNumber + '@');
+        });
+        if (conflictEvo) {
+          // Pertence a alguma org do SimplesZap? Se sim, e for OUTRA org, ja foi
+          // pego no phoneInUse acima. Se nao for de nenhuma org SimplesZap, é
+          // orfa de uso direto na Evolution -> bloqueia tambem.
+          const ownedHere = await prisma.instance.findFirst({
+            where: { evolutionInstanceName: conflictEvo.name },
+            select: { orgId: true },
+          });
+          if (!ownedHere || ownedHere.orgId !== orgId) {
+            await AuditService.log(orgId, 'instance.create.blocked_evo_dup', undefined, {
+              phoneNumber,
+              evoInstanceName: conflictEvo.name,
+              ownedByOrgId: ownedHere?.orgId || null,
+            });
+            return res.status(409).json({
+              error: 'Este número WhatsApp já está pareado em outro local. Desconecte primeiro ou entre em contato com o suporte.',
+              code: 'PHONE_ALREADY_IN_USE',
+              supportUrl: 'https://simpleszap.com/contato',
+            });
+          }
+        }
+      } catch (err: any) {
+        console.warn('[instance.create] Evolution check fail (degrade gracefully):', err?.message);
+      }
+
       // 1. Create in DB first (pending)
       const instance = await prisma.instance.create({
         data: {

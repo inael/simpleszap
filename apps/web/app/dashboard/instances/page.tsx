@@ -428,10 +428,16 @@ export default function InstancesPage() {
                   <TableCell className="font-medium">{inst.name}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 items-start">
-                      <Badge variant={inst.status === 'open' || inst.status === 'connected' ? "default" : "outline"}
-                             className={inst.status === 'open' || inst.status === 'connected' ? "bg-green-500 hover:bg-green-600" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
-                        {inst.status === 'open' || inst.status === 'connected' ? 'Conectado' : inst.status}
-                      </Badge>
+                      {inst.status === 'blocked_phone_conflict' ? (
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200" title="Outra conta já tem esse número pareado. Entre em contato com o suporte.">
+                          Número em conflito
+                        </Badge>
+                      ) : (
+                        <Badge variant={inst.status === 'open' || inst.status === 'connected' ? "default" : "outline"}
+                               className={inst.status === 'open' || inst.status === 'connected' ? "bg-green-500 hover:bg-green-600" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
+                          {inst.status === 'open' || inst.status === 'connected' ? 'Conectado' : inst.status}
+                        </Badge>
+                      )}
                       {pendingCount > 0 && (
                         <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
                           <Clock className="h-3 w-3" /> {pendingCount} na fila

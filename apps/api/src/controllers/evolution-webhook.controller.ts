@@ -292,13 +292,50 @@ export class EvolutionWebhookController {
     if (evt === 'CONNECTION_UPDATE') {
       const state = String(data.state || data.connection || '').toLowerCase();
       if (state === 'open') {
+        // Extrai o numero REAL pareado (ownerJid). Tenta varias chaves porque
+        // payload do Evolution v2 varia conforme tipo de evento/versao.
+        const ownerJid = String(data.ownerJid || data.wuid || data.profile?.id || '');
+        const pairedPhone = ownerJid.split('@')[0].replace(/\D/g, '') || null;
+
+        // Check #3 (rede de seguranca): user pode ter digitado um numero no
+        // create e pareado outro. Aqui sabemos o REAL. Se outra org SimplesZap
+        // ja tem inst connected com esse numero, conflita -> desconecta a NOVA
+        // (essa), marca como blocked_phone_conflict e nao salva como connected.
+        if (pairedPhone) {
+          const conflict = await prisma.instance.findFirst({
+            where: {
+              phoneNumber: pairedPhone,
+              status: 'connected',
+              id: { not: instance.id },
+              orgId: { not: orgId },
+            },
+            select: { id: true, orgId: true },
+          });
+          if (conflict) {
+            // Delete na Evolution pra liberar o numero pra conta real.
+            const evoName = instance.evolutionInstanceName || instance.id;
+            await EvolutionService.deleteInstance(evoName).catch(() => null);
+            await prisma.instance.update({
+              where: { id: instance.id },
+              data: { status: 'blocked_phone_conflict', phoneNumber: pairedPhone },
+            }).catch(() => null);
+            console.warn(`[evolution-webhook] phone conflict: inst ${instance.id} pareou ${pairedPhone} mas ja existe em outra org ${conflict.orgId} (inst ${conflict.id}) — bloqueado`);
+            return;
+          }
+        }
+
         await prisma.instance.update({
           where: { id: instance.id },
-          data: { status: 'connected', publicConnectToken: null, publicConnectTokenExpiresAt: null },
+          data: {
+            status: 'connected',
+            phoneNumber: pairedPhone || instance.phoneNumber,
+            publicConnectToken: null,
+            publicConnectTokenExpiresAt: null,
+          },
         }).catch(() => null);
         await WebhookDeliveryService.trigger(orgId, 'instance.connected', {
           instanceId: instance.id,
-          phoneNumber: data.profile?.number || data.wuid || null,
+          phoneNumber: pairedPhone || data.profile?.number || null,
           profileName: data.profile?.name || null,
           profilePictureUrl: data.profile?.picture || null,
           occurredAt,
