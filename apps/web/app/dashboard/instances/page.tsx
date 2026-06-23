@@ -141,6 +141,9 @@ export default function InstancesPage() {
           action: { label: "Contatar suporte", onClick: () => window.open(supportUrl, "_blank") },
           duration: 12000,
         });
+      } else if (code === "PHONE_ALREADY_IN_YOUR_ACCOUNT") {
+        const msg = (typeof err === "object" ? err?.message : err) || "Você já tem instância com esse número.";
+        toast.error(typeof msg === "string" ? msg : "Você já tem instância com esse número.", { duration: 10000 });
       } else {
         const msg = (typeof err === "object" ? err?.message : err) || "Erro ao criar instância.";
         toast.error(typeof msg === "string" ? msg : "Erro ao criar instância.");

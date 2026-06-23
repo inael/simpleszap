@@ -88,13 +88,28 @@ export class InstanceController {
         });
       }
 
-      // Bloqueia duplicata de numero entre tenants. Se outra conta SimplesZap
-      // ja tem inst com esse mesmo numero (status != disconnected = ativa ou
-      // tentando conectar), nao deixa criar. User precisa contatar suporte.
+      // Bloqueia duplicata na MESMA org. User nao pode ter 2 instancias com
+      // o mesmo numero — gera confusao de qual inst usar pra enviar/receber.
+      // Sugere reutilizar ou deletar a existente.
+      const sameOrgDup = await prisma.instance.findFirst({
+        where: { phoneNumber, orgId },
+        select: { id: true, name: true, status: true },
+      });
+      if (sameOrgDup) {
+        return res.status(409).json({
+          error: `Você já tem uma instância (${sameOrgDup.name}) usando esse número. Conecte ela ou exclua antes de criar uma nova.`,
+          code: 'PHONE_ALREADY_IN_YOUR_ACCOUNT',
+          existingInstanceId: sameOrgDup.id,
+        });
+      }
+
+      // Bloqueia duplicata em OUTRA org SimplesZap (qualquer status — inclusive
+      // 'disconnected' que e o default pos-create antes do pareamento). Sem
+      // o filtro de status, instancias recem-criadas mas nao pareadas tambem
+      // disparam o bloqueio — que e o comportamento correto.
       const phoneInUse = await prisma.instance.findFirst({
         where: {
           phoneNumber,
-          status: { not: 'disconnected' },
           NOT: { orgId },
         },
         select: { id: true, orgId: true },
