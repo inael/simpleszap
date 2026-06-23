@@ -13,8 +13,8 @@ interface Props {
   variant: Variant;
   exampleName?: string;
   examplePhone?: string;
-  /** "md" = celular cheio (default). "sm" = compacto, pra ficar ao lado do campo de edição. */
-  size?: "sm" | "md";
+  /** "md" = celular cheio (default). "sm" = compacto. "lg" = grande (2.5x do sm). */
+  size?: "sm" | "md" | "lg";
 }
 
 const ACCENT: Record<Variant, { ring: string; chip: string }> = {
@@ -39,7 +39,8 @@ export function WhatsAppPreview({
 }: Props) {
   const rendered = renderTemplate(text, exampleName, examplePhone);
   const colors = ACCENT[variant];
-  const maxW = size === "sm" ? "max-w-[180px]" : "max-w-[240px]";
+  // lg = 2.5x do sm (180 -> 450), pro preview ficar bem visível ao lado do campo.
+  const maxW = size === "sm" ? "max-w-[180px]" : size === "lg" ? "max-w-[450px]" : "max-w-[240px]";
 
   return (
     <div className="flex flex-col items-center gap-3">

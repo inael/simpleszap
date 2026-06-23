@@ -231,7 +231,7 @@ export default function TemplatesPage() {
             return (
               <div
                 key={v}
-                className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-4 items-start rounded-xl border border-zinc-100 bg-zinc-50/50 p-4"
+                className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,470px)] gap-4 items-start rounded-xl border border-zinc-100 bg-zinc-50/50 p-4"
               >
                 {/* Editor da variante */}
                 <div className="space-y-1">
@@ -269,7 +269,7 @@ export default function TemplatesPage() {
 
                 {/* Preview ao vivo, ao lado do campo */}
                 <div className="flex justify-center lg:justify-end">
-                  <WhatsAppPreview text={variants[v].value} variant={v} size="sm" />
+                  <WhatsAppPreview text={variants[v].value} variant={v} size="lg" />
                 </div>
               </div>
             );
