@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren } from "lucide-react";
-import { WebhookOverrideDialog } from "@/components/dashboard/webhook-override-dialog";
+import { InstanceWebhookOverrideExpansion } from "@/components/dashboard/instance-webhook-override-expansion";
 import { InstanceUpsellFlow } from "@/components/dashboard/instance-upsell-flow";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { api } from "@/lib/api";
@@ -45,7 +45,7 @@ export default function InstancesPage() {
   const [shareConnected, setShareConnected] = useState(false);
   const [testInstanceId, setTestInstanceId] = useState<string | null>(null);
   const [upsell, setUpsell] = useState<{ open: boolean; limit: number; current: number }>({ open: false, limit: 1, current: 0 });
-  const [webhookFor, setWebhookFor] = useState<{ id: string; name: string } | null>(null);
+  const [expandedWebhookFor, setExpandedWebhookFor] = useState<string | null>(null);
   const [testPhone, setTestPhone] = useState("");
   const [testText, setTestText] = useState("✅ Teste de envio SimplesZap. Se você recebeu, está tudo OK!");
   const [testSending, setTestSending] = useState(false);
@@ -458,7 +458,8 @@ export default function InstancesPage() {
               {instances?.map((inst: any) => {
                 const pendingCount = pendingByInstance[inst.id] || 0;
                 return (
-                <TableRow key={inst.id}>
+                <Fragment key={inst.id}>
+                <TableRow>
                   <TableCell className="font-medium">{inst.name}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 items-start">
@@ -543,7 +544,7 @@ export default function InstancesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setWebhookFor({ id: inst.id, name: inst.name })}
+                      onClick={() => setExpandedWebhookFor((cur) => (cur === inst.id ? null : inst.id))}
                       title="Configurar webhook desta instância (override do global)"
                     >
                       <Siren className="h-4 w-4 mr-1" /> Webhook
@@ -553,6 +554,15 @@ export default function InstancesPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
+                {expandedWebhookFor === inst.id && (
+                  <InstanceWebhookOverrideExpansion
+                    instanceId={inst.id}
+                    instanceName={inst.name}
+                    colSpan={4}
+                    onClose={() => setExpandedWebhookFor(null)}
+                  />
+                )}
+                </Fragment>
                 );
               })}
               {Array.isArray(instances) && instances.length === 0 && (
@@ -566,15 +576,6 @@ export default function InstancesPage() {
           </Table>
         </CardContent>
       </Card>
-
-      {webhookFor && (
-        <WebhookOverrideDialog
-          open={!!webhookFor}
-          onOpenChange={(o) => !o && setWebhookFor(null)}
-          instanceId={webhookFor.id}
-          instanceName={webhookFor.name}
-        />
-      )}
 
       <InstanceUpsellFlow
         open={upsell.open}

@@ -107,7 +107,6 @@ export default function WebhooksPage() {
   const missing = useMemo(() => {
     const m: string[] = [];
     if (!url.trim()) m.push("URL");
-    if (!secret.trim()) m.push("Secret");
     if (selectedEvents.length === 0) m.push("ao menos 1 evento");
     return m;
   }, [url, secret, selectedEvents]);

@@ -67,7 +67,7 @@ export function WebhookOverrideDialog({ open, onOpenChange, instanceId, instance
 
   const create = async () => {
     if (!orgId) return;
-    if (!url || !secret) return toast.error("Informe URL e secret");
+    if (!url) return toast.error("Informe a URL do webhook");
     if (events.length === 0) return toast.error("Selecione ao menos um evento");
     setSaving(true);
     try {
@@ -177,8 +177,22 @@ export function WebhookOverrideDialog({ open, onOpenChange, instanceId, instance
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Secret</Label>
-              <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="hmac secret" />
+              <Label className="text-xs">Secret <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <div className="flex gap-1">
+                <Input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="vazio = sem assinatura HMAC" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSecret(crypto.randomUUID().replace(/-/g, ""))}
+                  title="Gerar secret aleatório (32 chars)"
+                >
+                  Gerar
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Sem secret, o webhook chega sem header <code className="font-mono">x-webhook-signature</code> e seu sistema não consegue validar autenticidade.
+              </p>
             </div>
           </div>
           <div className="space-y-1">
@@ -214,7 +228,7 @@ export function WebhookOverrideDialog({ open, onOpenChange, instanceId, instance
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
-          <Button onClick={create} disabled={saving || !url || !secret}>
+          <Button onClick={create} disabled={saving || !url}>
             {saving ? "Criando..." : "Criar override"}
           </Button>
         </DialogFooter>
