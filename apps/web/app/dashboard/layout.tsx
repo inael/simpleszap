@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/header";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { Footer } from "@/components/footer";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "simpleszap_sidebar_collapsed";
@@ -53,6 +54,7 @@ export default function DashboardLayout({
       >
         <Header />
         <div className="p-8 pt-0">{children}</div>
+        <Footer />
       </main>
     </div>
   );

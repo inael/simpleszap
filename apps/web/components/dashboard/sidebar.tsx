@@ -5,7 +5,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Smartphone,
@@ -13,23 +12,16 @@ import {
   Users,
   Siren,
   Settings,
-  HelpCircle,
   Key,
-  CreditCard,
-  LogOut,
   Shield,
   FileBarChart,
   ScrollText,
   Wrench,
   SlidersHorizontal,
-  BookOpen,
-  Package,
   Lock,
-  Phone,
   Ticket,
   ChevronDown,
   ChevronRight,
-  User,
   PanelLeftClose,
   PanelLeftOpen,
   Beaker,
@@ -51,7 +43,6 @@ const routes: RouteItem[] = [
   { label: "Instâncias", icon: Smartphone, href: "/dashboard/instances", color: "text-violet-500" },
   { label: "Mensagens", icon: MessageSquare, href: "/dashboard/messages", color: "text-pink-700" },
   { label: "Contatos", icon: Users, href: "/dashboard/contacts", color: "text-blue-600" },
-  { label: "Assinatura", icon: CreditCard, href: "/dashboard/subscription", color: "text-emerald-500" },
 ];
 
 const webhooksSubRoutes: RouteItem[] = [
@@ -66,21 +57,9 @@ const campaignsSubRoutes: RouteItem[] = [
 ];
 
 const settingsSubRoutes: RouteItem[] = [
-  { label: "Perfil", icon: User, href: "/dashboard/settings", color: "text-slate-400" },
   { label: "Chaves de API", icon: Key, href: "/dashboard/api-keys", color: "text-orange-700" },
   { label: "Segurança", icon: Lock, href: "/dashboard/security", color: "text-slate-300" },
   { label: "Beta", icon: Beaker, href: "/dashboard/settings/beta", color: "text-amber-500" },
-];
-
-const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.simpleszap.com";
-const waNumber = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999";
-
-type HelpLink = { label: string; href: string; icon: any; external?: boolean; download?: boolean };
-
-const helpLinks: HelpLink[] = [
-  { label: "WhatsApp", href: `https://wa.me/${waNumber}`, icon: Phone, external: true },
-  { label: "Documentação", href: docsUrl, icon: BookOpen, external: true },
-  { label: "Postman Collection", href: "/simpleszap-postman.zip", icon: Package, download: true },
 ];
 
 const adminRoutes: RouteItem[] = [
@@ -116,12 +95,7 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
 
   const webhooksActive = pathname.startsWith("/dashboard/webhooks");
   const [webhooksOpen, setWebhooksOpen] = useState(webhooksActive);
-  const [helpOpen, setHelpOpen] = useState(true);
   const [adminOpen, setAdminOpen] = useState(true);
-
-  const handleSignOut = () => {
-    window.location.href = "/api/logto/sign-out";
-  };
 
   const renderRoute = (route: RouteItem) => {
     const isActive =
@@ -367,41 +341,6 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
           </div>
         </div>
 
-        {!collapsed && (
-          <>
-            <Separator className="my-4 bg-zinc-700" />
-            <button
-              type="button"
-              onClick={() => setHelpOpen((o) => !o)}
-              aria-expanded={helpOpen ? "true" : "false"}
-              className="flex items-center justify-between w-full px-3 mb-2 text-xs text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition"
-            >
-              <span>Ajuda</span>
-              {helpOpen ? (
-                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-              )}
-            </button>
-            {helpOpen && (
-              <div className="space-y-1">
-                {helpLinks.map((item) => (
-                  <a
-                    key={item.href + item.label}
-                    href={item.href}
-                    {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    {...(item.download ? { download: true } : {})}
-                    className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition text-zinc-400"
-                  >
-                    <item.icon className="h-5 w-5 mr-3 text-zinc-400 group-hover:text-white" />
-                    {item.label}
-                  </a>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
         {!collapsed && showAdmin && (
           <>
             <Separator className="my-4 bg-zinc-700" />
@@ -430,20 +369,6 @@ export const Sidebar = ({ collapsed = false, onToggle }: SidebarProps) => {
             <div className="space-y-1">{adminRoutes.map(renderRoute)}</div>
           </>
         )}
-      </div>
-      <div className={cn(collapsed ? "px-2 py-2" : "px-3 py-2")}>
-        <Button
-          onClick={handleSignOut}
-          variant="ghost"
-          title={collapsed ? "Sair" : undefined}
-          className={cn(
-            "w-full text-zinc-400 hover:text-white hover:bg-white/10",
-            collapsed ? "justify-center px-0" : "justify-start"
-          )}
-        >
-          <LogOut className={cn("h-5 w-5", !collapsed && "mr-3")} />
-          {!collapsed && "Sair"}
-        </Button>
       </div>
     </div>
   );
