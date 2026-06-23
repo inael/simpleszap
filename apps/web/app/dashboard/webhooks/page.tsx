@@ -14,30 +14,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, Globe, Smartphone, Info, Pencil, Trash2, Zap, Loader2, Plus, CheckCircle2, ArrowLeft } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
-
-type EventDef = { key: string; category: string; label: string; description: string };
-
-const AVAILABLE_EVENTS: EventDef[] = [
-  { key: "message.sent",                category: "Saída",       label: "Mensagem enviada",          description: "Sua API/dashboard enviou uma mensagem com sucesso." },
-  { key: "message.failed",              category: "Saída",       label: "Falha de envio",            description: "Tentativa de envio falhou (erro Evolution, sem internet, etc)." },
-  { key: "message.received",            category: "Entrada",     label: "Mensagem recebida (texto)", description: "Lead/contato te mandou uma mensagem de texto." },
-  { key: "message.audio.received",      category: "Entrada",     label: "Áudio recebido",            description: "Lead te mandou um áudio." },
-  { key: "message.image.received",      category: "Entrada",     label: "Imagem recebida",           description: "Lead te mandou uma imagem." },
-  { key: "message.video.received",      category: "Entrada",     label: "Vídeo recebido",            description: "Lead te mandou um vídeo." },
-  { key: "message.document.received",   category: "Entrada",     label: "Documento recebido",        description: "Lead te mandou um PDF/arquivo." },
-  { key: "message.location.received",   category: "Entrada",     label: "Localização recebida",      description: "Lead compartilhou localização." },
-  { key: "message.reaction",            category: "Interação",   label: "Reação a mensagem",         description: "Alguém reagiu a uma mensagem (emoji)." },
-  { key: "message.delivered",           category: "Status",      label: "Mensagem entregue",         description: "WhatsApp confirmou entrega no dispositivo do destinatário." },
-  { key: "message.read",                category: "Status",      label: "Mensagem lida",             description: "Destinatário abriu a conversa e leu sua mensagem." },
-  { key: "instance.connected",          category: "Instância",   label: "Instância conectada",       description: "Pareamento concluído — número online." },
-  { key: "instance.disconnected",       category: "Instância",   label: "Instância desconectada",    description: "Conexão caiu (celular offline, deslogou, etc)." },
-  { key: "instance.qrcode.generated",   category: "Instância",   label: "QR code gerado",            description: "Novo QR disponível pra escanear." },
-  { key: "contact.added",               category: "Contatos",    label: "Contato sincronizado",      description: "Contato apareceu no WhatsApp do número." },
-  { key: "chat.presence",               category: "Interação",   label: "Presença (typing/áudio)",   description: "Mostra quando o contato está digitando ou gravando áudio." },
-];
-
-const CATEGORY_ORDER = ["Saída", "Entrada", "Status", "Instância", "Interação", "Contatos"] as const;
-const DEFAULT_SELECTED = ["message.sent", "message.failed", "message.received", "instance.connected"];
+import { AVAILABLE_EVENTS, DEFAULT_SELECTED_EVENTS_EVENTS, groupEventsByCategory } from "@/lib/webhook-events";
 
 export default function WebhooksPage() {
   const { getToken, user } = useAuth();
@@ -67,16 +44,12 @@ export default function WebhooksPage() {
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
   const [applyTo, setApplyTo] = useState<string>("global");
-  const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_SELECTED);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_SELECTED_EVENTS);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
 
-  const groupedEvents = useMemo(() => {
-    const groups: Record<string, EventDef[]> = {};
-    for (const ev of AVAILABLE_EVENTS) (groups[ev.category] ||= []).push(ev);
-    return CATEGORY_ORDER.filter((c) => groups[c]?.length).map((c) => ({ category: c, events: groups[c] }));
-  }, []);
+  const groupedEvents = useMemo(() => groupEventsByCategory(), []);
 
   const toggleEvent = (key: string) =>
     setSelectedEvents((prev) => prev.includes(key) ? prev.filter((v) => v !== key) : [...prev, key]);
@@ -85,7 +58,7 @@ export default function WebhooksPage() {
     setEditingId(null);
     setUrl(""); setSecret("");
     setApplyTo("global");
-    setSelectedEvents(DEFAULT_SELECTED);
+    setSelectedEvents(DEFAULT_SELECTED_EVENTS);
     setMode("form");
   };
 
