@@ -14,7 +14,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, Globe, Smartphone, Info, Pencil, Trash2, Zap, Loader2, Plus, CheckCircle2, ArrowLeft } from "lucide-react";
 import { TableLoadingRows } from "@/components/ui/table-loading";
-import { AVAILABLE_EVENTS, DEFAULT_SELECTED_EVENTS_EVENTS, groupEventsByCategory } from "@/lib/webhook-events";
+import { AVAILABLE_EVENTS, DEFAULT_SELECTED_EVENTS, groupEventsByCategory } from "@/lib/webhook-events";
 
 export default function WebhooksPage() {
   const { getToken, user } = useAuth();
