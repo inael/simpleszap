@@ -43,8 +43,25 @@ export default function TemplatesPage() {
   const [variantA, setVariantA] = useState("");
   const [variantB, setVariantB] = useState("");
   const [variantC, setVariantC] = useState("");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // SWR de instâncias da org pra renderizar checkboxes "Disponível em"
+  const { data: instances } = useSWR<Array<{ id: string; name: string; status: string }>>(
+    orgId ? ["/instances", orgId as string, "templates-page"] : null,
+    async ([url, oid]: [string, string, string]) => {
+      const token = await getToken();
+      return api.get(url, { headers: { "x-org-id": oid, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }).then((r) => r.data);
+    }
+  );
+  const instanceNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const i of instances || []) m.set(i.id, i.name);
+    return m;
+  }, [instances]);
+  const toggleInstance = (id: string) =>
+    setSelectedInstanceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const variants: Record<Variant, { value: string; set: (s: string) => void }> = {
     A: { value: variantA, set: setVariantA },
@@ -105,10 +122,17 @@ export default function TemplatesPage() {
       const token = await getToken();
       await api.post(
         "/templates",
-        { name: name.trim(), variantA: variantA.trim(), variantB: variantB.trim(), variantC: variantC.trim() },
+        {
+          name: name.trim(),
+          variantA: variantA.trim(),
+          variantB: variantB.trim(),
+          variantC: variantC.trim(),
+          // Array vazio = template disponível pra TODAS as instâncias (default).
+          instanceIds: selectedInstanceIds,
+        },
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
-      setName(""); setVariantA(""); setVariantB(""); setVariantC("");
+      setName(""); setVariantA(""); setVariantB(""); setVariantC(""); setSelectedInstanceIds([]);
       mutate();
       toast.success("Template criado!");
     } catch (e: any) {
@@ -161,6 +185,41 @@ export default function TemplatesPage() {
             <Label>Nome do template</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Boas-vindas, Lembrete boleto, Aniversário..." />
             <p className="text-xs text-muted-foreground">Só pra você identificar. Os clientes não veem.</p>
+          </div>
+
+          {/* Disponível em — opcional. Vazio = todas. Selecionar = só nas escolhidas */}
+          <div className="space-y-2">
+            <Label>Disponível em <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+            {!instances || instances.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhuma instância criada — template disponível pra qualquer instância futura.</p>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {instances.map((inst) => {
+                    const checked = selectedInstanceIds.includes(inst.id);
+                    return (
+                      <button
+                        key={inst.id}
+                        type="button"
+                        onClick={() => toggleInstance(inst.id)}
+                        className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors ${
+                          checked
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-input text-muted-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        {checked ? "✓ " : ""}{inst.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedInstanceIds.length === 0
+                    ? "Vazio = template aparece em qualquer instância ao criar campanha."
+                    : `Só aparece ao criar campanha em ${selectedInstanceIds.length} instância${selectedInstanceIds.length > 1 ? "s" : ""}.`}
+                </p>
+              </>
+            )}
           </div>
 
           {(["A", "B", "C"] as Variant[]).map((v) => {
@@ -250,17 +309,36 @@ export default function TemplatesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead>Disponível em</TableHead>
                 <TableHead>Variantes (preview)</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {templates === undefined && !templatesError && (
-                <TableLoadingRows colSpan={3} />
+                <TableLoadingRows colSpan={4} />
               )}
-              {templates?.map((t: any) => (
+              {templates?.map((t: any) => {
+                let scoped: string[] = [];
+                try {
+                  if (t.instanceIds) scoped = JSON.parse(t.instanceIds);
+                } catch { scoped = []; }
+                return (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium align-top">{t.name}</TableCell>
+                  <TableCell className="align-top text-xs">
+                    {scoped.length === 0 ? (
+                      <span className="inline-flex px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">Todas instâncias</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {scoped.map((id) => (
+                          <span key={id} className="inline-flex px-2 py-0.5 rounded-md bg-violet-100 text-violet-800">
+                            {instanceNameMap.get(id) || "(instância removida)"}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground space-y-1 align-top">
                     <div><span className="font-semibold text-foreground">A:</span> {t.variantA?.slice(0, 80)}{t.variantA?.length > 80 ? "…" : ""}</div>
                     <div><span className="font-semibold text-foreground">B:</span> {t.variantB?.slice(0, 80)}{t.variantB?.length > 80 ? "…" : ""}</div>
@@ -279,10 +357,11 @@ export default function TemplatesPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
               {Array.isArray(templates) && templates.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                     Nenhum template ainda. Crie o primeiro acima — sem ele você não consegue criar campanhas.
                   </TableCell>
                 </TableRow>

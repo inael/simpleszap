@@ -23,6 +23,42 @@ function validateVariants(payload: any): { ok: true; data: { variantA: string; v
   return { ok: true, data: { variantA: a, variantB: b, variantC: c } };
 }
 
+/**
+ * Aceita body.instanceIds em 3 formatos: array de strings, JSON string, ou
+ * null/undefined/[] (= disponivel pra todas as instancias). Valida que cada
+ * id pertence a uma Instance da MESMA org (sem isso, user poderia atrelar
+ * template a inst de outro tenant via id injetado).
+ *
+ * Retorna { value: string | null } pra gravar no DB (JSON string ou null)
+ * ou { error: msg } pra responder 400.
+ */
+async function parseAndValidateInstanceIds(
+  orgId: string,
+  raw: unknown,
+): Promise<{ value: string | null } | { error: string }> {
+  if (raw == null) return { value: null };
+  let arr: unknown = raw;
+  if (typeof raw === 'string') {
+    if (raw.trim() === '') return { value: null };
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return { error: 'instanceIds deve ser array de UUIDs ou JSON string de array.' };
+    }
+  }
+  if (!Array.isArray(arr)) return { error: 'instanceIds deve ser array.' };
+  if (arr.length === 0) return { value: null };
+  const ids = arr.map((x) => String(x));
+  const owned = await prisma.instance.findMany({
+    where: { id: { in: ids }, orgId },
+    select: { id: true },
+  });
+  if (owned.length !== ids.length) {
+    return { error: 'Uma ou mais instâncias informadas não pertencem à sua conta.' };
+  }
+  return { value: JSON.stringify(ids) };
+}
+
 export class TemplatesController {
   static async list(req: Request, res: Response) {
     try {
@@ -43,6 +79,8 @@ export class TemplatesController {
       if (!orgId || !name) return res.status(400).json({ error: 'orgId e name obrigatórios' });
       const v = validateVariants(req.body);
       if (!v.ok) return res.status(400).json({ error: v.error });
+      const instanceIds = await parseAndValidateInstanceIds(orgId, req.body?.instanceIds);
+      if ('error' in instanceIds) return res.status(400).json({ error: instanceIds.error });
       const template = await prisma.template.create({
         data: {
           orgId,
@@ -52,6 +90,7 @@ export class TemplatesController {
           variantB: v.data.variantB,
           variantC: v.data.variantC,
           variables,
+          instanceIds: instanceIds.value,
         },
       });
       await AuditService.log(orgId, 'template.create', undefined, { id: template.id, name });
@@ -65,9 +104,12 @@ export class TemplatesController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const orgId = req.headers['x-org-id'] as string;
       const { name, variables } = req.body;
       const v = validateVariants(req.body);
       if (!v.ok) return res.status(400).json({ error: v.error });
+      const instanceIds = await parseAndValidateInstanceIds(orgId, req.body?.instanceIds);
+      if ('error' in instanceIds) return res.status(400).json({ error: instanceIds.error });
       const template = await prisma.template.update({
         where: { id },
         data: {
@@ -77,6 +119,7 @@ export class TemplatesController {
           variantB: v.data.variantB,
           variantC: v.data.variantC,
           variables,
+          instanceIds: instanceIds.value,
         },
       });
       res.json(template);

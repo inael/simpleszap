@@ -224,7 +224,21 @@ export default function CampaignsPage() {
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates?.map((t: any) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
+                    {(templates as any[] | undefined)
+                      ?.filter((t: any) => {
+                        // Se nenhuma instância foi selecionada ainda, mostra TODOS.
+                        // Se já foi, filtra: templates com instanceIds vazio/null (= todas)
+                        // ou com a inst selecionada inclusa.
+                        if (!instanceId) return true;
+                        if (!t.instanceIds) return true;
+                        try {
+                          const ids = JSON.parse(t.instanceIds) as string[];
+                          return ids.length === 0 || ids.includes(instanceId);
+                        } catch {
+                          return true;
+                        }
+                      })
+                      .map((t: any) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

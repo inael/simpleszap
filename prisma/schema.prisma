@@ -351,6 +351,12 @@ model Template {
   variantB  String
   variantC  String
   variables String?  // JSON array of variable names (legacy)
+  /// JSON array de Instance.id. null/[] = template disponivel pra TODAS as
+  /// instancias da org (comportamento padrao, retrocompat). Quando preenchido,
+  /// so aparece no Select de templates ao criar Campaign nas instancias
+  /// listadas. Util pra clientes multi-canal (atendimento vs cobranca vs
+  /// marketing) com tom de voz diferente por linha.
+  instanceIds String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
