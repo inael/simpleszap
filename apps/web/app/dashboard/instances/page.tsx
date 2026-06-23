@@ -368,9 +368,12 @@ export default function InstancesPage() {
       )}
 
       {(() => {
-        // Cortesia VIP (manualSubscriptionUntil) bypassa toda a regra de
-        // assinatura — o backend permite enviar de qualquer instância. Não
-        // mostra o banner amarelo nesse caso.
+        // Anti-flash: espera AMBOS instances e subData chegarem antes de
+        // decidir. Sem isso o banner pisca um instante enquanto vipActive
+        // ainda nao foi calculado (subData undefined no 1o render).
+        if (instances === undefined || subData === undefined) return null;
+        // Cortesia VIP / conta Interna IT Booster bypassa enforcement -
+        // backend deixa enviar de qualquer instância sem cobrar.
         if (bypassEnforcement) return null;
         const list: any[] = Array.isArray(instances) ? instances : [];
         if (list.length < 2) return null;
@@ -419,7 +422,35 @@ export default function InstancesPage() {
             </TableHeader>
             <TableBody>
               {instances === undefined && !error && (
-                <TableLoadingRows colSpan={4} />
+                <>
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <TableRow key={`sk-${i}`} className="animate-pulse">
+                      {/* Nome */}
+                      <TableCell>
+                        <div className="h-4 w-32 rounded bg-muted/60" />
+                      </TableCell>
+                      {/* Status — pílula colorida fake */}
+                      <TableCell>
+                        <div className="inline-flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1">
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                          <span className="h-3 w-16 rounded bg-muted-foreground/30" />
+                        </div>
+                      </TableCell>
+                      {/* ID — fonte monoespaçada simulada */}
+                      <TableCell>
+                        <div className="h-3 w-56 rounded bg-muted/50 font-mono" />
+                      </TableCell>
+                      {/* Ações — botões fake alinhados à direita */}
+                      <TableCell className="text-right">
+                        <div className="inline-flex gap-2 justify-end">
+                          {Array.from({ length: 6 }).map((__, k) => (
+                            <div key={k} className="h-8 w-20 rounded-md bg-muted/60 border border-muted/40" />
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
               {instances?.map((inst: any) => {
                 const pendingCount = pendingByInstance[inst.id] || 0;
