@@ -157,9 +157,19 @@ export default function AdminUsersPage() {
                         <TableCell>{user.name || "—"}</TableCell>
                         <TableCell className="text-sm">{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            {user.subscriptionPlan?.name || "Sem plano"}
-                          </Badge>
+                          {user.subscriptionPlan?.id === "interno" ? (
+                            <Badge className="bg-blue-100 text-blue-900 border-blue-200">
+                              Interno IT Booster
+                            </Badge>
+                          ) : courtesyActive ? (
+                            <Badge className="bg-purple-100 text-purple-900 border-purple-200">
+                              Cortesia
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-zinc-50 text-zinc-700">
+                              Free
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs">
                           {courtesyActive ? (
