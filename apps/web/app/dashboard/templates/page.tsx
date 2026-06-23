@@ -170,55 +170,51 @@ export default function TemplatesPage() {
               (v === "B" && (validation.dupes.includes("A=B") || validation.dupes.includes("B=C"))) ||
               (v === "C" && (validation.dupes.includes("B=C") || validation.dupes.includes("A=C")));
             return (
-              <div key={v} className="space-y-1">
-                <Label className="flex items-center gap-2">
-                  Variante {v}
-                  {isMissing && <span className="text-xs text-amber-600">(faltando)</span>}
-                  {isDup && <span className="text-xs text-red-600">(igual a outra variante)</span>}
-                </Label>
-                <Textarea
-                  ref={refs[v]}
-                  value={variants[v].value}
-                  onChange={(e) => variants[v].set(e.target.value)}
-                  placeholder={
-                    v === "A" ? "Ex: Olá {{name}}, tudo bem? Queria te mostrar uma novidade." :
-                    v === "B" ? "Ex: Oi {{name}}! Tenho uma coisa pra você dar uma olhada." :
-                                "Ex: {{name}}, separei algo especial pra você."
-                  }
-                  rows={3}
-                  className={isDup ? "border-red-400 focus-visible:ring-red-400" : ""}
-                />
-                <div className="flex gap-2 flex-wrap">
-                  {TEMPLATE_VARIABLES.map((tv) => (
-                    <Button
-                      key={tv.value}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertAt(v, tv.value)}
-                    >
-                      + {tv.label}
-                    </Button>
-                  ))}
+              <div
+                key={v}
+                className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-4 items-start rounded-xl border border-zinc-100 bg-zinc-50/50 p-4"
+              >
+                {/* Editor da variante */}
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2">
+                    Variante {v}
+                    {isMissing && <span className="text-xs text-amber-600">(faltando)</span>}
+                    {isDup && <span className="text-xs text-red-600">(igual a outra variante)</span>}
+                  </Label>
+                  <Textarea
+                    ref={refs[v]}
+                    value={variants[v].value}
+                    onChange={(e) => variants[v].set(e.target.value)}
+                    placeholder={
+                      v === "A" ? "Ex: Olá {{name}}, tudo bem? Queria te mostrar uma novidade." :
+                      v === "B" ? "Ex: Oi {{name}}! Tenho uma coisa pra você dar uma olhada." :
+                                  "Ex: {{name}}, separei algo especial pra você."
+                    }
+                    rows={5}
+                    className={isDup ? "border-red-400 focus-visible:ring-red-400" : ""}
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    {TEMPLATE_VARIABLES.map((tv) => (
+                      <Button
+                        key={tv.value}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => insertAt(v, tv.value)}
+                      >
+                        + {tv.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview ao vivo, ao lado do campo */}
+                <div className="flex justify-center lg:justify-end">
+                  <WhatsAppPreview text={variants[v].value} variant={v} size="sm" />
                 </div>
               </div>
             );
           })}
-
-          {/* Previews ao vivo: 1 celular pra cada variante */}
-          <div className="rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-zinc-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-zinc-800">Preview no WhatsApp</h3>
-                <p className="text-xs text-zinc-500">Como o cliente vai ver cada variante. Variáveis substituídas por exemplo.</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 justify-items-center">
-              <WhatsAppPreview text={variantA} variant="A" />
-              <WhatsAppPreview text={variantB} variant="B" />
-              <WhatsAppPreview text={variantC} variant="C" />
-            </div>
-          </div>
 
           {!validation.ok && (variantA || variantB || variantC || name) && (
             <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
