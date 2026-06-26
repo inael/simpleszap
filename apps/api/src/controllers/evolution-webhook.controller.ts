@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { waitUntil } from '@vercel/functions';
 import { prisma } from '../lib/prisma';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { EvolutionService } from '../services/evolution.service';
@@ -93,16 +94,15 @@ export class EvolutionWebhookController {
     const instanceName = req.params.instanceName;
     const body = (req.body || {}) as EvolutionPayload;
 
-    // SERVERLESS (Vercel): o setImmediate roda DEPOIS do 200 e a função congela
-    // antes de terminar o trabalho pesado (message.received: dedup+create+entrega),
-    // perdendo o evento. Processa SÍNCRONO (antes do 200) pra garantir que complete.
-    // A entrega ao consumidor tem timeout curto (8s, ver webhook-delivery) pra
-    // não estourar o maxDuration da função.
-    try {
-      await EvolutionWebhookController.process(instanceName, body);
-    } catch (e: any) {
+    // SERVERLESS (Vercel): responde 200 IMEDIATO (Evolution não dá timeout e não
+    // descarta evento) e processa em background com waitUntil, que mantém a função
+    // viva até a entrega completar. Resolve os dois problemas anteriores: o
+    // setImmediate morria quando a função congelava (perdia message.received), e o
+    // processamento síncrono estourava o timeout da Evolution no trabalho pesado.
+    const job = EvolutionWebhookController.process(instanceName, body).catch((e: any) => {
       console.error('evolution-webhook process error:', e?.message || e);
-    }
+    });
+    try { waitUntil(job); } catch { /* fora da Vercel (dev): job roda sem waitUntil */ }
     return res.status(200).json({ ok: true });
   }
 
