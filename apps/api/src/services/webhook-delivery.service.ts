@@ -38,13 +38,20 @@ export class WebhookDeliveryService {
         'x-webhook-id': cfg.id,
         'content-type': 'application/json',
       };
+      // Timeout curto (8s): a entrega é síncrona (antes do 200 da Evolution), então
+      // não pode estourar o maxDuration da função serverless. Uma tentativa só, sem
+      // retry — n8n responde via onReceived em ~100ms, então 8s é folga de sobra.
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
       try {
         // fetch nativo envia bytes verbatim (axios mexe encoding). HMAC do consumidor
         // calcula sha256(rawBody) com a mesma string que assinamos aqui.
-        const res = await fetch(cfg.url, { method: 'POST', headers, body });
+        const res = await fetch(cfg.url, { method: 'POST', headers, body, signal: ctrl.signal });
         await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: res.ok, statusCode: res.status } });
       } catch (e: any) {
         await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: false, error: e.message } });
+      } finally {
+        clearTimeout(timer);
       }
     }
   }

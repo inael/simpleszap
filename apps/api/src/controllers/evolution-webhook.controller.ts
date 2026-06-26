@@ -93,13 +93,16 @@ export class EvolutionWebhookController {
     const instanceName = req.params.instanceName;
     const body = (req.body || {}) as EvolutionPayload;
 
-    // Evolution pode chamar várias vezes; respondemos rápido pra não dar timeout.
-    // Processamento assíncrono via try/catch silencioso — Evolution não suporta retry granular.
-    setImmediate(() => {
-      void EvolutionWebhookController.process(instanceName, body).catch((e) => {
-        console.error('evolution-webhook process error:', e?.message || e);
-      });
-    });
+    // SERVERLESS (Vercel): o setImmediate roda DEPOIS do 200 e a função congela
+    // antes de terminar o trabalho pesado (message.received: dedup+create+entrega),
+    // perdendo o evento. Processa SÍNCRONO (antes do 200) pra garantir que complete.
+    // A entrega ao consumidor tem timeout curto (8s, ver webhook-delivery) pra
+    // não estourar o maxDuration da função.
+    try {
+      await EvolutionWebhookController.process(instanceName, body);
+    } catch (e: any) {
+      console.error('evolution-webhook process error:', e?.message || e);
+    }
     return res.status(200).json({ ok: true });
   }
 
