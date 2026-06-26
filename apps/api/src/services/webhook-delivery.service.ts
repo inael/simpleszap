@@ -38,27 +38,14 @@ export class WebhookDeliveryService {
         'x-webhook-id': cfg.id,
         'content-type': 'application/json',
       };
-      // Entrega com timeout + retry (resiliência). Só retenta em falha de rede ou 5xx
-      // (nunca em 2xx/4xx) pra NÃO duplicar entregas que o consumidor já processou.
-      // fetch nativo envia bytes verbatim (axios mexe encoding). HMAC do consumidor
-      // calcula sha256(rawBody) com a mesma string que assinamos aqui.
-      let ok = false, statusCode: number | undefined, lastErr: any = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 15000);
-        try {
-          const res = await fetch(cfg.url, { method: 'POST', headers, body, signal: ctrl.signal });
-          statusCode = res.status; ok = res.ok;
-          if (res.ok || (res.status >= 400 && res.status < 500)) break; // sucesso ou erro do cliente: não retenta
-          lastErr = new Error('HTTP ' + res.status);
-        } catch (e: any) {
-          lastErr = e;
-        } finally {
-          clearTimeout(timer);
-        }
-        if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1))); // backoff 1s, 2s
+      try {
+        // fetch nativo envia bytes verbatim (axios mexe encoding). HMAC do consumidor
+        // calcula sha256(rawBody) com a mesma string que assinamos aqui.
+        const res = await fetch(cfg.url, { method: 'POST', headers, body });
+        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: res.ok, statusCode: res.status } });
+      } catch (e: any) {
+        await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: false, error: e.message } });
       }
-      await prisma.webhookLog.create({ data: { orgId, webhookId: cfg.id, instanceId: instanceId ?? null, event, payload: body, success: ok, statusCode, error: ok ? undefined : lastErr?.message } });
     }
   }
 }
