@@ -49,6 +49,17 @@ function unwrapMessage(message: any): any {
     || message;
 }
 
+function describeUnsupported(message: any): string {
+  // Descreve tipos que nao extraimos como texto/midia, p/ o catch-all gerar um
+  // texto sintetico e o SDR responder em vez de descartar em silencio.
+  if (message?.stickerMessage) return 'uma figurinha';
+  if (message?.contactMessage || message?.contactsArrayMessage) return 'um cartão de contato';
+  if (message?.pollCreationMessage || message?.pollCreationMessageV2 || message?.pollCreationMessageV3) return 'uma enquete';
+  if (message?.buttonsResponseMessage || message?.listResponseMessage || message?.templateButtonReplyMessage) return 'uma resposta de botão';
+  if (message?.protocolMessage || message?.senderKeyDistributionMessage) return ''; // sistema (apagar, chaves): ignorar
+  return 'um conteúdo que não consigo ler por aqui';
+}
+
 function pickMediaInfo(message: any) {
   // Evolution v2 com base64=true: media vem como base64 string em mediaMessage,
   // mas também tem urls de upload. Aqui retornamos o que conseguimos extrair.
@@ -192,15 +203,6 @@ export class EvolutionWebhookController {
           if (existing) continue;
         }
 
-        // DEBUG temporario: captura estrutura de mensagens nao-texto p/ diagnostico de midia
-        if (!text) {
-          await WebhookDeliveryService.trigger(orgId, 'debug.upsert', {
-            instanceId: instance.id, messageId, from: number,
-            keys: Object.keys(message || {}), rawKeys: Object.keys(raw?.message || {}),
-            hasAudio: !!message?.audioMessage, hasMedia: !!media, fromMe, occurredAt,
-          }).catch(() => null);
-        }
-
         if (text) {
           await prisma.message.create({
             data: {
@@ -257,6 +259,43 @@ export class EvolutionWebhookController {
             quotedMessageId,
             occurredAt,
           }).catch(() => null);
+        } else {
+          // CATCH-ALL: tipo nao suportado (figurinha, contato, enquete, botao, ou
+          // qualquer tipo futuro). Em vez de descartar em silencio (a mensagem
+          // sumia sem rastro), dispara message.received com um texto sintetico
+          // descrevendo o que veio, pra o SDR SEMPRE ser acionado e responder.
+          // Garante que NENHUM inbound se perde, hoje e no futuro.
+          const desc = describeUnsupported(message);
+          if (desc) {
+            const synth = `[o cliente enviou ${desc}]`;
+            await prisma.message.create({
+              data: {
+                orgId,
+                instanceId: instance.id,
+                to: number,
+                fromNumber: number,
+                body: synth,
+                type: 'unsupported',
+                status: 'received',
+                direction: 'received',
+                whatsappMessageId: messageId,
+                fromName,
+                quotedMessageId,
+              },
+            }).catch(() => null);
+
+            await WebhookDeliveryService.trigger(orgId, 'message.received', {
+              instanceId: instance.id,
+              messageId,
+              from: number,
+              fromName,
+              fromMe: false,
+              type: 'unsupported',
+              text: synth,
+              quotedMessageId,
+              occurredAt,
+            }).catch(() => null);
+          }
         }
       }
       return;
