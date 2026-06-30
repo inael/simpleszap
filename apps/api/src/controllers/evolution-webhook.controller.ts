@@ -36,6 +36,20 @@ function normalizeJidNumber(jid: string | undefined): string {
   return jid.split('@')[0];
 }
 
+function unwrapMessage(message: any): any {
+  if (!message) return message;
+  // WhatsApp aninha o conteudo real em wrappers: mensagem temporaria
+  // (ephemeralMessage), ver-uma-vez (viewOnce*), documento-com-legenda, etc.
+  // Sem desembrulhar, audioMessage/imageMessage ficam invisiveis e a midia
+  // (audio, imagem) cai em texto=null + media=null e e descartada em silencio.
+  return message.ephemeralMessage?.message
+    || message.viewOnceMessage?.message
+    || message.viewOnceMessageV2?.message
+    || message.viewOnceMessageV2Extension?.message
+    || message.documentWithCaptionMessage?.message
+    || message;
+}
+
 function pickMediaInfo(message: any) {
   // Evolution v2 com base64=true: media vem como base64 string em mediaMessage,
   // mas também tem urls de upload. Aqui retornamos o que conseguimos extrair.
@@ -144,7 +158,7 @@ export class EvolutionWebhookController {
           : remoteJid;
         const number = normalizeJidNumber(effectiveJid);
         const fromName = raw?.pushName || null;
-        const message = raw?.message || {};
+        const message = unwrapMessage(raw?.message || {});
 
         // Reaction vem como reactionMessage dentro de MESSAGES_UPSERT
         // (Evolution v2 não tem evento MESSAGES_REACTION separado)
@@ -174,6 +188,15 @@ export class EvolutionWebhookController {
         if (messageId) {
           const existing = await prisma.message.findUnique({ where: { whatsappMessageId: messageId } }).catch(() => null);
           if (existing) continue;
+        }
+
+        // DEBUG temporario: captura estrutura de mensagens nao-texto p/ diagnostico de midia
+        if (!text) {
+          await WebhookDeliveryService.trigger(orgId, 'debug.upsert', {
+            instanceId: instance.id, messageId, from: number,
+            keys: Object.keys(message || {}), rawKeys: Object.keys(raw?.message || {}),
+            hasAudio: !!message?.audioMessage, hasMedia: !!media, fromMe, occurredAt,
+          }).catch(() => null);
         }
 
         if (text) {
