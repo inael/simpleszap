@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren, MessageSquare, Megaphone } from "lucide-react";
+import { Plus, RefreshCw, Trash, QrCode, AlertCircle, Share2, Copy, Loader2, CheckCircle2, Send, Flame, Clock, ListChecks, Siren, MessageSquare, Megaphone, Ban } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
 import { InstanceWebhookOverrideExpansion } from "@/components/dashboard/instance-webhook-override-expansion";
 import { InstanceUpsellFlow } from "@/components/dashboard/instance-upsell-flow";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -163,6 +164,26 @@ export default function InstancesPage() {
       mutate();
     } catch (e) {
       toast.error("Erro ao remover instância.");
+    }
+  };
+
+  const handleCancelSubscription = async (id: string) => {
+    if (!orgId) return toast.error("Erro de autenticação.");
+    if (
+      !confirm(
+        "Cancelar a assinatura desta instância?\n\nEla deixará de renovar automaticamente. O envio continua liberado até o fim do período já pago."
+      )
+    )
+      return;
+    try {
+      const token = await getToken();
+      await api.delete(`/instance/${id}/subscribe`, {
+        headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      toast.success("Assinatura cancelada. Não haverá nova cobrança.");
+      mutate();
+    } catch {
+      toast.error("Erro ao cancelar assinatura.");
     }
   };
 
@@ -501,7 +522,41 @@ export default function InstancesPage() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{inst.id}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono">{inst.id}</span>
+                      <CopyButton value={inst.id} title="Copiar ID" size="icon" />
+                    </div>
+                    {(() => {
+                      const sub: string | null | undefined = inst.subscriptionStatus;
+                      const badge = (() => {
+                        switch (sub) {
+                          case "active":
+                            return { label: "Ativa", className: "bg-green-50 text-green-700 border-green-200" };
+                          case "pending":
+                            return { label: "Pendente", className: "bg-amber-50 text-amber-700 border-amber-200" };
+                          case "past_due":
+                            return { label: "Vencida", className: "bg-red-50 text-red-700 border-red-200" };
+                          case "canceled":
+                            return { label: "Cancelada", className: "bg-gray-100 text-gray-600 border-gray-200" };
+                          default:
+                            return { label: "Grátis", className: "bg-blue-50 text-blue-700 border-blue-200" };
+                        }
+                      })();
+                      return (
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" className={badge.className}>
+                            {badge.label}
+                          </Badge>
+                          {inst.paidUntil && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Expira em {new Date(inst.paidUntil).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
                     {(() => {
                       const connected = inst.status === 'open' || inst.status === 'connected';
@@ -570,6 +625,17 @@ export default function InstancesPage() {
                     >
                       <Siren className="h-4 w-4 mr-1" /> Webhook
                     </Button>
+                    {inst.subscriptionStatus === "active" && inst.asaasSubscriptionId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => handleCancelSubscription(inst.id)}
+                        title="Cancela a renovação automática desta instância"
+                      >
+                        <Ban className="h-4 w-4 mr-1" /> Cancelar assinatura
+                      </Button>
+                    )}
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(inst.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>

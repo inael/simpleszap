@@ -23,6 +23,7 @@ import { CouponController } from '../controllers/coupon.controller';
 import { CronController } from '../controllers/cron.controller';
 import { BetaFeaturesController } from '../controllers/beta-features.controller';
 import { MessageQueueController } from '../controllers/message-queue.controller';
+import { SubscriptionNotifyController } from '../controllers/subscription-notify.controller';
 import { BillingController } from '../controllers/billing.controller';
 import { EvolutionWebhookController } from '../controllers/evolution-webhook.controller';
 import { rateLimit } from '../middleware/rate-limit';
@@ -47,6 +48,8 @@ router.get('/cron/process-emails', CronController.processEmails);
 router.post('/cron/process-emails', CronController.processEmails);
 router.get('/cron/process-message-queue', MessageQueueController.processCron);
 router.post('/cron/process-message-queue', MessageQueueController.processCron);
+router.get('/cron/notify-expiring-subscriptions', SubscriptionNotifyController.notifyExpiring);
+router.post('/cron/notify-expiring-subscriptions', SubscriptionNotifyController.notifyExpiring);
 
 // Dashboard
 router.get('/dashboard/metrics', orgAuthWithSecurity, DashboardController.metrics);

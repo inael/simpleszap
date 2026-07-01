@@ -27,6 +27,10 @@ model User {
   asaasCustomerId   String?
   cpfCnpj           String?
 
+  /// WhatsApp do dono da conta (E.164 BR, sem +) que recebe avisos de conta —
+  /// ex. assinatura de instância perto de vencer (cron notify-expiring-subscriptions).
+  notificationPhoneNumber String?
+
   // Cortesia VIP (bypass Asaas) — admin concede plano por N meses sem cobrar.
   // Quando manualSubscriptionUntil > now, enforcement usa o plano linkado em
   // subscriptionPlanId ignorando trialEndsAt e asaasCustomerId.
@@ -165,6 +169,9 @@ model Instance {
   paidUntil             DateTime?
   /// Preço mensal cobrado por essa instância em centavos. Default 5900 = R$59.
   pricePerMonthCents    Int       @default(5900)
+  /// Última vez que o cron avisou o dono (via WhatsApp) que a assinatura desta
+  /// instância está perto de vencer. Usado pra não notificar de novo por alguns dias.
+  expiryNotifiedAt      DateTime?
   /// Mensagens incluídas por dia nessa instância (cap próprio antes do pool global).
   messagesIncluded      Int       @default(300)
 

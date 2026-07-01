@@ -45,6 +45,7 @@ export class MeController {
         email: user.email,
         name: user.name,
         cpfCnpj: user.cpfCnpj,
+        notificationPhoneNumber: user.notificationPhoneNumber,
       });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -56,8 +57,20 @@ export class MeController {
       const userId = req.headers['x-user-id'] as string | undefined;
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-      const { cpfCnpj } = req.body || {};
-      const data: { cpfCnpj?: string | null } = {};
+      const { cpfCnpj, notificationPhoneNumber } = req.body || {};
+      const data: { cpfCnpj?: string | null; notificationPhoneNumber?: string | null } = {};
+
+      if (notificationPhoneNumber !== undefined) {
+        if (notificationPhoneNumber === null || notificationPhoneNumber === '') {
+          data.notificationPhoneNumber = null;
+        } else {
+          const d = digitsOnly(notificationPhoneNumber);
+          if (d.length < 10 || d.length > 13) {
+            return res.status(400).json({ error: 'Telefone de notificação inválido (informe com DDD).' });
+          }
+          data.notificationPhoneNumber = d;
+        }
+      }
 
       if (cpfCnpj !== undefined) {
         if (cpfCnpj === null || cpfCnpj === '') {
@@ -81,7 +94,7 @@ export class MeController {
         where: { logtoId: userId },
         data,
       });
-      res.json({ id: user.id, email: user.email, name: user.name, cpfCnpj: user.cpfCnpj });
+      res.json({ id: user.id, email: user.email, name: user.name, cpfCnpj: user.cpfCnpj, notificationPhoneNumber: user.notificationPhoneNumber });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

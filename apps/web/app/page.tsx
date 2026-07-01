@@ -24,6 +24,7 @@ import { getLogtoConfigFromHeaders } from "@/lib/logto";
 import { HeroV2 } from "@/components/landing/hero-v2";
 import { IntegrateSection } from "@/components/landing/integrate-section";
 import { FlowsSection } from "@/components/landing/flows-section";
+import { NoCodeIntegrationsSection } from "@/components/landing/no-code-integrations-section";
 import { PricingVsMetaSection } from "@/components/landing/pricing-vs-meta-section";
 import { CompetitorsTableSection } from "@/components/landing/competitors-table-section";
 import { AntiBanSection } from "@/components/landing/anti-ban-section";
@@ -86,6 +87,7 @@ export default async function Home() {
       <CompetitorsTableSection />
       <IntegrateSection />
       <FlowsSection />
+      <NoCodeIntegrationsSection />
 
       {/* Social proof — texto honesto (sem marcas fictícias) */}
       <section className="py-14 border-y border-white/5 bg-neutral-950">

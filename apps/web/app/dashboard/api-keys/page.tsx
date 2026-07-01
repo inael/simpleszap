@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Copy, Trash, Loader2 } from "lucide-react";
+import { Plus, Trash, Loader2 } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,11 +77,6 @@ export default function ApiKeysPage() {
     }
   };
 
-  const copy = async (key: string) => {
-    await navigator.clipboard.writeText(key).catch(() => {});
-    toast.success("Chave copiada.");
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -149,9 +145,7 @@ export default function ApiKeysPage() {
                   <TableCell className="font-mono text-xs">{String(k.key || "").slice(0, 10)}...</TableCell>
                   <TableCell>{k.createdAt ? new Date(k.createdAt).toLocaleDateString() : "-"}</TableCell>
                   <TableCell className="text-right flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => copy(k.key)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                    <CopyButton value={k.key} title="Copiar chave" size="icon" />
                     <Button
                       variant="ghost"
                       size="icon"

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, MessageSquare, AlertCircle, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Smartphone, MessageSquare, AlertCircle, AlertTriangle, CheckCircle2, Loader2, BookOpen, Key, Webhook, LifeBuoy, ChevronRight, Sparkles } from "lucide-react";
 import useSWR from "swr";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -247,6 +247,89 @@ export default function DashboardPage() {
                 Nenhuma atividade recente registrada.
               </p>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recursos &amp; Documentação</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal">Atalhos úteis para começar</p>
+          </CardHeader>
+          <CardContent>
+            <ul className="-mx-2 flex flex-col">
+              {[
+                { icon: BookOpen, label: "Documentação", href: "https://docs.simpleszap.com", external: true },
+                { icon: Key, label: "Chaves de API", href: "/dashboard/api-keys", external: false },
+                { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks", external: false },
+                {
+                  icon: LifeBuoy,
+                  label: "Central de Ajuda (WhatsApp)",
+                  href: `https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "5511999999999"}`,
+                  external: true,
+                },
+              ].map(({ icon: Icon, label, href, external }) => {
+                const inner = (
+                  <>
+                    <Icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate">{label}</span>
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
+                  </>
+                );
+                const cls =
+                  "flex items-center gap-3 rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-slate-50";
+                return (
+                  <li key={label}>
+                    {external ? (
+                      <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+                        {inner}
+                      </a>
+                    ) : (
+                      <Link href={href} className={cls}>
+                        {inner}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="space-y-1.5">
+              <CardTitle>Novidades</CardTitle>
+              <p className="text-sm text-muted-foreground font-normal">Últimas melhorias do produto</p>
+            </div>
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-4">
+              {[
+                {
+                  title: "Logs de webhook agora mostram a instância de origem",
+                  date: "Jun 2026",
+                },
+                {
+                  title: "Preview do WhatsApp ao lado de cada variante nos Templates",
+                  date: "Jun 2026",
+                },
+                {
+                  title: "Menu do usuário no topo direito + rodapé com versão de build",
+                  date: "Mai 2026",
+                },
+              ].map((item) => (
+                <li key={item.title} className="flex gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium leading-snug text-foreground">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.date}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       </div>

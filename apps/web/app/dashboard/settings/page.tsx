@@ -27,8 +27,10 @@ export default function SettingsPage() {
   const [savingNotif, setSavingNotif] = useState(false);
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [savingCpf, setSavingCpf] = useState(false);
+  const [notifPhone, setNotifPhone] = useState('');
+  const [savingNotifPhone, setSavingNotifPhone] = useState(false);
 
-  const { data: me, mutate: mutateMe } = useSWR<{ cpfCnpj: string | null }>(
+  const { data: me, mutate: mutateMe } = useSWR<{ cpfCnpj: string | null; notificationPhoneNumber: string | null }>(
     orgId ? ['/me', orgId] : null,
     async ([url, oid]: [string, string]) => {
       const token = await getToken();
@@ -39,6 +41,27 @@ export default function SettingsPage() {
   useEffect(() => {
     if (me?.cpfCnpj) setCpfCnpj(formatCpfCnpj(me.cpfCnpj));
   }, [me?.cpfCnpj]);
+
+  useEffect(() => {
+    if (me?.notificationPhoneNumber) setNotifPhone(me.notificationPhoneNumber);
+  }, [me?.notificationPhoneNumber]);
+
+  const handleSaveNotifPhone = async () => {
+    if (savingNotifPhone) return;
+    setSavingNotifPhone(true);
+    try {
+      const token = await getToken();
+      await api.put('/me', { notificationPhoneNumber: notifPhone.replace(/\D/g, '') || null }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      toast.success('WhatsApp para avisos salvo.');
+      mutateMe();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Erro ao salvar WhatsApp para avisos.');
+    } finally {
+      setSavingNotifPhone(false);
+    }
+  };
 
   const handleSaveCpf = async () => {
     if (savingCpf) return;
@@ -160,6 +183,31 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid gap-2 max-w-md">
+              <Label htmlFor="notif-phone">WhatsApp para avisos (com DDD)</Label>
+              <Input
+                id="notif-phone"
+                value={notifPhone}
+                onChange={(e) => setNotifPhone(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                placeholder="11999999999"
+                inputMode="numeric"
+              />
+              <p className="text-xs text-muted-foreground">
+                Recebe avisos de vencimento das assinaturas das suas instâncias neste número.
+              </p>
+              <Button
+                className="w-fit"
+                onClick={handleSaveNotifPhone}
+                disabled={savingNotifPhone || notifPhone.replace(/\D/g, '') === (me?.notificationPhoneNumber || '')}
+              >
+                {savingNotifPhone ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
+                ) : (
+                  'Salvar WhatsApp'
+                )}
+              </Button>
+            </div>
+            <Separator />
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="email-notif" className="flex flex-col space-y-1">
                 <span>Emails de Marketing</span>
