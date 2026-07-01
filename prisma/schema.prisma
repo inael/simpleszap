@@ -152,6 +152,17 @@ model Instance {
   token                 String?  // Token da Evolution API
   orgId                 String?
 
+  /// Backend do WhatsApp desta instancia:
+  ///   evolution  = Evolution API / Baileys (padrao; todas as instancias legadas)
+  ///   waha       = WAHA (engine WEBJS, Chromium real) — melhor com midia grande
+  ///   meta_cloud = API oficial da Meta (Cloud API) — sem ban, midia garantida
+  /// evolutionInstanceName guarda o nome da sessao tambem no WAHA. Cada provider
+  /// tem um adapter de webhook que normaliza pros MESMOS eventos canonicos do
+  /// SimplesZap (message.received, etc.), entao os consumidores (n8n/SDR) nao mudam.
+  provider              String   @default("evolution")
+  /// Config especifica do provider (ex.: Meta phone_number_id/waba_id/token).
+  providerConfig        Json?
+
   /// Token único pra link público de pareamento (sem auth). Quando setado e
   /// não expirado, GET /public/connect/:token retorna o QR sem autenticação.
   /// Limpo automaticamente quando a instância conecta (status=open) ou ao expirar.

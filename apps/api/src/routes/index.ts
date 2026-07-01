@@ -26,6 +26,7 @@ import { MessageQueueController } from '../controllers/message-queue.controller'
 import { SubscriptionNotifyController } from '../controllers/subscription-notify.controller';
 import { BillingController } from '../controllers/billing.controller';
 import { EvolutionWebhookController } from '../controllers/evolution-webhook.controller';
+import { WahaWebhookController } from '../controllers/waha-webhook.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -40,6 +41,9 @@ router.post('/webhooks/asaas', AsaasWebhookController.handle);
 
 // Webhook PÚBLICO recebendo eventos da Evolution API (sem auth — Evolution chama direto)
 router.post('/webhooks/evolution/:instanceName', EvolutionWebhookController.handle);
+// Webhook PÚBLICO recebendo eventos do WAHA (sem auth — WAHA chama direto).
+// Adapter normaliza pros MESMOS eventos canônicos, então consumidores não mudam.
+router.post('/webhooks/waha/:session', WahaWebhookController.handle);
 
 // Cron — protegido por CRON_SECRET (Vercel Scheduled Function).
 // Vercel cron sempre invoca via GET — registrar GET e POST pra suportar
