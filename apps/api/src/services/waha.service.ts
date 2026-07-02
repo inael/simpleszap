@@ -80,6 +80,12 @@ export class WahaService {
     return { base64: `data:image/png;base64,${buf.toString('base64')}` };
   }
 
+  // Reinicia a sessão (recria a página do Chromium). Usado pra recuperar de
+  // FAILED — o WEBJS às vezes crasha a página (TargetCloseError) em VPS apertada.
+  static async restartSession(sessionName: string) {
+    return req('POST', `/api/sessions/${encodeURIComponent(sessionName)}/restart`, {});
+  }
+
   static async deleteSession(sessionName: string) {
     try {
       await req('POST', `/api/sessions/${encodeURIComponent(sessionName)}/stop`, {});

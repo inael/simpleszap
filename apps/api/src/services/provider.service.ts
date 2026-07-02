@@ -87,15 +87,28 @@ export class ProviderService {
     const name = backendNameOf(instance);
     ensureConfigured(provider);
     if (provider === 'waha') {
-      let state = 'connecting';
+      let st = '';
       try {
         const s = await WahaService.getStatus(name);
-        const st = String(s?.status || '').toUpperCase();
-        state = st === 'WORKING' ? 'open' : st === 'FAILED' || st === 'STOPPED' ? 'close' : 'connecting';
+        st = String(s?.status || '').toUpperCase();
       } catch { /* sessão pode ainda não existir */ }
-      if (state === 'open') return { base64: null, qrcode: { base64: null }, instance: { state } };
+      if (st === 'WORKING') return { base64: null, qrcode: { base64: null }, instance: { state: 'open' } };
+      // WEBJS (Chromium) às vezes crasha e a sessão vai pra FAILED — o QR fica
+      // indisponível (500). Auto-recupera: reinicia e espera voltar pro QR.
+      if (st === 'FAILED' || st === 'STOPPED' || st === '') {
+        await WahaService.restartSession(name).catch(() => null);
+        for (let i = 0; i < 6; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          try {
+            const s = await WahaService.getStatus(name);
+            const cur = String(s?.status || '').toUpperCase();
+            if (cur === 'SCAN_QR_CODE' || cur === 'WORKING') { st = cur; break; }
+          } catch { /* ainda subindo */ }
+        }
+        if (st === 'WORKING') return { base64: null, qrcode: { base64: null }, instance: { state: 'open' } };
+      }
       const qr = await WahaService.getQr(name);
-      return { base64: qr.base64, qrcode: { base64: qr.base64 }, instance: { state } };
+      return { base64: qr.base64, qrcode: { base64: qr.base64 }, instance: { state: 'connecting' } };
     }
     if (provider === 'meta_cloud') {
       // Número oficial não parea por QR — já conectado.
