@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { EvolutionService } from '../services/evolution.service';
+import { ProviderService, providerOf } from '../services/provider.service';
 import { prisma } from '../lib/prisma';
 import { Instance as PrismaInstance } from '@prisma/client';
 import { EnforcementService } from '../services/enforcement.service';
@@ -52,9 +53,14 @@ export class InstanceController {
     const orgId = (req.body?.orgId as string | undefined) || (req.headers['x-org-id'] as string | undefined);
     const name = req.body?.name as string | undefined;
     const rawPhone = req.body?.phoneNumber as string | undefined;
+    // Provider escolhido no toggle da UI (default: evolution, comportamento atual).
+    const provider = providerOf({ provider: req.body?.provider });
 
     if (!name || !orgId) {
       return res.status(400).json({ error: 'Name and orgId are required' });
+    }
+    if (!ProviderService.supported(provider)) {
+      return res.status(400).json({ error: `Provider inválido: ${provider}` });
     }
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -131,7 +137,8 @@ export class InstanceController {
       // SimplesZap, sem registro no nosso DB). Sem isso, user consegue criar
       // mesmo havendo conflito real no gateway. Best-effort: se Evolution
       // estiver fora do ar, ignora e segue (degrada UX, nao bloqueia o create).
-      try {
+      // Só faz sentido pra provider Evolution — WAHA/Meta têm outro backend.
+      if (provider === 'evolution') try {
         const evoInstances = await EvolutionService.fetchInstances();
         const list = Array.isArray(evoInstances) ? evoInstances : [];
         const conflictEvo = list.find((i: any) => {
@@ -163,37 +170,38 @@ export class InstanceController {
         console.warn('[instance.create] Evolution check fail (degrade gracefully):', err?.message);
       }
 
-      // 1. Create in DB first (pending)
+      // 1. Create in DB first (pending), já com o provider escolhido
       const instance = await prisma.instance.create({
         data: {
           name: trimmedName,
           phoneNumber,
           orgId,
           userId: user.id,
-          status: 'created'
+          status: 'created',
+          provider,
         }
       });
-      await AuditService.log(orgId, 'instance.create', undefined, { id: instance.id, name });
+      await AuditService.log(orgId, 'instance.create', undefined, { id: instance.id, name, provider });
 
-      // 2. Create in Evolution API
-      // Nome enviado à Evolution: simpleszap_<slug>_<8chars>. Identifica origem
-      // (Evolution é compartilhada com outros produtos IT Booster) + preserva nome
-      // do cliente. Persistido em evolutionInstanceName pra todas as chamadas futuras.
-      const evoName = EvolutionService.buildInstanceName(instance.id, name);
+      // 2. Provisiona no backend do provider escolhido.
+      // Nome enviado ao backend: simpleszap_<slug>_<8chars>. Identifica origem
+      // (backends são compartilhados entre produtos IT Booster) + preserva nome
+      // do cliente. Persistido em evolutionInstanceName (serve pros 3 providers).
+      const backendName = EvolutionService.buildInstanceName(instance.id, name);
 
-      const evoResult = await EvolutionService.createInstance(evoName);
+      const created = await ProviderService.createBackend(provider, backendName);
 
       // 3. Update DB
       await prisma.instance.update({
         where: { id: instance.id },
         data: {
-          evolutionInstanceName: evoName,
-          token: evoResult.hash?.apikey || evoResult.token,
+          evolutionInstanceName: backendName,
+          token: created.token,
           status: 'disconnected'
         }
       });
 
-      res.json({ instance, evolution: evoResult });
+      res.json({ instance: { ...instance, evolutionInstanceName: backendName, provider }, provider, backend: created.raw });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -209,9 +217,8 @@ export class InstanceController {
       if (!instance || instance.orgId !== orgId) {
         return res.status(404).json({ error: 'Instance not found' });
       }
-      // Fallback pra id puro pra instâncias criadas antes da coluna existir
-      const evoName = instance.evolutionInstanceName || instance.id;
-      const result = await EvolutionService.connectInstance(evoName);
+      // Roteia pelo provider — WAHA devolve QR via WahaService, Evolution via connect.
+      const result = await ProviderService.getQr(instance);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -223,11 +230,8 @@ export class InstanceController {
 
       try {
           const instance = await prisma.instance.findUnique({ where: { id } });
-          const evoName = instance?.evolutionInstanceName || id;
-          await EvolutionService.deleteInstance(evoName).catch((e) => {
-            // Se a Evolution já não tem essa instância (ex: limpeza manual), segue o delete no DB
-            console.warn('Evolution delete failed (continuing with DB delete):', e?.message);
-          });
+          // Deleta no backend do provider (WAHA para+deleta sessão, Evolution deleta instância).
+          if (instance) await ProviderService.deleteBackend(instance);
           await prisma.instance.delete({ where: { id } });
           res.json({ success: true });
       } catch (error: any) {
@@ -451,8 +455,7 @@ export class InstanceController {
     }
 
     try {
-      const evoName = instance.evolutionInstanceName || instance.id;
-      const result = await EvolutionService.connectInstance(evoName);
+      const result = await ProviderService.getQr(instance);
       const base64 = result?.base64 || result?.qrcode?.base64 || null;
       const state = result?.instance?.state || 'connecting';
 
@@ -526,8 +529,7 @@ export class InstanceController {
     }
 
     try {
-      const evoName = instance.evolutionInstanceName || instance.id;
-      const result = await EvolutionService.sendPresence(evoName, number, presence, effectiveDelay);
+      const result = await ProviderService.sendPresence(instance, number, presence, effectiveDelay);
       res.status(200).json({ ok: true, presence, result });
     } catch (error: any) {
       console.error('instance.sendPresence error:', error);

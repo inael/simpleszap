@@ -1,0 +1,13 @@
+{
+  "name": "simpleszap-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server para ler/atualizar configurações de envio e segurança do SimplesZap via API",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0"
+  }
+}

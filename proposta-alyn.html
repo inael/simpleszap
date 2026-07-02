@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Proposta ALYN — Plataforma de Desenvolvimento Espiritual, Relacional e Financeiro</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    color: #1f2937;
+    line-height: 1.65;
+    font-size: 11pt;
+    background: #ffffff;
+  }
+  .page { padding: 0; }
+
+  /* CAPA */
+  .cover {
+    background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%);
+    color: #fff;
+    padding: 60mm 18mm 30mm 18mm;
+    margin: -18mm -15mm 12mm -15mm;
+    page-break-after: always;
+    position: relative;
+    min-height: 240mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60mm; height: 60mm;
+    background: radial-gradient(circle, rgba(212,160,23,0.35) 0%, transparent 70%);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 80mm; height: 80mm;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  }
+  .cover-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 10pt;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fde68a;
+    font-weight: 600;
+  }
+  .cover h1 {
+    font-size: 42pt;
+    font-weight: 800;
+    margin: 18px 0 8px 0;
+    letter-spacing: -1px;
+    line-height: 1.05;
+  }
+  .cover .subtitle {
+    font-size: 14pt;
+    color: #e9d5ff;
+    font-weight: 400;
+    max-width: 130mm;
+    line-height: 1.5;
+  }
+  .cover-divider {
+    width: 60mm;
+    height: 3px;
+    background: linear-gradient(90deg, #fbbf24 0%, transparent 100%);
+    margin: 24px 0;
+  }
+  .cover-meta {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10pt;
+    color: #ddd6fe;
+  }
+  .cover-meta strong { color: #fff; display: block; font-size: 11pt; margin-bottom: 2px; }
+
+  /* CABEÇALHOS */
+  h2 {
+    color: #4c1d95;
+    font-size: 18pt;
+    margin: 22px 0 10px 0;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e9d5ff;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  h3 {
+    color: #6d28d9;
+    font-size: 13pt;
+    margin: 18px 0 6px 0;
+    font-weight: 600;
+  }
+  h4 {
+    color: #1f2937;
+    font-size: 11pt;
+    margin: 12px 0 4px 0;
+    font-weight: 700;
+  }
+
+  p { margin: 6px 0 10px 0; }
+
+  strong { color: #1f2937; font-weight: 700; }
+
+  /* SAUDAÇÃO */
+  .greeting {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border-left: 4px solid #7c3aed;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 0 0 18px 0;
+    font-size: 11pt;
+  }
+
+  /* CALLOUT */
+  .callout {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 4px solid #d4a017;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 14px 0;
+  }
+  .callout-title {
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 4px;
+    font-size: 10.5pt;
+  }
+
+  .danger {
+    background: #fef2f2;
+    border-left-color: #dc2626;
+    border-color: #fecaca;
+  }
+  .danger .callout-title { color: #991b1b; }
+
+  .success {
+    background: #f0fdf4;
+    border-left-color: #16a34a;
+    border-color: #bbf7d0;
+  }
+  .success .callout-title { color: #14532d; }
+
+  /* LISTAS */
+  ul, ol { margin: 6px 0 12px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  ul.check { list-style: none; padding-left: 0; }
+  ul.check li {
+    padding: 5px 0 5px 28px;
+    position: relative;
+  }
+  ul.check li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 20px;
+    height: 20px;
+    background: #16a34a;
+    color: #fff;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  /* TABELAS */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px 0;
+    font-size: 10.5pt;
+    page-break-inside: avoid;
+  }
+  thead { background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%); }
+  th {
+    color: #fff;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 10pt;
+    letter-spacing: 0.3px;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: #faf5ff; }
+  tbody tr:hover { background: #f3e8ff; }
+
+  /* CARDS DE FEATURE */
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .feature-card {
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .feature-icon {
+    font-size: 18pt;
+    margin-bottom: 4px;
+  }
+  .feature-title {
+    font-weight: 700;
+    color: #4c1d95;
+    font-size: 11pt;
+    margin-bottom: 2px;
+  }
+  .feature-desc { font-size: 10pt; color: #4b5563; }
+
+  /* PREÇO */
+  .price-box {
+    background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+    color: #fff;
+    padding: 28px;
+    border-radius: 12px;
+    text-align: center;
+    margin: 18px 0;
+    page-break-inside: avoid;
+    box-shadow: 0 10px 30px rgba(76,29,149,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .price-box::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(251,191,36,0.2) 0%, transparent 70%);
+  }
+  .price-label {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 9pt;
+    color: #fde68a;
+    font-weight: 600;
+  }
+  .price-value {
+    font-size: 38pt;
+    font-weight: 800;
+    margin: 6px 0;
+    letter-spacing: -1px;
+  }
+  .price-value small { font-size: 16pt; vertical-align: top; opacity: 0.85; }
+  .price-budget {
+    color: #ddd6fe;
+    font-size: 10pt;
+    margin-top: 4px;
+  }
+
+  /* CRONOGRAMA */
+  .timeline {
+    margin: 14px 0;
+  }
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px dashed #e5e7eb;
+    page-break-inside: avoid;
+  }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-day {
+    flex-shrink: 0;
+    width: 60px;
+    background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+    color: #fff;
+    border-radius: 6px;
+    text-align: center;
+    padding: 8px 4px;
+    font-weight: 700;
+    font-size: 9.5pt;
+    height: fit-content;
+  }
+  .timeline-day small { display: block; font-size: 8pt; font-weight: 400; opacity: 0.8; }
+  .timeline-content { flex: 1; }
+  .timeline-content strong { color: #4c1d95; display: block; margin-bottom: 2px; font-size: 11pt; }
+  .timeline-content p { margin: 0; font-size: 10.5pt; color: #4b5563; }
+
+  /* BÔNUS */
+  .bonus-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #d4a017;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    position: relative;
+    page-break-inside: avoid;
+  }
+  .bonus-tag {
+    position: absolute;
+    top: -10px;
+    left: 18px;
+    background: #d4a017;
+    color: #fff;
+    padding: 3px 14px;
+    border-radius: 999px;
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+  }
+  .bonus-card h3 {
+    color: #78350f;
+    margin-top: 8px;
+    margin-bottom: 6px;
+  }
+  .bonus-card p { color: #451a03; }
+
+  /* FOOTER ASSINATURA */
+  .signature {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #e9d5ff;
+    page-break-inside: avoid;
+  }
+  .signature p { margin: 4px 0; }
+  .signature-name {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #4c1d95;
+    margin-top: 14px !important;
+  }
+  .signature-company {
+    color: #6d28d9;
+    font-weight: 600;
+  }
+  .blessing {
+    font-style: italic;
+    color: #6d28d9;
+    text-align: center;
+    margin: 20px 0;
+    padding: 12px;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border-radius: 8px;
+    font-size: 11pt;
+  }
+
+  .roadmap-table th { background: linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%); }
+
+  /* PAGE BREAKS */
+  .page-break { page-break-before: always; }
+  h2 { page-break-after: avoid; }
+  table, .price-box, .bonus-card, .timeline-item { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- CAPA -->
+<div class="cover">
+  <div>
+    <span class="cover-tag">Proposta Comercial</span>
+    <h1>ALYN</h1>
+    <div class="subtitle">Plataforma de Desenvolvimento Espiritual, Relacional e Financeiro</div>
+    <div class="cover-divider"></div>
+    <p style="color:#e9d5ff; max-width:130mm; font-size:11pt;">
+      Conectando casais a Deus no dia a dia, fortalecendo o casamento e organizando a vida financeira através de práticas simples e diárias.
+    </p>
+  </div>
+  <div class="cover-meta">
+    <div>
+      <strong>Para</strong>
+      Bruno &amp; Dilma Rocha
+    </div>
+    <div>
+      <strong>De</strong>
+      IT Booster
+    </div>
+    <div>
+      <strong>Validade</strong>
+      15 dias
+    </div>
+  </div>
+</div>
+
+<!-- SAUDAÇÃO -->
+<div class="greeting">
+  <p>Olá <strong>Bruno e Dilma</strong>! Tudo bem? 🙏</p>
+  <p>Li com atenção o briefing do <strong>ALYN</strong> e me identifiquei muito com o propósito de vocês — uma plataforma que conecta casais a Deus, fortalece o casamento e organiza a vida financeira é exatamente o tipo de projeto que faz diferença na vida das pessoas. Quero ajudar vocês a colocarem isso no ar do jeito certo.</p>
+</div>
+
+<!-- HONESTIDADE TÉCNICA -->
+<h2>Antes do orçamento, uma honestidade técnica importante</h2>
+<p>Vi que o ideal seria ter app na <strong>Google Play</strong> e na <strong>App Store</strong>, mas preciso ser transparente: hoje, fazer isso significa basicamente <strong>3 produtos diferentes</strong>:</p>
+
+<ol>
+  <li><strong>Versão web</strong> — para acessar pelo navegador</li>
+  <li><strong>App Android</strong> — publicação Google Play, conta de desenvolvedor, processo de revisão</li>
+  <li><strong>App iOS</strong> — publicação Apple Store, conta de desenvolvedor (US$ 99/ano), revisão da Apple que pode levar semanas</li>
+</ol>
+
+<div class="callout danger">
+  <div class="callout-title">⚠ Impacto direto</div>
+  Cada loja tem suas regras, processos de aprovação, atualizações separadas e custo de manutenção. Isso facilmente <strong>triplica o orçamento e o prazo</strong>, e nesse momento — onde o foco é validar a ideia e começar a impactar casais o quanto antes — não faz sentido investir nisso ainda.
+</div>
+
+<!-- SOLUÇÃO PWA -->
+<h2>Minha sugestão: PWA (Progressive Web App) bem feito</h2>
+<p>Um PWA é um aplicativo web moderno que:</p>
+
+<ul class="check">
+  <li><strong>Instala na tela inicial</strong> do celular (Android <em>e</em> iPhone) como um app nativo</li>
+  <li><strong>Funciona offline</strong> — devocional do dia fica disponível sem internet</li>
+  <li><strong>Ícone próprio</strong>, abre em tela cheia, parece um app de verdade</li>
+  <li><strong>Atualiza automaticamente</strong> — sem esperar revisão de loja</li>
+  <li><strong>Um único código</strong> para web, Android e iOS = entrega rápida e barata</li>
+  <li>Quando vocês quiserem versão nativa nas lojas, o código já fica preparado pra essa evolução (Fase 2)</li>
+</ul>
+
+<div class="callout success">
+  <div class="callout-title">✓ Quem usa PWA</div>
+  Empresas como <strong>Twitter, Spotify Lite, Uber e Starbucks</strong> usam PWA exatamente por isso na fase inicial — entregar valor rápido sem o atrito das lojas de aplicativos.
+</div>
+
+<!-- FUNCIONALIDADES -->
+<div class="page-break"></div>
+<h2>O que entrego dentro do seu orçamento</h2>
+<h3>Funcionalidades do MVP</h3>
+
+<div class="features">
+  <div class="feature-card">
+    <div class="feature-icon">🔐</div>
+    <div class="feature-title">Autenticação</div>
+    <div class="feature-desc">Cadastro/login por email ou Google</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📖</div>
+    <div class="feature-title">Devocional Diário</div>
+    <div class="feature-desc">Versículo + reflexão do dia</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🎯</div>
+    <div class="feature-title">Missão Diária</div>
+    <div class="feature-desc">Tarefa prática para o casal</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🧠</div>
+    <div class="feature-title">Quiz Bíblico</div>
+    <div class="feature-desc">1 pergunta por dia com explicação</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🏆</div>
+    <div class="feature-title">Gamificação</div>
+    <div class="feature-desc">XP, sequência de dias (streak) e níveis</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">💎</div>
+    <div class="feature-title">Plano Premium</div>
+    <div class="feature-desc">Pagamento via Mercado Pago (PIX e cartão)</div>
+  </div>
+  <div class="feature-card" style="grid-column: span 2; background:linear-gradient(135deg,#ede9fe 0%,#ddd6fe 100%);">
+    <div class="feature-icon">📱</div>
+    <div class="feature-title">PWA Instalável</div>
+    <div class="feature-desc">Funciona como app nativo no Android e iPhone — instala direto pelo navegador</div>
+  </div>
+</div>
+
+<!-- BÔNUS -->
+<div class="bonus-card">
+  <span class="bonus-tag">🎁 BÔNUS EXCLUSIVO</span>
+  <h3>Integração com SimplesZap (WhatsApp)</h3>
+  <p>Vocês poderão enviar automaticamente o <strong>devocional do dia, lembretes da missão ou alertas motivacionais</strong> direto no WhatsApp dos usuários.</p>
+  <p>Isso aumenta o engajamento drasticamente — usuários que recebem notificação no WhatsApp têm <strong>até 3x mais retenção</strong> do que os que dependem só de abrir o app.</p>
+  <p style="margin-top:10px;"><strong>A integração eu entrego pronta.</strong> Vocês só pagam a mensalidade mais barata do SimplesZap — que cuido pessoalmente pra ser a menor possível pra vocês — pra manter os envios ativos.</p>
+</div>
+
+<!-- CRONOGRAMA -->
+<h2>Cronograma agressivo — entrega em 7 dias</h2>
+<p>Trabalho com <strong>inteligência artificial avançada</strong> integrada ao meu fluxo de desenvolvimento, o que me permite entregar com qualidade profissional num prazo que tradicionalmente levaria 30+ dias.</p>
+
+<div class="timeline">
+  <div class="timeline-item">
+    <div class="timeline-day">DIA<br><strong>1-2</strong></div>
+    <div class="timeline-content">
+      <strong>Fundação do Projeto</strong>
+      <p>Setup do projeto, banco de dados, autenticação e telas principais</p>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="timeline-day">DIA<br><strong>3-4</strong></div>
+    <div class="timeline-content">
+      <strong>Núcleo Funcional</strong>
+      <p>Devocional, missão, quiz, sistema de XP e streak — <em>demonstração navegável já neste ponto pra validação de vocês</em></p>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="timeline-day">DIA<br><strong>5</strong></div>
+    <div class="timeline-content">
+      <strong>Monetização</strong>
+      <p>Integração Mercado Pago + plano premium funcional (PIX e cartão)</p>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="timeline-day">DIA<br><strong>6</strong></div>
+    <div class="timeline-content">
+      <strong>PWA + WhatsApp</strong>
+      <p>Configuração PWA (instalação no celular) + integração SimplesZap</p>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="timeline-day">DIA<br><strong>7</strong></div>
+    <div class="timeline-content">
+      <strong>Entrega Final</strong>
+      <p>Testes finais, deploy em produção, treinamento de uso e entrega oficial</p>
+    </div>
+  </div>
+</div>
+
+<!-- ENTREGÁVEIS -->
+<div class="page-break"></div>
+<h2>O que vocês recebem</h2>
+<ul class="check">
+  <li>Plataforma 100% funcional no ar</li>
+  <li>Código-fonte entregue — vocês são donos</li>
+  <li>Painel para editar devocionais, missões e perguntas (sem precisar de programador)</li>
+  <li><strong>30 dias de suporte gratuito</strong> pós-entrega para ajustes</li>
+  <li>Vídeo de treinamento explicando como usar tudo</li>
+  <li>Roadmap escrito das próximas fases (modo casal pareado, modo igreja, área financeira completa)</li>
+</ul>
+
+<!-- INVESTIMENTO -->
+<h2>Investimento</h2>
+<div class="price-box">
+  <div class="price-label">Investimento Total</div>
+  <div class="price-value"><small>R$</small> 2.500<small>,00</small></div>
+  <div class="price-budget">Dentro do orçamento que vocês definiram</div>
+</div>
+
+<h3>Forma de pagamento sugerida</h3>
+<table>
+  <thead>
+    <tr><th>Etapa</th><th>Valor</th><th>Quando</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Entrada</td><td><strong>R$ 1.250,00</strong></td><td>Aprovação da proposta</td></tr>
+    <tr><td>Entrega</td><td><strong>R$ 1.250,00</strong></td><td>Plataforma no ar</td></tr>
+  </tbody>
+</table>
+
+<!-- O QUE PRECISO -->
+<h2>O que precisarei de vocês</h2>
+<p>Para cumprir o prazo de 7 dias, peço que tenham em mãos:</p>
+
+<ul>
+  <li>📝 <strong>30 devocionais</strong> (versículo + reflexão curta) — pode ser em planilha</li>
+  <li>🎯 <strong>30 missões diárias</strong> para o casal</li>
+  <li>❓ <strong>30 perguntas de quiz bíblico</strong> (com 4 alternativas, resposta correta e explicação)</li>
+  <li>🎨 <strong>Logo e cores</strong> (se já tiverem) — caso contrário, uso uma identidade neutra inicial</li>
+</ul>
+
+<div class="callout">
+  <div class="callout-title">💡 Importante</div>
+  Não se preocupem em ter 365 — começamos com 30 e o sistema rotaciona. Vocês adicionam mais ao longo do tempo pelo painel.
+</div>
+
+<!-- ROADMAP FUTURO -->
+<h2>Próximas fases (quando quiserem evoluir)</h2>
+<table class="roadmap-table">
+  <thead>
+    <tr><th style="width:80px;">Fase</th><th>O que entra</th><th style="width:90px;">Investimento</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Fase 2</strong></td>
+      <td>Modo casal pareado, ranking do quiz, push notifications, área financeira (diagnóstico e metas)</td>
+      <td><strong>R$ 4.500</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Fase 3</strong></td>
+      <td>Modo igreja, mentoria, grupos, app nativo Android/iOS publicado nas lojas</td>
+      <td><strong>R$ 8.000+</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- FECHAMENTO -->
+<div class="signature">
+  <p>Bruno e Dilma, acredito muito nesse projeto e quero ser o parceiro técnico de vocês nessa jornada.</p>
+  <p>Posso começar <strong>assim que aprovarem</strong> e em <strong>7 dias</strong> vocês têm o ALYN no ar impactando casais.</p>
+  <p>Qualquer dúvida, estou à disposição. Aguardo o retorno de vocês! 🙌</p>
+
+  <div class="blessing">
+    "Que Deus abençoe a visão que Ele colocou no coração de vocês."
+  </div>
+
+  <p class="signature-name">Inael Rodrigues</p>
+  <p class="signature-company">IT Booster — Desenvolvimento &amp; SimplesZap</p>
+</div>
+
+</body>
+</html>

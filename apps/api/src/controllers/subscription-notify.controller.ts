@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { EvolutionService } from '../services/evolution.service';
+import { ProviderService } from '../services/provider.service';
 
 /**
  * Normaliza um telefone BR pra E.164 sem "+". Mantém só dígitos; se já começa
@@ -81,7 +81,7 @@ export class SubscriptionNotifyController {
           `— SimplesZap`;
 
         try {
-          await EvolutionService.sendText(instance.evolutionInstanceName, number, msg);
+          await ProviderService.sendText(instance, number, msg);
           await prisma.instance.update({
             where: { id: instance.id },
             data: { expiryNotifiedAt: new Date() },

@@ -1,0 +1,4 @@
+Error: P4002
+
+The schema of the introspected database was inconsistent: The schema of the introspected database was inconsistent: Cross schema references are only allowed when the target schema is listed in the schemas property of your datasource. `public.addon_credits` points to `auth.users` in constraint `addon_credits_user_id_fkey`. Please add `auth` to your `schemas` property and run this command again.
+

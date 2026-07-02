@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { EnforcementService } from '../services/enforcement.service';
 import { respondEnforcementDenied } from '../lib/enforcement-error';
-import { EvolutionService } from '../services/evolution.service';
+import { ProviderService } from '../services/provider.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 
 const DEFAULT_JITTER_MIN_MS = 900;
@@ -223,10 +223,12 @@ export class MessageQueueController {
             let deliverySucceeded = false;
             try {
               const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
-              const evoName = instance?.evolutionInstanceName || instanceId;
+              // Roteia pelo provider da instância (evolution | waha | meta_cloud).
+              // ProviderService resolve o backend e o nome da sessão internamente.
+              const target = instance || { id: instanceId };
 
               if (msg.type === 'buttons') {
-                await EvolutionService.sendButtons(evoName, msg.payload as any);
+                await ProviderService.sendButtons(target as any, msg.payload as any);
               } else if (
                 msg.type === 'image' ||
                 msg.type === 'video' ||
@@ -234,7 +236,7 @@ export class MessageQueueController {
                 msg.type === 'document'
               ) {
                 const p = (msg.payload as any) || {};
-                await EvolutionService.sendMedia(evoName, {
+                await ProviderService.sendMedia(target as any, {
                   number: msg.number,
                   mediatype: msg.type,
                   media: p.media,
@@ -243,7 +245,7 @@ export class MessageQueueController {
                   ptt: !!p.ptt,
                 });
               } else {
-                await EvolutionService.sendText(evoName, msg.number, msg.body || '');
+                await ProviderService.sendText(target as any, msg.number, msg.body || '');
               }
 
               await prisma.$transaction([

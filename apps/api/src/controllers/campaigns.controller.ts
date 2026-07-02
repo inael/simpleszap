@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { EvolutionService } from '../services/evolution.service';
+import { ProviderService } from '../services/provider.service';
 import { EnforcementService } from '../services/enforcement.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { getOrCreateSettings } from '../services/user-settings.service';
@@ -136,9 +136,9 @@ export class CampaignsController {
         });
       }
 
-      // Lookup do nome Evolution (campaign.instanceId é UUID do DB; Evolution precisa do nome registrado nela)
+      // Instância da campanha — ProviderService roteia pelo provider dela.
       const inst = await prisma.instance.findUnique({ where: { id: campaign.instanceId } });
-      const evoName = inst?.evolutionInstanceName || campaign.instanceId;
+      const target = inst || { id: campaign.instanceId };
 
       await prisma.campaign.update({ where: { id }, data: { status: 'running' } });
 
@@ -165,7 +165,7 @@ export class CampaignsController {
         });
 
         try {
-          await EvolutionService.sendText(evoName, c.phone, body);
+          await ProviderService.sendText(target as any, c.phone, body);
           await prisma.message.create({
             data: { orgId, instanceId: campaign.instanceId, to: c.phone, toNumber: c.phone, body, type: 'text', status: 'sent' },
           });

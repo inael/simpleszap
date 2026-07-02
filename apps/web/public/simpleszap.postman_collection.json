@@ -1,0 +1,3242 @@
+{
+    "item": [
+        {
+            "name": "message",
+            "description": "",
+            "item": [
+                {
+                    "name": "sendText",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "{instanceId}",
+                            "description": "",
+                            "item": [
+                                {
+                                    "id": "be5eb0e2-3bd6-4080-a16b-f4ce7b7aca3e",
+                                    "name": "Enviar mensagem de texto",
+                                    "request": {
+                                        "name": "Enviar mensagem de texto",
+                                        "description": {
+                                            "content": "Envia uma mensagem WhatsApp via a instância indicada. A instância precisa\nestar com status `connected` (pareada via QR no app).\n\n**Scope necessário (se a chave tiver scopes restritos):** `messages:send`\n",
+                                            "type": "text/plain"
+                                        },
+                                        "url": {
+                                            "path": [
+                                                "message",
+                                                "sendText",
+                                                ":instanceId"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "instanceId",
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ID da instância WhatsApp (UUID)",
+                                                        "type": "text/plain"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"number\": \"<string>\",\n  \"text\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
+                                        "auth": null
+                                    },
+                                    "response": [
+                                        {
+                                            "id": "2142f311-33f3-499a-81fb-747ccdc55f94",
+                                            "name": "Mensagem enviada",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "message",
+                                                        "sendText",
+                                                        ":instanceId"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ID da instância WhatsApp (UUID)",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "instanceId"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n  \"number\": \"<string>\",\n  \"text\": \"<string>\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "headerFamily": "json",
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "status": "OK",
+                                            "code": 200,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"key\": {\n    \"remoteJid\": \"<string>\",\n    \"id\": \"<string>\"\n  },\n  \"status\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "ea0005e3-1ab6-44d2-a9f2-0899f722da57",
+                                            "name": "Chave de API ausente ou inválida",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "message",
+                                                        "sendText",
+                                                        ":instanceId"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ID da instância WhatsApp (UUID)",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "instanceId"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n  \"number\": \"<string>\",\n  \"text\": \"<string>\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "headerFamily": "json",
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "status": "Unauthorized",
+                                            "code": 401,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "aea4c4e5-3d27-42f9-bc89-e070893e4862",
+                                            "name": "Chave sem scope suficiente",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "message",
+                                                        "sendText",
+                                                        ":instanceId"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ID da instância WhatsApp (UUID)",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "instanceId"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n  \"number\": \"<string>\",\n  \"text\": \"<string>\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "headerFamily": "json",
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "status": "Forbidden",
+                                            "code": 403,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "9e27a5d5-f203-4965-8502-3b14da48a938",
+                                            "name": "Limite diário do plano excedido",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "message",
+                                                        "sendText",
+                                                        ":instanceId"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ID da instância WhatsApp (UUID)",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "instanceId"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n  \"number\": \"<string>\",\n  \"text\": \"<string>\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "headerFamily": "json",
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "status": "Too Many Requests",
+                                            "code": 429,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "f9cf53c8-34de-4685-b63c-df0fe7757f47",
+                                            "name": "Erro interno",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "message",
+                                                        "sendText",
+                                                        ":instanceId"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ID da instância WhatsApp (UUID)",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "instanceId"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n  \"number\": \"<string>\",\n  \"text\": \"<string>\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "headerFamily": "json",
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "status": "Internal Server Error",
+                                            "code": 500,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        }
+                                    ],
+                                    "event": [],
+                                    "protocolProfileBehavior": {
+                                        "disableBodyPruning": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "messages",
+            "description": "",
+            "item": [
+                {
+                    "id": "d4986281-485e-4f99-a743-d6d717acdadf",
+                    "name": "Listar mensagens enviadas",
+                    "request": {
+                        "name": "Listar mensagens enviadas",
+                        "description": {
+                            "content": "Retorna o histórico de mensagens da organização (ordenado por mais recente).",
+                            "type": "text/plain"
+                        },
+                        "url": {
+                            "path": [
+                                "messages"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Quantidade máxima de mensagens a retornar",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "limit",
+                                    "value": "100"
+                                }
+                            ],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "aef001c1-7209-4b5b-b8a7-cb3a6d2b2ee1",
+                            "name": "Lista de mensagens",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "messages"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Quantidade máxima de mensagens a retornar",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "limit",
+                                            "value": "100"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"instanceId\": \"<uuid>\",\n    \"to\": \"<string>\",\n    \"body\": \"<string>\",\n    \"type\": \"text\",\n    \"status\": \"queued\",\n    \"error\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"instanceId\": \"<uuid>\",\n    \"to\": \"<string>\",\n    \"body\": \"<string>\",\n    \"type\": \"text\",\n    \"status\": \"queued\",\n    \"error\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  }\n]",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "bbcbbf73-acdc-4214-8797-97034ce5d2ec",
+                            "name": "Chave de API ausente ou inválida",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "messages"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Quantidade máxima de mensagens a retornar",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "limit",
+                                            "value": "100"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "9a1ff5e7-3922-4779-8657-a4b2fc15ee1e",
+                            "name": "Erro interno",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "messages"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Quantidade máxima de mensagens a retornar",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "limit",
+                                            "value": "100"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                }
+            ]
+        },
+        {
+            "name": "instances",
+            "description": "",
+            "item": [
+                {
+                    "id": "95b341f8-e105-4c55-bedf-c36707ca376e",
+                    "name": "Listar instâncias",
+                    "request": {
+                        "name": "Listar instâncias",
+                        "description": {
+                            "content": "Retorna todas as instâncias WhatsApp da organização, com status\nsincronizado em tempo real com a Evolution API.\n",
+                            "type": "text/plain"
+                        },
+                        "url": {
+                            "path": [
+                                "instances"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "c0712f84-c1b2-4691-b273-7fd690d65f7b",
+                            "name": "Lista de instâncias",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "instances"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"name\": \"<string>\",\n    \"status\": \"connected\",\n    \"serverUrl\": \"<string>\",\n    \"orgId\": \"<string>\",\n    \"userId\": \"<uuid>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"name\": \"<string>\",\n    \"status\": \"disconnected\",\n    \"serverUrl\": \"<string>\",\n    \"orgId\": \"<string>\",\n    \"userId\": \"<uuid>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  }\n]",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "c7756feb-3cff-478c-bd31-a5dcc54f04d3",
+                            "name": "orgId ausente",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "instances"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Bad Request",
+                            "code": 400,
+                            "header": [],
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "878b0a84-2ebf-4df6-84f9-1063bf11e0a2",
+                            "name": "Chave de API ausente ou inválida",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "instances"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                }
+            ]
+        },
+        {
+            "name": "contacts",
+            "description": "",
+            "item": [
+                {
+                    "id": "f57daa20-15be-479e-81ff-525bfcb7bfef",
+                    "name": "Listar contatos",
+                    "request": {
+                        "name": "Listar contatos",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "contacts"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "515be0d7-9d61-489f-aee0-4c875201d23f",
+                            "name": "Lista de contatos",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "contacts"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"name\": \"<string>\",\n    \"phone\": \"<string>\",\n    \"tags\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"name\": \"<string>\",\n    \"phone\": \"<string>\",\n    \"tags\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  }\n]",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "5b9bd275-86e0-4848-a17a-41c772a9eccb",
+                            "name": "Chave de API ausente ou inválida",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "contacts"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "id": "273417bc-06bb-4f3b-98ef-1356195e815b",
+                    "name": "Criar contato",
+                    "request": {
+                        "name": "Criar contato",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "contacts"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"phone\": \"<string>\",\n  \"name\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                            "options": {
+                                "raw": {
+                                    "headerFamily": "json",
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "dcd2af53-96bd-442b-a8ac-821690e061c6",
+                            "name": "Contato criado",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "contacts"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"phone\": \"<string>\",\n  \"name\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"tags\": \"<string>\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "3fdd3052-0091-4643-b294-6bb72b9d684b",
+                            "name": "Telefone obrigatório",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "contacts"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"phone\": \"<string>\",\n  \"name\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "Bad Request",
+                            "code": 400,
+                            "header": [],
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "cb35f0c5-9eec-4fa5-9f2a-56b6f4254332",
+                            "name": "Chave de API ausente ou inválida",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "contacts"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"phone\": \"<string>\",\n  \"name\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "81637bc3-acf6-44ea-9a40-465de27753f6",
+                            "name": "Telefone já cadastrado",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "contacts"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"phone\": \"<string>\",\n  \"name\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "Conflict",
+                            "code": 409,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "name": "{id}",
+                    "description": "",
+                    "item": [
+                        {
+                            "id": "909a3837-fc44-4e18-8b00-0ed46fa73b63",
+                            "name": "Atualizar contato",
+                            "request": {
+                                "name": "Atualizar contato",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "contacts",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "type": "any",
+                                            "value": "<uuid>",
+                                            "key": "id",
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "(Required) ",
+                                                "type": "text/plain"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "PUT",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "0e41ac25-d3f3-4daa-89ec-4f679e5544c8",
+                                    "name": "Contato atualizado",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "contacts",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "PUT",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"name\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"tags\": \"<string>\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "df8ce40e-e0bd-4542-ad35-c01df07a7510",
+                                    "name": "Chave de API ausente ou inválida",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "contacts",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "PUT",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"name\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "status": "Unauthorized",
+                                    "code": 401,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"error\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "3d74ac06-e00f-4150-a004-0d00dca12fbb",
+                                    "name": "Contato não encontrado",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "contacts",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "PUT",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"name\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"tags\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "status": "Not Found",
+                                    "code": 404,
+                                    "header": [],
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "text"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        },
+                        {
+                            "id": "2352a4c2-a7fa-4d1f-a05a-27d5e5bd0a31",
+                            "name": "Remover contato",
+                            "request": {
+                                "name": "Remover contato",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "contacts",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "type": "any",
+                                            "value": "<uuid>",
+                                            "key": "id",
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "(Required) ",
+                                                "type": "text/plain"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "DELETE",
+                                "body": {},
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "80ba0741-9911-4c10-a47b-558d35909285",
+                                    "name": "Removido",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "contacts",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "DELETE",
+                                        "body": {}
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"success\": \"<boolean>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "ab27c992-b639-4ea4-a608-788d67049c49",
+                                    "name": "Chave de API ausente ou inválida",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "contacts",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "DELETE",
+                                        "body": {}
+                                    },
+                                    "status": "Unauthorized",
+                                    "code": 401,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"error\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "templates",
+            "description": "",
+            "item": [
+                {
+                    "id": "2f81b424-12c9-4e99-bd84-3430dac21afc",
+                    "name": "Listar templates",
+                    "request": {
+                        "name": "Listar templates",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "templates"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "744b4eb7-b157-4cc5-8850-6a803cab3b80",
+                            "name": "Lista de templates",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "templates"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"name\": \"<string>\",\n    \"body\": \"<string>\",\n    \"variables\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"name\": \"<string>\",\n    \"body\": \"<string>\",\n    \"variables\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  }\n]",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "5e212568-12f7-408b-8f5d-395597ebab66",
+                            "name": "Chave de API ausente ou inválida",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "templates"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "id": "a22a23c0-e380-4acc-9dda-b503e2c08a54",
+                    "name": "Criar template",
+                    "request": {
+                        "name": "Criar template",
+                        "description": {
+                            "content": "Templates suportam variáveis no formato `{{nome}}`. Use\n`variables: \"[\\\"nome\\\",\\\"telefone\\\"]\"` (JSON string) para listar quais.\n",
+                            "type": "text/plain"
+                        },
+                        "url": {
+                            "path": [
+                                "templates"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\"\n}",
+                            "options": {
+                                "raw": {
+                                    "headerFamily": "json",
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "fa18d280-c3cf-4505-9fc8-70fecb75a812",
+                            "name": "Template criado",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "templates"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "c43e8b9e-2f11-41b1-ae43-ac22b434960f",
+                            "name": "Campos obrigatórios ausentes",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "templates"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "Bad Request",
+                            "code": 400,
+                            "header": [],
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "3fe2e26a-66d0-42e1-bfe0-f1cf6b7cfcec",
+                            "name": "Chave de API ausente ou inválida",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "templates"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "name": "{id}",
+                    "description": "",
+                    "item": [
+                        {
+                            "id": "54021bd5-eee7-4a56-9d8d-5bf95e0dd03a",
+                            "name": "Atualizar template",
+                            "request": {
+                                "name": "Atualizar template",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "templates",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "type": "any",
+                                            "value": "<uuid>",
+                                            "key": "id",
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "(Required) ",
+                                                "type": "text/plain"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "PUT",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "23d8b3e9-7a0d-4a07-84d6-5a49a4ded63b",
+                                    "name": "Template atualizado",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "templates",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "PUT",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"body\": \"<string>\",\n  \"variables\": \"<string>\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        },
+                        {
+                            "id": "2de18c63-2dd9-4f7e-a898-8585d4c3f7bc",
+                            "name": "Remover template",
+                            "request": {
+                                "name": "Remover template",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "templates",
+                                        ":id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "type": "any",
+                                            "value": "<uuid>",
+                                            "key": "id",
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "(Required) ",
+                                                "type": "text/plain"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "DELETE",
+                                "body": {},
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "0cee854f-bdb1-4ae6-84f3-262daf9a90a2",
+                                    "name": "Removido",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "templates",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "DELETE",
+                                        "body": {}
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"success\": \"<boolean>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "campaigns",
+            "description": "",
+            "item": [
+                {
+                    "id": "89a41ff7-5403-4cae-b3df-d5ac108a251d",
+                    "name": "Listar campanhas",
+                    "request": {
+                        "name": "Listar campanhas",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "campaigns"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "e45821fc-7ac7-466b-9e7d-9401b7089a32",
+                            "name": "Lista de campanhas",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "campaigns"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"name\": \"<string>\",\n    \"instanceId\": \"<uuid>\",\n    \"templateId\": \"<uuid>\",\n    \"segmentTags\": \"<string>\",\n    \"scheduledAt\": \"<dateTime>\",\n    \"status\": \"draft\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"name\": \"<string>\",\n    \"instanceId\": \"<uuid>\",\n    \"templateId\": \"<uuid>\",\n    \"segmentTags\": \"<string>\",\n    \"scheduledAt\": \"<dateTime>\",\n    \"status\": \"scheduled\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  }\n]",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "id": "4b023dbf-c63f-4cb2-bf97-526aebe668f0",
+                    "name": "Criar campanha",
+                    "request": {
+                        "name": "Criar campanha",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "campaigns"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"<string>\",\n  \"instanceId\": \"<uuid>\",\n  \"templateId\": \"<uuid>\",\n  \"segmentTags\": \"<string>\",\n  \"scheduledAt\": \"<dateTime>\"\n}",
+                            "options": {
+                                "raw": {
+                                    "headerFamily": "json",
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "35bd4ed0-5254-4c33-8258-4ae435522bdb",
+                            "name": "Campanha criada",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "campaigns"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"instanceId\": \"<uuid>\",\n  \"templateId\": \"<uuid>\",\n  \"segmentTags\": \"<string>\",\n  \"scheduledAt\": \"<dateTime>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"instanceId\": \"<uuid>\",\n  \"templateId\": \"<uuid>\",\n  \"segmentTags\": \"<string>\",\n  \"scheduledAt\": \"<dateTime>\",\n  \"status\": \"rate_limited\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "name": "{id}",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "run",
+                            "description": "",
+                            "item": [
+                                {
+                                    "id": "780f4073-93d7-4f8f-b070-2332a6dbe255",
+                                    "name": "Executar campanha",
+                                    "request": {
+                                        "name": "Executar campanha",
+                                        "description": {
+                                            "content": "Dispara o envio para todos os contatos que casam com `segmentTags`.\nAplica jitter anti-spam (`campaignJitterMinMs`–`campaignJitterMaxMs` em\nuser settings). Pode ser interrompida por rate-limit do plano.\n",
+                                            "type": "text/plain"
+                                        },
+                                        "url": {
+                                            "path": [
+                                                "campaigns",
+                                                ":id",
+                                                "run"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id",
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {},
+                                        "auth": null
+                                    },
+                                    "response": [
+                                        {
+                                            "id": "41badc9a-07e7-4942-af2c-10341195919c",
+                                            "name": "Resultado da execução",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "campaigns",
+                                                        ":id",
+                                                        "run"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "OK",
+                                            "code": 200,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"sent\": \"<integer>\",\n  \"failed\": \"<integer>\",\n  \"blockedByLimit\": \"<integer>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        }
+                                    ],
+                                    "event": [],
+                                    "protocolProfileBehavior": {
+                                        "disableBodyPruning": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "webhooks",
+            "description": "",
+            "item": [
+                {
+                    "name": "config",
+                    "description": "",
+                    "item": [
+                        {
+                            "id": "3f939c98-4a28-4ba5-9d41-af1051f7e4ea",
+                            "name": "Listar webhooks configurados",
+                            "request": {
+                                "name": "Listar webhooks configurados",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "webhooks",
+                                        "config"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {},
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "0d9c13fd-f704-4b29-b3c1-987409818b36",
+                                    "name": "Lista de webhooks",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "webhooks",
+                                                "config"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"url\": \"<uri>\",\n    \"events\": \"<string>\",\n    \"secret\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"orgId\": \"<string>\",\n    \"url\": \"<uri>\",\n    \"events\": \"<string>\",\n    \"secret\": \"<string>\",\n    \"createdAt\": \"<dateTime>\",\n    \"updatedAt\": \"<dateTime>\"\n  }\n]",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        },
+                        {
+                            "id": "c1aba85d-f74a-4f1f-aedd-523443ed1dd8",
+                            "name": "Cadastrar webhook",
+                            "request": {
+                                "name": "Cadastrar webhook",
+                                "description": {
+                                    "content": "Cadastra uma URL para receber callbacks. Eventos disponíveis:\n- `message.sent` — mensagem entregue à Evolution com sucesso\n- `message.failed` — falha no envio\n",
+                                    "type": "text/plain"
+                                },
+                                "url": {
+                                    "path": [
+                                        "webhooks",
+                                        "config"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"url\": \"<uri>\",\n  \"events\": [\n    \"message.failed\",\n    \"message.sent\"\n  ],\n  \"secret\": \"<string>\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "headerFamily": "json",
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "7cfb2265-0da6-4f24-aac7-813932be881b",
+                                    "name": "Webhook cadastrado",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "webhooks",
+                                                "config"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"url\": \"<uri>\",\n  \"events\": [\n    \"message.failed\",\n    \"message.sent\"\n  ],\n  \"secret\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"events\": \"<string>\",\n  \"secret\": \"<string>\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "6fc4bbf7-890b-4d7c-ace8-b07ab8dee0cf",
+                                    "name": "URL obrigatória",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "webhooks",
+                                                "config"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"url\": \"<uri>\",\n  \"events\": [\n    \"message.failed\",\n    \"message.sent\"\n  ],\n  \"secret\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "status": "Bad Request",
+                                    "code": 400,
+                                    "header": [],
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "text"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        },
+                        {
+                            "name": "{id}",
+                            "description": "",
+                            "item": [
+                                {
+                                    "id": "034710c1-7f89-4fe3-9b44-739688291e6b",
+                                    "name": "Atualizar webhook",
+                                    "request": {
+                                        "name": "Atualizar webhook",
+                                        "description": {},
+                                        "url": {
+                                            "path": [
+                                                "webhooks",
+                                                "config",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id",
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "PUT",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"url\": \"<uri>\",\n  \"events\": [\n    \"message.failed\",\n    \"message.sent\"\n  ],\n  \"secret\": \"<string>\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "headerFamily": "json",
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
+                                        "auth": null
+                                    },
+                                    "response": [
+                                        {
+                                            "id": "63b1f82a-b9e6-4bc2-82ba-63c9fc92507f",
+                                            "name": "Atualizado",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "webhooks",
+                                                        "config",
+                                                        ":id"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "PUT",
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n  \"url\": \"<uri>\",\n  \"events\": [\n    \"message.failed\",\n    \"message.sent\"\n  ],\n  \"secret\": \"<string>\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "headerFamily": "json",
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "status": "OK",
+                                            "code": 200,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"id\": \"<uuid>\",\n  \"orgId\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"events\": \"<string>\",\n  \"secret\": \"<string>\",\n  \"createdAt\": \"<dateTime>\",\n  \"updatedAt\": \"<dateTime>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        }
+                                    ],
+                                    "event": [],
+                                    "protocolProfileBehavior": {
+                                        "disableBodyPruning": true
+                                    }
+                                },
+                                {
+                                    "id": "6ebc7860-af36-4f7d-bfaf-458f2b043d15",
+                                    "name": "Remover webhook",
+                                    "request": {
+                                        "name": "Remover webhook",
+                                        "description": {},
+                                        "url": {
+                                            "path": [
+                                                "webhooks",
+                                                "config",
+                                                ":id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "type": "any",
+                                                    "value": "<uuid>",
+                                                    "key": "id",
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) ",
+                                                        "type": "text/plain"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "DELETE",
+                                        "body": {},
+                                        "auth": null
+                                    },
+                                    "response": [
+                                        {
+                                            "id": "fb01e94f-a1bb-4c13-a7ea-29073e99b694",
+                                            "name": "Removido",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "webhooks",
+                                                        "config",
+                                                        ":id"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) ",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<uuid>",
+                                                            "key": "id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: apikey",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "x-api-key",
+                                                        "value": "<API Key>"
+                                                    }
+                                                ],
+                                                "method": "DELETE",
+                                                "body": {}
+                                            },
+                                            "status": "OK",
+                                            "code": 200,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"success\": \"<boolean>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        }
+                                    ],
+                                    "event": [],
+                                    "protocolProfileBehavior": {
+                                        "disableBodyPruning": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "logs",
+                    "description": "",
+                    "item": [
+                        {
+                            "id": "97fedd24-97af-436e-94d8-abd7538c92b1",
+                            "name": "Logs de entregas de webhook",
+                            "request": {
+                                "name": "Logs de entregas de webhook",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "webhooks",
+                                        "logs"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {},
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "7303293d-e34f-4f87-a7a3-4eac29a288d0",
+                                    "name": "Logs recentes",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "webhooks",
+                                                "logs"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "[\n  {\n    \"id\": \"<uuid>\",\n    \"webhookConfigId\": \"<uuid>\",\n    \"event\": \"<string>\",\n    \"statusCode\": \"<integer>\",\n    \"attempts\": \"<integer>\",\n    \"deliveredAt\": \"<dateTime>\",\n    \"error\": \"<string>\",\n    \"createdAt\": \"<dateTime>\"\n  },\n  {\n    \"id\": \"<uuid>\",\n    \"webhookConfigId\": \"<uuid>\",\n    \"event\": \"<string>\",\n    \"statusCode\": \"<integer>\",\n    \"attempts\": \"<integer>\",\n    \"deliveredAt\": \"<dateTime>\",\n    \"error\": \"<string>\",\n    \"createdAt\": \"<dateTime>\"\n  }\n]",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "dashboard",
+            "description": "",
+            "item": [
+                {
+                    "name": "metrics",
+                    "description": "",
+                    "item": [
+                        {
+                            "id": "3596b9da-daa9-402b-bf5c-125507ec29da",
+                            "name": "Métricas agregadas",
+                            "request": {
+                                "name": "Métricas agregadas",
+                                "description": {
+                                    "content": "Total de instâncias, mensagens hoje, série dos últimos 7 dias e atividade recente.",
+                                    "type": "text/plain"
+                                },
+                                "url": {
+                                    "path": [
+                                        "dashboard",
+                                        "metrics"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {},
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "76b15ffa-445c-4738-abf9-78f76cbe1731",
+                                    "name": "Métricas",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "dashboard",
+                                                "metrics"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: apikey",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "x-api-key",
+                                                "value": "<API Key>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"totalInstances\": \"<integer>\",\n  \"messagesSent\": \"<integer>\",\n  \"messagesLast7Days\": [\n    \"<integer>\",\n    \"<integer>\",\n    \"<integer>\",\n    \"<integer>\",\n    \"<integer>\",\n    \"<integer>\",\n    \"<integer>\"\n  ],\n  \"recentActivity\": [\n    {\n      \"key_0\": 9027\n    },\n    {\n      \"key_0\": \"string\",\n      \"key_1\": false,\n      \"key_2\": \"string\"\n    }\n  ]\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "pricing",
+            "description": "",
+            "item": [
+                {
+                    "id": "3770d18a-30bc-4e87-b36b-0207dc2a5732",
+                    "name": "Listar planos disponíveis",
+                    "request": {
+                        "name": "Listar planos disponíveis",
+                        "description": {
+                            "content": "Endpoint público (sem autenticação). Retorna planos ativos ordenados.",
+                            "type": "text/plain"
+                        },
+                        "url": {
+                            "path": [
+                                "pricing"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "e795d679-ea6f-4e0d-b1e3-30d8fec474fc",
+                            "name": "Lista de planos",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "pricing"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: apikey",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "x-api-key",
+                                        "value": "<API Key>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "[\n  {\n    \"id\": \"pro\",\n    \"name\": \"<string>\",\n    \"description\": \"<string>\",\n    \"priceMonthly\": \"<float>\",\n    \"priceAnnual\": \"<float>\",\n    \"messagesPerDay\": \"<integer>\",\n    \"instancesLimit\": \"<integer>\",\n    \"hasWebhooks\": \"<boolean>\",\n    \"hasTemplates\": \"<boolean>\",\n    \"hasSmsIncluded\": \"<boolean>\"\n  },\n  {\n    \"id\": \"pro\",\n    \"name\": \"<string>\",\n    \"description\": \"<string>\",\n    \"priceMonthly\": \"<float>\",\n    \"priceAnnual\": \"<float>\",\n    \"messagesPerDay\": \"<integer>\",\n    \"instancesLimit\": \"<integer>\",\n    \"hasWebhooks\": \"<boolean>\",\n    \"hasTemplates\": \"<boolean>\",\n    \"hasSmsIncluded\": \"<boolean>\"\n  }\n]",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                }
+            ]
+        }
+    ],
+    "auth": {
+        "type": "apikey",
+        "apikey": [
+            {
+                "type": "any",
+                "value": "x-api-key",
+                "key": "key"
+            },
+            {
+                "type": "any",
+                "value": "{{apiKey}}",
+                "key": "value"
+            },
+            {
+                "type": "any",
+                "value": "header",
+                "key": "in"
+            }
+        ]
+    },
+    "event": [],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://back.simpleszap.com/api"
+        }
+    ],
+    "info": {
+        "_postman_id": "151a9e5a-b63c-4696-b548-5804e3d558c6",
+        "name": "SimplesZap API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": {
+            "content": "API REST do SimplesZap. Permite enviar mensagens WhatsApp, gerenciar contatos,\ntemplates, campanhas e receber callbacks via webhook.\n\n## Autenticação\n\nTodos os endpoints (exceto `/pricing`) exigem o header:\n\n```\nx-api-key: sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n```\n\nGere sua chave em [simpleszap.com/configuracoes/api-keys](https://simpleszap.com/configuracoes/api-keys).\n\n> Alternativa: `Authorization: Bearer sk_...` também é aceito.\n\n## Rate limit\n\nO limite diário de mensagens é definido pelo plano da conta dona da chave\n(header `messagesPerDay`). Ao estourar, o endpoint de envio retorna `429`.\n\n## Convenções\n\n- Números no formato E.164 sem `+` (ex: `5511999999999`)\n- IDs são UUIDs v4 (exceto `SubscriptionPlan.id` que é slug: `free`, `basic`, `pro`, `enterprise`)\n- Campos JSON serializados como string (ex: `tags`, `events`, `variables`) — parse no cliente\n- Datas em ISO 8601 UTC\n\n## Endpoints UI-only\n\nGerenciamento de conta (criar instância, criar chave de API, gerenciar\nassinatura) só funciona via UI logada em [simpleszap.com](https://simpleszap.com)\nporque exige JWT do provedor de identidade — não está exposto à API key pública.\n\n\nContact Support:\n Name: Suporte SimplesZap\n Email: suporte@simpleszap.com",
+            "type": "text/plain"
+        }
+    }
+}
