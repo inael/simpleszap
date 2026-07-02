@@ -27,6 +27,7 @@ import { SubscriptionNotifyController } from '../controllers/subscription-notify
 import { BillingController } from '../controllers/billing.controller';
 import { EvolutionWebhookController } from '../controllers/evolution-webhook.controller';
 import { WahaWebhookController } from '../controllers/waha-webhook.controller';
+import { MetaWebhookController } from '../controllers/meta-webhook.controller';
 import { rateLimit } from '../middleware/rate-limit';
 import { orgAuthWithSecurity } from '../middleware/auth-chain';
 import { requireScope } from '../middleware/scope-auth';
@@ -44,6 +45,10 @@ router.post('/webhooks/evolution/:instanceName', EvolutionWebhookController.hand
 // Webhook PÚBLICO recebendo eventos do WAHA (sem auth — WAHA chama direto).
 // Adapter normaliza pros MESMOS eventos canônicos, então consumidores não mudam.
 router.post('/webhooks/waha/:session', WahaWebhookController.handle);
+// Webhook PÚBLICO da Meta Cloud API (app-level, um só p/ todos os números).
+// GET = verificação (hub.challenge); POST = eventos → adapter → canônico.
+router.get('/webhooks/meta', MetaWebhookController.verify);
+router.post('/webhooks/meta', MetaWebhookController.handle);
 
 // Cron — protegido por CRON_SECRET (Vercel Scheduled Function).
 // Vercel cron sempre invoca via GET — registrar GET e POST pra suportar

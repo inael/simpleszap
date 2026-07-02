@@ -7,6 +7,7 @@
 
 import { EvolutionService } from './evolution.service';
 import { WahaService } from './waha.service';
+import { MetaCloudService } from './meta-cloud.service';
 
 export type ProviderName = 'evolution' | 'waha' | 'meta_cloud';
 
@@ -123,7 +124,7 @@ export class ProviderService {
     const name = backendNameOf(instance);
     ensureConfigured(provider);
     if (provider === 'waha') return WahaService.sendText(name, number, text);
-    if (provider === 'meta_cloud') throw new Error('Provider meta_cloud ainda não implementado (Stage 3).');
+    if (provider === 'meta_cloud') return MetaCloudService.sendText(instance.providerConfig, number, text);
     return EvolutionService.sendText(name, number, text);
   }
 
@@ -142,7 +143,16 @@ export class ProviderService {
         caption: params.caption,
       });
     }
-    if (provider === 'meta_cloud') throw new Error('Provider meta_cloud ainda não implementado (Stage 3).');
+    if (provider === 'meta_cloud') {
+      // Cloud API entrega mídia por URL pública (link). Base64 exigiria upload prévio.
+      return MetaCloudService.sendMedia(instance.providerConfig, {
+        number: params.number,
+        mediatype: params.mediatype,
+        media: params.media,
+        caption: params.caption,
+        fileName: params.fileName,
+      });
+    }
     return EvolutionService.sendMedia(name, params);
   }
 
@@ -156,7 +166,13 @@ export class ProviderService {
       if (text && number) return WahaService.sendText(name, String(number), String(text));
       throw new Error('Botões não são suportados no provider WAHA.');
     }
-    if (provider === 'meta_cloud') throw new Error('Provider meta_cloud ainda não implementado (Stage 3).');
+    if (provider === 'meta_cloud') {
+      // Cloud API tem interactive/buttons com shape próprio; degrada pra texto por ora.
+      const text = (payload as any)?.text || (payload as any)?.title || (payload as any)?.description;
+      const number = (payload as any)?.number;
+      if (text && number) return MetaCloudService.sendText(instance.providerConfig, String(number), String(text));
+      throw new Error('Botões interativos ainda não implementados no provider Meta oficial.');
+    }
     return EvolutionService.sendButtons(name, payload);
   }
 

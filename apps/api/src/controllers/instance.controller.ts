@@ -55,6 +55,8 @@ export class InstanceController {
     const rawPhone = req.body?.phoneNumber as string | undefined;
     // Provider escolhido no toggle da UI (default: evolution, comportamento atual).
     const provider = providerOf({ provider: req.body?.provider });
+    // Meta oficial precisa de { phoneNumberId, wabaId?, accessToken, verifyToken? }.
+    const providerConfig = provider === 'meta_cloud' ? (req.body?.providerConfig || null) : null;
 
     if (!name || !orgId) {
       return res.status(400).json({ error: 'Name and orgId are required' });
@@ -179,6 +181,7 @@ export class InstanceController {
           userId: user.id,
           status: 'created',
           provider,
+          ...(providerConfig ? { providerConfig } : {}),
         }
       });
       await AuditService.log(orgId, 'instance.create', undefined, { id: instance.id, name, provider });
@@ -191,13 +194,13 @@ export class InstanceController {
 
       const created = await ProviderService.createBackend(provider, backendName);
 
-      // 3. Update DB
+      // 3. Update DB. Meta oficial já vem conectado (número provisionado, sem QR).
       await prisma.instance.update({
         where: { id: instance.id },
         data: {
           evolutionInstanceName: backendName,
           token: created.token,
-          status: 'disconnected'
+          status: provider === 'meta_cloud' ? 'connected' : 'disconnected'
         }
       });
 
