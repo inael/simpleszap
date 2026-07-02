@@ -36,6 +36,12 @@ export default function InstancesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
   const [newInstancePhone, setNewInstancePhone] = useState("");
+  // Provider do backend: evolution (padrão) | waha (mídia grande) | meta_cloud (oficial).
+  const [newInstanceProvider, setNewInstanceProvider] = useState<"evolution" | "waha" | "meta_cloud">("evolution");
+  // Config da Meta oficial (só usada quando provider = meta_cloud).
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrInstanceId, setQrInstanceId] = useState<string | null>(null);
@@ -100,25 +106,43 @@ export default function InstancesPage() {
     if (!newInstancePhone.trim() || newInstancePhone.replace(/\D/g, "").length < 10) {
       return toast.error("Informe o número WhatsApp que vai parear (com DDD).");
     }
+    const isMeta = newInstanceProvider === "meta_cloud";
+    if (isMeta && (!metaPhoneNumberId.trim() || !metaAccessToken.trim())) {
+      return toast.error("Para a API oficial, informe o Phone Number ID e o Access Token da Meta.");
+    }
     if (!orgId) return toast.error("Erro de autenticação.");
     creatingRef.current = true;
     setIsCreating(true);
     try {
       const token = await getToken();
+      const body: Record<string, unknown> = {
+        name: newInstanceName,
+        phoneNumber: newInstancePhone,
+        provider: newInstanceProvider,
+      };
+      if (isMeta) {
+        body.providerConfig = {
+          phoneNumberId: metaPhoneNumberId.trim(),
+          accessToken: metaAccessToken.trim(),
+          ...(metaWabaId.trim() ? { wabaId: metaWabaId.trim() } : {}),
+        };
+      }
       const res = await api.post(
         "/instance/create",
-        { name: newInstanceName, phoneNumber: newInstancePhone },
+        body,
         { headers: { "x-org-id": orgId as string, ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
       );
       const instanceId = res.data?.instance?.id;
-      toast.success("Instância criada! Escaneie o QR Code para conectar.");
+      toast.success(isMeta ? "Instância oficial criada e conectada!" : "Instância criada! Escaneie o QR Code para conectar.");
       setIsCreateOpen(false);
       setNewInstanceName("");
       setNewInstancePhone("");
+      setNewInstanceProvider("evolution");
+      setMetaPhoneNumberId(""); setMetaAccessToken(""); setMetaWabaId("");
       await mutate();
-      if (instanceId) {
-        // Abre o QR direto — user não precisa clicar em "Conectar" depois.
-        // Pequeno delay pra dar tempo da Evolution API gerar o QR após a criação;
+      // Meta oficial já vem conectada (sem QR). Evolution/WAHA abrem o QR direto.
+      if (instanceId && !isMeta) {
+        // Pequeno delay pra dar tempo do backend gerar o QR após a criação;
         // sem isso a 1ª chamada às vezes volta vazia e mostra toast "sem QR".
         setTimeout(() => { void fetchQr(instanceId); }, 1200);
       }
@@ -368,11 +392,51 @@ export default function InstancesPage() {
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} placeholder="Ex: Atendimento" />
+
+              <Label className="mt-3">Tecnologia de conexão</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { key: "evolution", title: "Padrão", desc: "QR Code" },
+                  { key: "waha", title: "WAHA", desc: "Mídia grande" },
+                  { key: "meta_cloud", title: "Oficial", desc: "API Meta" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setNewInstanceProvider(opt.key)}
+                    className={`rounded-md border p-2 text-center transition ${
+                      newInstanceProvider === opt.key
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-muted hover:border-muted-foreground/40"
+                    }`}
+                  >
+                    <div className="text-sm font-medium">{opt.title}</div>
+                    <div className="text-[11px] text-muted-foreground">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+
               <Label className="mt-3">Número WhatsApp</Label>
               <PhoneInput value={newInstancePhone} onChange={setNewInstancePhone} placeholder="(61) 99999-9999" />
               <p className="text-xs text-muted-foreground">
-                Informe o número que vai parear. Bloqueamos duplicatas entre contas pra evitar pareamento conflitante.
+                {newInstanceProvider === "meta_cloud"
+                  ? "Número já provisionado na Meta (Business verificado + WABA). Não precisa escanear QR."
+                  : "Informe o número que vai parear. Bloqueamos duplicatas entre contas pra evitar pareamento conflitante."}
               </p>
+
+              {newInstanceProvider === "meta_cloud" && (
+                <div className="mt-2 space-y-2 rounded-md border border-muted bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Credenciais da API oficial (Meta for Developers → WhatsApp → API Setup).
+                  </p>
+                  <Label className="text-xs">Phone Number ID</Label>
+                  <Input value={metaPhoneNumberId} onChange={(e) => setMetaPhoneNumberId(e.target.value)} placeholder="123456789012345" />
+                  <Label className="text-xs">Access Token (System User, permanente)</Label>
+                  <Input value={metaAccessToken} onChange={(e) => setMetaAccessToken(e.target.value)} placeholder="EAAG..." type="password" />
+                  <Label className="text-xs">WABA ID (opcional)</Label>
+                  <Input value={metaWabaId} onChange={(e) => setMetaWabaId(e.target.value)} placeholder="102...  (WhatsApp Business Account ID)" />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
@@ -518,6 +582,11 @@ export default function InstancesPage() {
                       {pendingCount > 0 && (
                         <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
                           <Clock className="h-3 w-3" /> {pendingCount} na fila
+                        </span>
+                      )}
+                      {inst.provider && inst.provider !== "evolution" && (
+                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
+                          {inst.provider === "waha" ? "WAHA" : inst.provider === "meta_cloud" ? "Oficial" : inst.provider}
                         </span>
                       )}
                     </div>
