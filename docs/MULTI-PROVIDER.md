@@ -31,37 +31,44 @@ acontecer **na hora do envio da fila**, não só no controller que enfileira.
 
 ## Etapas (seguras, aditivas, Evolution intocado)
 
-### Stage 1 — Fundação (aditivo, zero risco)
-- [ ] schema: `provider` + `providerConfig` na Instance (+ db push)
-- [ ] `waha.service.ts`: createSession, getQr, getStatus, deleteSession,
-      sendText, sendVoice/sendFile/sendImage, sendPresence (WAHA API, X-Api-Key)
-- [ ] `waha-webhook.controller.ts`: POST /webhooks/waha/:session → traduz eventos
-      do WAHA pros canônicos (WebhookDeliveryService.trigger, mesma shape da Evolution)
-- [ ] rota + env `WAHA_BASE_URL` / `WAHA_API_KEY` (Vercel)
+### Stage 1 — Fundação (aditivo, zero risco) ✅ FEITO (a42b99f)
+- [x] schema: `provider` + `providerConfig` na Instance (migração aplicada no DB prod `simpleszap`)
+- [x] `waha.service.ts`: createSession, getQr, getStatus, deleteSession, sendText/Voice/File/Image, sendPresence
+- [x] `waha-webhook.controller.ts`: POST /webhooks/waha/:session → eventos canônicos
+- [x] rota + env `WAHA_BASE_URL` / `WAHA_API_KEY` (Vercel)
 
-### Stage 2 — Roteamento por provider
-- [ ] `getProvider(instance.provider)` helper
-- [ ] instance.controller: create/getQr/delete ramificam por provider
-      (WAHA: cria sessão + seta webhook /webhooks/waha/{session})
-- [ ] message-queue.controller (processador da fila): envio ramifica por provider
-- [ ] campaigns + subscription-notify: idem
+### Stage 2 — Roteamento por provider ✅ FEITO (40ad427)
+- [x] `provider.service.ts` (ProviderService) — dispatcher central dos 3 providers
+- [x] instance.controller: create/getQr/delete/sendPresence roteados
+- [x] message-queue.controller (fila): envio roteado
+- [x] campaigns + subscription-notify + getPublicConnect: roteados
+- [x] TESTADO: criar instância WAHA via SimplesZap → sessão criada no servidor + webhook
+      auto-configurado + QR real retornado + delete removeu a sessão (404). Tudo verde.
 
-### Stage 3 — Provider Meta oficial
-- [ ] `meta-cloud.service.ts` (graph.facebook.com: send text/media, phone_number_id)
-- [ ] `meta-webhook.controller.ts`: GET verify (hub.challenge) + POST → canônico
-- [ ] providerConfig guarda token + phone_number_id + waba_id
-- [ ] ativa quando o número oficial for provisionado
+### Stage 3 — Provider Meta oficial ✅ FEITO (b792b3a)
+- [x] `meta-cloud.service.ts` (graph.facebook.com: sendText/sendMedia por phoneNumberId+token)
+- [x] `meta-webhook.controller.ts`: GET verify (hub.challenge) + POST → canônico (resolve por phone_number_id)
+- [x] providerConfig guarda accessToken + phoneNumberId + wabaId
+- [x] rotas GET+POST /webhooks/meta; env `META_WEBHOOK_VERIFY_TOKEN` (Vercel)
+- [x] TESTADO: verify token certo → 200+challenge; token errado → 403; POST evento → 200
+- [ ] ativa de fato quando o número oficial for provisionado (Business + WABA + token)
 
-### Stage 4 — Frontend
-- [ ] toggle de provider (Evolution / WAHA / Oficial) na tela "Nova Instância"
-- [ ] QR/status funcionam pros 3
+### Stage 4 — Frontend ✅ FEITO (70301ba)
+- [x] toggle 3-vias (Padrão/WAHA/Oficial) na tela "Nova Instância"
+- [x] campos de credencial Meta aparecem quando provider=oficial; Meta pula o QR (já connected)
+- [x] badge do provider na tabela; live em app.simpleszap.com
 
-### Stage 5 — Migração
-- [ ] BoxPrático → instância WAHA gerenciada pelo SimplesZap
-- [ ] ItBooster segue na Evolution
-- [ ] SDR com número dedicado no provider escolhido
+### Stage 5 — Migração (PENDENTE — precisa de ação física/decisão)
+- [ ] BoxPrático → instância WAHA gerenciada pelo SimplesZap (criar via UI + **escanear QR no celular BoxPrático**)
+- [x] ItBooster segue na Evolution (número mantido, intocado)
+- [ ] número oficial Meta: só quando provisionar Business+WABA
 
 ## Estado atual (2026-07-01)
-- WAHA no ar: `waha.toolpad.cloud` (VPS, /docker/waha, engine WEBJS 2026.6.2 CORE, grátis)
-- Sessão de teste "teste" pareada com BoxPrático (556192529112) — validou áudio grande
-- Credenciais no vault (`WAHA_*` em services.env)
+- **Stages 1-4 completos, deployados e validados em produção.** Evolution intocado, zero regressão.
+- WAHA no ar: `waha.toolpad.cloud` (VPS, /docker/waha, engine WEBJS, grátis)
+- Credenciais no vault (`WAHA_*`, `META_WEBHOOK_VERIFY_TOKEN` em services.env / Vercel)
+- **Gotcha deploy:** back.simpleszap.com é alias Vercel FIXADO — re-apontar via
+  `POST /v2/deployments/{uid}/aliases` após cada deploy; env nova exige REDEPLOY (não só re-alias).
+  O front (app.simpleszap.com) auto-promove normal.
+- Pendências: (1) parear BoxPrático na instância WAHA via SimplesZap (precisa do celular);
+  (2) cadastrar `waha.toolpad.cloud` no status.toolpad.cloud.
